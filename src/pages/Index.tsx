@@ -1,9 +1,6 @@
 import { usePatientData } from "@/hooks/usePatientData";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
-import { GenderChart } from "@/components/dashboard/GenderChart";
-import { AgeChart } from "@/components/dashboard/AgeChart";
-import { MicroareaChart } from "@/components/dashboard/MicroareaChart";
 import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
 import {
   Users,
@@ -109,22 +106,6 @@ const Index = () => {
           )}
         </div>
 
-        {/* Charts */}
-        <div className="mb-8 grid gap-6 lg:grid-cols-3">
-          {isLoading ? (
-            <>
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-80 rounded-xl" />
-              ))}
-            </>
-          ) : (
-            <>
-              <GenderChart patients={patients || []} />
-              <AgeChart patients={patients || []} />
-              <MicroareaChart patients={patients || []} />
-            </>
-          )}
-        </div>
 
         {/* Patient Table */}
         {isLoading ? (
