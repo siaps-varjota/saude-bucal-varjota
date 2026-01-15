@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { parse, isValid, differenceInYears } from "date-fns";
 import {
   Table,
   TableBody,
@@ -16,6 +17,34 @@ import { Search, ChevronLeft, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDo
 
 type SortKey = "id" | "nome" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
 type SortDirection = "asc" | "desc" | null;
+
+const parseConsultaDate = (consulta: string): Date | null => {
+  if (!consulta || consulta === "-" || consulta.trim() === "") return null;
+  
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(consulta.trim(), fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+};
+
+const isConsultaPendente = (primeiraConsulta: string): boolean => {
+  if (!primeiraConsulta || primeiraConsulta === "-" || primeiraConsulta.trim() === "") {
+    return true; // No consultation = pending
+  }
+  
+  const consultaDate = parseConsultaDate(primeiraConsulta);
+  if (!consultaDate) return true;
+  
+  const yearsAgo = differenceInYears(new Date(), consultaDate);
+  return yearsAgo >= 1;
+};
 
 interface PatientTableProps {
   patients: Patient[];
@@ -214,17 +243,17 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                   <TableCell>
                     <Badge
                       variant={
-                        patient.comPrimeiraConsulta.includes("NÃO")
+                        isConsultaPendente(patient.primeiraConsulta)
                           ? "destructive"
                           : "default"
                       }
                       className={
-                        patient.comPrimeiraConsulta.includes("NÃO")
+                        isConsultaPendente(patient.primeiraConsulta)
                           ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
                           : "bg-success/10 text-success hover:bg-success/20"
                       }
                     >
-                      {patient.comPrimeiraConsulta.includes("NÃO")
+                      {isConsultaPendente(patient.primeiraConsulta)
                         ? "Pendente"
                         : "Concluído"}
                     </Badge>
