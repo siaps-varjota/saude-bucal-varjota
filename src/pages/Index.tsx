@@ -37,7 +37,7 @@ const Index = () => {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Indicadores Saúde Bucal</h1>
-              <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saíd</p>
+              <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
             </div>
             <Button variant="outline" onClick={() => refetch()} disabled={isFetching} className="gap-2">
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
