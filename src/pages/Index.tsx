@@ -4,11 +4,10 @@ import { PatientTable } from "@/components/dashboard/PatientTable";
 import { GenderChart } from "@/components/dashboard/GenderChart";
 import { AgeChart } from "@/components/dashboard/AgeChart";
 import { MicroareaChart } from "@/components/dashboard/MicroareaChart";
+import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
 import {
   Users,
   UserCheck,
-  UserX,
-  Activity,
   RefreshCw,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,8 +38,6 @@ const Index = () => {
   const withConsultation = patients?.filter(
     (p) => !p.comPrimeiraConsulta.includes("NÃO")
   ).length || 0;
-  const withoutConsultation = totalPatients - withConsultation;
-  const uniqueMicroareas = new Set(patients?.map((p) => p.microarea)).size;
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,10 +68,10 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2">
           {isLoading ? (
             <>
-              {[...Array(4)].map((_, i) => (
+              {[...Array(2)].map((_, i) => (
                 <Skeleton key={i} className="h-32 rounded-xl" />
               ))}
             </>
@@ -92,19 +89,23 @@ const Index = () => {
                 icon={UserCheck}
                 variant="success"
               />
-              <StatsCard
-                title="Sem 1ª Consulta"
-                value={withoutConsultation.toLocaleString("pt-BR")}
-                icon={UserX}
-                variant="warning"
-              />
-              <StatsCard
-                title="Microáreas Ativas"
-                value={uniqueMicroareas}
-                icon={Activity}
-                variant="secondary"
-              />
             </>
+          )}
+        </div>
+
+        {/* Monthly Cards */}
+        <div className="mb-8">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">
+            Consultas por Mês (Últimos 12 meses)
+          </h2>
+          {isLoading ? (
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+              {[...Array(12)].map((_, i) => (
+                <Skeleton key={i} className="h-24 rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <MonthlyCards patients={patients || []} />
           )}
         </div>
 
