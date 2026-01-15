@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/hooks/usePatientData";
-import { Search, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+
+type SortKey = "id" | "nome" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
+type SortDirection = "asc" | "desc" | null;
 
 interface PatientTableProps {
   patients: Patient[];
@@ -21,7 +24,32 @@ interface PatientTableProps {
 export const PatientTable = ({ patients }: PatientTableProps) => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const perPage = 10;
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortKey(null);
+        setSortDirection(null);
+      } else {
+        setSortDirection("asc");
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+    setPage(1);
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortKey !== key) return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    if (sortDirection === "asc") return <ArrowUp className="h-4 w-4 ml-1" />;
+    return <ArrowDown className="h-4 w-4 ml-1" />;
+  };
 
   const filteredPatients = patients.filter(
     (patient) =>
@@ -30,8 +58,32 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
       patient.cpfCns.includes(search)
   );
 
-  const totalPages = Math.ceil(filteredPatients.length / perPage);
-  const paginatedPatients = filteredPatients.slice(
+  const sortedPatients = useMemo(() => {
+    if (!sortKey || !sortDirection) return filteredPatients;
+
+    return [...filteredPatients].sort((a, b) => {
+      let aValue: string | number = a[sortKey];
+      let bValue: string | number = b[sortKey];
+
+      // Handle numeric sorting for id and idade
+      if (sortKey === "id" || sortKey === "idade") {
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      // Handle string sorting
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredPatients, sortKey, sortDirection]);
+
+  const totalPages = Math.ceil(sortedPatients.length / perPage);
+  const paginatedPatients = sortedPatients.slice(
     (page - 1) * perPage,
     page * perPage
   );
@@ -72,13 +124,62 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold">Nº</TableHead>
-                <TableHead className="font-semibold">Nome</TableHead>
-                <TableHead className="font-semibold">Microárea</TableHead>
-                <TableHead className="font-semibold">Idade</TableHead>
-                <TableHead className="font-semibold">Sexo</TableHead>
-                <TableHead className="font-semibold">1ª Consulta</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("id")}
+                >
+                  <div className="flex items-center">
+                    Nº {getSortIcon("id")}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("nome")}
+                >
+                  <div className="flex items-center">
+                    Nome {getSortIcon("nome")}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("microarea")}
+                >
+                  <div className="flex items-center">
+                    Microárea {getSortIcon("microarea")}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("idade")}
+                >
+                  <div className="flex items-center">
+                    Idade {getSortIcon("idade")}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("sexo")}
+                >
+                  <div className="flex items-center">
+                    Sexo {getSortIcon("sexo")}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("primeiraConsulta")}
+                >
+                  <div className="flex items-center">
+                    1ª Consulta {getSortIcon("primeiraConsulta")}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("comPrimeiraConsulta")}
+                >
+                  <div className="flex items-center">
+                    Status {getSortIcon("comPrimeiraConsulta")}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
