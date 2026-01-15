@@ -8,15 +8,15 @@ interface MonthlyCardsProps {
   patients: Patient[];
 }
 
-const parseStatusDate = (status: string): Date | null => {
-  if (!status || status.includes("NÃO") || status === "-") return null;
+const parseConsultaDate = (consulta: string): Date | null => {
+  if (!consulta || consulta === "-" || consulta.trim() === "") return null;
   
   // Try different date formats
-  const formats = ["dd/MM/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
   
   for (const fmt of formats) {
     try {
-      const parsed = parse(status.trim(), fmt, new Date());
+      const parsed = parse(consulta.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
     } catch {
       continue;
@@ -46,13 +46,13 @@ export const MonthlyCards = ({ patients }: MonthlyCardsProps) => {
     };
   }).reverse();
 
-  // Count patients per month based on status date
+  // Count patients per month based on "1ª Consulta" date (primeiraConsulta field)
   const monthCounts = new Map<string, number>();
   
   patients.forEach((patient) => {
-    const statusDate = parseStatusDate(patient.comPrimeiraConsulta);
-    if (statusDate) {
-      const key = getMonthYearKey(statusDate);
+    const consultaDate = parseConsultaDate(patient.primeiraConsulta);
+    if (consultaDate) {
+      const key = getMonthYearKey(consultaDate);
       monthCounts.set(key, (monthCounts.get(key) || 0) + 1);
     }
   });
