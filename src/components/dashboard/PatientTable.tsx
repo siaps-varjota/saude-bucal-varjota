@@ -212,12 +212,12 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedPatients.map((patient) => (
+              {paginatedPatients.map((patient, index) => (
                 <TableRow
                   key={patient.id}
                   className="transition-colors hover:bg-muted/30"
                 >
-                  <TableCell className="font-medium">{patient.id}</TableCell>
+                  <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
                   <TableCell className="max-w-[200px] truncate font-medium">
                     {patient.nome}
                   </TableCell>
