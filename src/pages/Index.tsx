@@ -92,7 +92,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card py-6">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Dashboard de Saúde • ESF Pedreiras • Dados atualizados em tempo real</p>
+          <p>Secretaria Municipal de Saúde de Varjota - 2026 • Desenvolvido por Alidemberg Araújo</p>
         </div>
       </footer>
     </div>;
