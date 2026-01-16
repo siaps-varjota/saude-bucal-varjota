@@ -13,9 +13,16 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/hooks/usePatientData";
-import { Search, ChevronLeft, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-type SortKey = "id" | "nome" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
+type SortKey = "id" | "nome" | "equipe" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
 type SortDirection = "asc" | "desc" | null;
 
 const parseConsultaDate = (consulta: string): Date | null => {
@@ -55,7 +62,25 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [filterEquipe, setFilterEquipe] = useState<string>("all");
+  const [filterMicroarea, setFilterMicroarea] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const perPage = 10;
+
+  // Get unique values for filters
+  const uniqueEquipes = useMemo(() => {
+    const equipes = [...new Set(patients.map(p => p.equipe).filter(e => e && e.trim() !== ""))];
+    return equipes.sort();
+  }, [patients]);
+
+  const uniqueMicroareas = useMemo(() => {
+    const microareas = [...new Set(patients.map(p => p.microarea).filter(m => m && m.trim() !== ""))];
+    return microareas.sort((a, b) => {
+      const numA = parseInt(a) || 0;
+      const numB = parseInt(b) || 0;
+      return numA - numB;
+    });
+  }, [patients]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -80,12 +105,29 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
     return <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
-  const filteredPatients = patients.filter(
-    (patient) =>
+  const filteredPatients = patients.filter((patient) => {
+    // Search filter
+    const matchesSearch = 
       patient.nome.toLowerCase().includes(search.toLowerCase()) ||
       patient.microarea.includes(search) ||
-      patient.cpfCns.includes(search)
-  );
+      patient.cpfCns.includes(search) ||
+      patient.equipe.toLowerCase().includes(search.toLowerCase());
+    
+    // Equipe filter
+    const matchesEquipe = filterEquipe === "all" || patient.equipe === filterEquipe;
+    
+    // Microarea filter
+    const matchesMicroarea = filterMicroarea === "all" || patient.microarea === filterMicroarea;
+    
+    // Status filter
+    const isPendente = isConsultaPendente(patient.primeiraConsulta);
+    const matchesStatus = 
+      filterStatus === "all" || 
+      (filterStatus === "pendente" && isPendente) ||
+      (filterStatus === "concluido" && !isPendente);
+    
+    return matchesSearch && matchesEquipe && matchesMicroarea && matchesStatus;
+  });
 
   const sortedPatients = useMemo(() => {
     if (!sortKey || !sortDirection) return filteredPatients;
@@ -117,34 +159,99 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
     page * perPage
   );
 
+  const clearFilters = () => {
+    setFilterEquipe("all");
+    setFilterMicroarea("all");
+    setFilterStatus("all");
+    setSearch("");
+    setPage(1);
+  };
+
+  const hasActiveFilters = filterEquipe !== "all" || filterMicroarea !== "all" || filterStatus !== "all" || search !== "";
+
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader className="border-b border-border/50 bg-gradient-to-r from-card to-muted/20">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <Users className="h-5 w-5 text-primary" />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold">
+                  Pacientes Cadastrados
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {filteredPatients.length} pacientes encontrados
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg font-semibold">
-                Pacientes Cadastrados
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {filteredPatients.length} pacientes encontrados
-              </p>
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, equipe..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10"
+              />
             </div>
           </div>
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, microárea..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="pl-10"
-            />
+          
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+            </div>
+            
+            <Select value={filterEquipe} onValueChange={(value) => { setFilterEquipe(value); setPage(1); }}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Equipe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Equipes</SelectItem>
+                {uniqueEquipes.map((equipe) => (
+                  <SelectItem key={equipe} value={equipe}>
+                    {equipe}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterMicroarea} onValueChange={(value) => { setFilterMicroarea(value); setPage(1); }}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Microárea" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Microáreas</SelectItem>
+                {uniqueMicroareas.map((microarea) => (
+                  <SelectItem key={microarea} value={microarea}>
+                    Área {microarea}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={(value) => { setFilterStatus(value); setPage(1); }}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Status</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="concluido">Concluído</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+                Limpar filtros
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -167,6 +274,14 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                 >
                   <div className="flex items-center">
                     Nome {getSortIcon("nome")}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("equipe")}
+                >
+                  <div className="flex items-center">
+                    Equipe {getSortIcon("equipe")}
                   </div>
                 </TableHead>
                 <TableHead 
@@ -220,6 +335,11 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                   <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
                   <TableCell className="max-w-[200px] truncate font-medium">
                     {patient.nome}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="font-normal">
+                      {patient.equipe || "-"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-normal">
