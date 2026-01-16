@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { parse, isValid, differenceInYears } from "date-fns";
 import {
   Table,
   TableBody,
@@ -13,45 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/hooks/usePatientData";
-import { Search, ChevronLeft, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { isConsultaPendente } from "@/hooks/useFilteredPatients";
+import { Search, ChevronLeft, ChevronRight, Users, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 type SortKey = "id" | "nome" | "equipe" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
 type SortDirection = "asc" | "desc" | null;
-
-const parseConsultaDate = (consulta: string): Date | null => {
-  if (!consulta || consulta === "-" || consulta.trim() === "") return null;
-  
-  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-  
-  for (const fmt of formats) {
-    try {
-      const parsed = parse(consulta.trim(), fmt, new Date());
-      if (isValid(parsed)) return parsed;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-
-const isConsultaPendente = (primeiraConsulta: string): boolean => {
-  if (!primeiraConsulta || primeiraConsulta === "-" || primeiraConsulta.trim() === "") {
-    return true; // No consultation = pending
-  }
-  
-  const consultaDate = parseConsultaDate(primeiraConsulta);
-  if (!consultaDate) return true;
-  
-  const yearsAgo = differenceInYears(new Date(), consultaDate);
-  return yearsAgo >= 1;
-};
 
 interface PatientTableProps {
   patients: Patient[];
@@ -62,25 +27,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [filterEquipe, setFilterEquipe] = useState<string>("all");
-  const [filterMicroarea, setFilterMicroarea] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const perPage = 10;
-
-  // Get unique values for filters
-  const uniqueEquipes = useMemo(() => {
-    const equipes = [...new Set(patients.map(p => p.equipe).filter(e => e && e.trim() !== ""))];
-    return equipes.sort();
-  }, [patients]);
-
-  const uniqueMicroareas = useMemo(() => {
-    const microareas = [...new Set(patients.map(p => p.microarea).filter(m => m && m.trim() !== ""))];
-    return microareas.sort((a, b) => {
-      const numA = parseInt(a) || 0;
-      const numB = parseInt(b) || 0;
-      return numA - numB;
-    });
-  }, [patients]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -106,27 +53,12 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
   };
 
   const filteredPatients = patients.filter((patient) => {
-    // Search filter
-    const matchesSearch = 
+    return (
       patient.nome.toLowerCase().includes(search.toLowerCase()) ||
       patient.microarea.includes(search) ||
       patient.cpfCns.includes(search) ||
-      patient.equipe.toLowerCase().includes(search.toLowerCase());
-    
-    // Equipe filter
-    const matchesEquipe = filterEquipe === "all" || patient.equipe === filterEquipe;
-    
-    // Microarea filter
-    const matchesMicroarea = filterMicroarea === "all" || patient.microarea === filterMicroarea;
-    
-    // Status filter
-    const isPendente = isConsultaPendente(patient.primeiraConsulta);
-    const matchesStatus = 
-      filterStatus === "all" || 
-      (filterStatus === "pendente" && isPendente) ||
-      (filterStatus === "concluido" && !isPendente);
-    
-    return matchesSearch && matchesEquipe && matchesMicroarea && matchesStatus;
+      patient.equipe.toLowerCase().includes(search.toLowerCase())
+    );
   });
 
   const sortedPatients = useMemo(() => {
@@ -159,99 +91,34 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
     page * perPage
   );
 
-  const clearFilters = () => {
-    setFilterEquipe("all");
-    setFilterMicroarea("all");
-    setFilterStatus("all");
-    setSearch("");
-    setPage(1);
-  };
-
-  const hasActiveFilters = filterEquipe !== "all" || filterMicroarea !== "all" || filterStatus !== "all" || search !== "";
-
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader className="border-b border-border/50 bg-gradient-to-r from-card to-muted/20">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary/10 p-2">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-lg font-semibold">
-                  Pacientes Cadastrados
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {filteredPatients.length} pacientes encontrados
-                </p>
-              </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Users className="h-5 w-5 text-primary" />
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, equipe..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-10"
-              />
+            <div>
+              <CardTitle className="text-lg font-semibold">
+                Pacientes Cadastrados
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {filteredPatients.length} pacientes encontrados
+              </p>
             </div>
           </div>
-          
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
-            </div>
-            
-            <Select value={filterEquipe} onValueChange={(value) => { setFilterEquipe(value); setPage(1); }}>
-              <SelectTrigger className="w-[160px] h-9">
-                <SelectValue placeholder="Equipe" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Equipes</SelectItem>
-                {uniqueEquipes.map((equipe) => (
-                  <SelectItem key={equipe} value={equipe}>
-                    {equipe}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterMicroarea} onValueChange={(value) => { setFilterMicroarea(value); setPage(1); }}>
-              <SelectTrigger className="w-[160px] h-9">
-                <SelectValue placeholder="Microárea" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Microáreas</SelectItem>
-                {uniqueMicroareas.map((microarea) => (
-                  <SelectItem key={microarea} value={microarea}>
-                    Área {microarea}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterStatus} onValueChange={(value) => { setFilterStatus(value); setPage(1); }}>
-              <SelectTrigger className="w-[140px] h-9">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="concluido">Concluído</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
-                Limpar filtros
-              </Button>
-            )}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, equipe..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pl-10"
+            />
           </div>
         </div>
       </CardHeader>
@@ -260,7 +127,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("id")}
                 >
@@ -268,7 +135,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     Nº {getSortIcon("id")}
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("nome")}
                 >
@@ -276,7 +143,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     Nome {getSortIcon("nome")}
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("equipe")}
                 >
@@ -284,7 +151,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     Equipe {getSortIcon("equipe")}
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("microarea")}
                 >
@@ -292,7 +159,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     Microárea {getSortIcon("microarea")}
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("idade")}
                 >
@@ -300,7 +167,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     Idade {getSortIcon("idade")}
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("sexo")}
                 >
@@ -308,7 +175,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     Sexo {getSortIcon("sexo")}
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("primeiraConsulta")}
                 >
@@ -316,7 +183,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     1ª Consulta {getSortIcon("primeiraConsulta")}
                   </div>
                 </TableHead>
-                <TableHead 
+                <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("comPrimeiraConsulta")}
                 >
@@ -332,7 +199,9 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                   key={patient.id}
                   className="transition-colors hover:bg-muted/30"
                 >
-                  <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
+                  <TableCell className="font-medium">
+                    {(page - 1) * perPage + index + 1}
+                  </TableCell>
                   <TableCell className="max-w-[200px] truncate font-medium">
                     {patient.nome}
                   </TableCell>
