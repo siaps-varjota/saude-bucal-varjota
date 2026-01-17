@@ -4,6 +4,7 @@ import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { parse, isValid, format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
+import { Calendar } from "lucide-react";
 
 interface TratamentoMonthlyCardsProps {
   patients: TratamentoPatient[];
@@ -32,33 +33,18 @@ const getScoreCategory = (score: number): string => {
   return "otimo";
 };
 
-const getScoreBorderColor = (category: string) => {
+const getScoreStyles = (category: string) => {
   switch (category) {
     case "regular":
-      return "border-l-red-500";
+      return { border: "border-l-red-500", dot: "bg-red-500", bg: "bg-red-50" };
     case "suficiente":
-      return "border-l-amber-500";
+      return { border: "border-l-amber-500", dot: "bg-amber-500", bg: "bg-amber-50" };
     case "bom":
-      return "border-l-blue-500";
+      return { border: "border-l-blue-500", dot: "bg-blue-500", bg: "bg-blue-50" };
     case "otimo":
-      return "border-l-emerald-500";
+      return { border: "border-l-emerald-500", dot: "bg-emerald-500", bg: "bg-emerald-50" };
     default:
-      return "border-l-muted-foreground";
-  }
-};
-
-const getScoreDotColor = (category: string) => {
-  switch (category) {
-    case "regular":
-      return "bg-red-500";
-    case "suficiente":
-      return "bg-amber-500";
-    case "bom":
-      return "bg-blue-500";
-    case "otimo":
-      return "bg-emerald-500";
-    default:
-      return "bg-muted-foreground";
+      return { border: "border-l-muted-foreground", dot: "bg-muted-foreground", bg: "bg-muted" };
   }
 };
 
@@ -96,16 +82,15 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
       {monthlyData.map(({ label, count, total }) => {
         const score = total > 0 ? count / total : 0;
         const category = getScoreCategory(score);
-        const borderColor = getScoreBorderColor(category);
-        const dotColor = getScoreDotColor(category);
+        const styles = getScoreStyles(category);
         
         return (
           <Card
             key={label}
-            className={`p-3 border-l-4 ${borderColor} bg-card transition-all hover:shadow-md`}
+            className={`p-3 border-l-4 ${styles.border} ${styles.bg} transition-all hover:shadow-md`}
           >
             <div className="flex items-center gap-1 mb-1">
-              <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+              <Calendar className="w-3 h-3 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground">{label}</span>
             </div>
             <div className="text-xl font-bold text-foreground">{count}</div>
