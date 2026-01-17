@@ -32,18 +32,33 @@ const getScoreCategory = (score: number): string => {
   return "otimo";
 };
 
-const getScoreStyles = (category: string) => {
+const getScoreBorderColor = (category: string) => {
   switch (category) {
     case "regular":
-      return "bg-red-500/10 border-red-500/30 text-red-700";
+      return "border-l-red-500";
     case "suficiente":
-      return "bg-amber-500/10 border-amber-500/30 text-amber-700";
+      return "border-l-amber-500";
     case "bom":
-      return "bg-blue-500/10 border-blue-500/30 text-blue-700";
+      return "border-l-blue-500";
     case "otimo":
-      return "bg-emerald-500/10 border-emerald-500/30 text-emerald-700";
+      return "border-l-emerald-500";
     default:
-      return "bg-muted border-muted-foreground/20 text-muted-foreground";
+      return "border-l-muted-foreground";
+  }
+};
+
+const getScoreDotColor = (category: string) => {
+  switch (category) {
+    case "regular":
+      return "bg-red-500";
+    case "suficiente":
+      return "bg-amber-500";
+    case "bom":
+      return "bg-blue-500";
+    case "otimo":
+      return "bg-emerald-500";
+    default:
+      return "bg-muted-foreground";
   }
 };
 
@@ -81,16 +96,20 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
       {monthlyData.map(({ label, count, total }) => {
         const score = total > 0 ? count / total : 0;
         const category = getScoreCategory(score);
-        const styles = getScoreStyles(category);
+        const borderColor = getScoreBorderColor(category);
+        const dotColor = getScoreDotColor(category);
         
         return (
           <Card
             key={label}
-            className={`p-3 text-center border ${styles} transition-all hover:shadow-md`}
+            className={`p-3 border-l-4 ${borderColor} bg-card transition-all hover:shadow-md`}
           >
-            <div className="text-xs font-medium opacity-80 mb-1">{label}</div>
-            <div className="text-xl font-bold">{count}</div>
-            <div className="text-xs opacity-70">
+            <div className="flex items-center gap-1 mb-1">
+              <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+              <span className="text-xs font-medium text-muted-foreground">{label}</span>
+            </div>
+            <div className="text-xl font-bold text-foreground">{count}</div>
+            <div className="text-xs text-muted-foreground">
               {(score * 100).toFixed(1)}%
             </div>
           </Card>
