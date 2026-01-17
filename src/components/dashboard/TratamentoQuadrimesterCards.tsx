@@ -26,10 +26,10 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
 };
 
 const getScoreCategory = (percentage: number): string => {
-  if (percentage < 25) return "regular";
-  if (percentage < 50) return "suficiente";
-  if (percentage < 75) return "bom";
-  return "otimo";
+  if (percentage <= 25) return "regular";      // Vermelho
+  if (percentage <= 50) return "suficiente";   // Amarelo
+  if (percentage <= 75) return "bom";          // Verde
+  return "otimo";                              // Azul
 };
 
 const getScoreStyles = (category: string) => {
@@ -50,17 +50,17 @@ const getScoreStyles = (category: string) => {
       };
     case "bom":
       return {
-        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
-        icon: "text-blue-600",
-        label: "text-blue-700",
-        count: "text-blue-700",
-      };
-    case "otimo":
-      return {
         bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
         icon: "text-emerald-600",
         label: "text-emerald-700",
         count: "text-emerald-700",
+      };
+    case "otimo":
+      return {
+        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
+        icon: "text-blue-600",
+        label: "text-blue-700",
+        count: "text-blue-700",
       };
     default:
       return {
