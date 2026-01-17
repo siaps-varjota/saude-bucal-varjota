@@ -31,18 +31,33 @@ const getScoreCategory = (score: number): string => {
   return "otimo";
 };
 
-const getScoreStyles = (category: string) => {
+const getScoreBorderColor = (category: string) => {
   switch (category) {
     case "regular":
-      return "bg-red-500/10 border-red-500/30 text-red-700";
+      return "border-l-red-500";
     case "suficiente":
-      return "bg-amber-500/10 border-amber-500/30 text-amber-700";
+      return "border-l-amber-500";
     case "bom":
-      return "bg-blue-500/10 border-blue-500/30 text-blue-700";
+      return "border-l-blue-500";
     case "otimo":
-      return "bg-emerald-500/10 border-emerald-500/30 text-emerald-700";
+      return "border-l-emerald-500";
     default:
-      return "bg-muted border-muted-foreground/20 text-muted-foreground";
+      return "border-l-muted-foreground";
+  }
+};
+
+const getScoreDotColor = (category: string) => {
+  switch (category) {
+    case "regular":
+      return "bg-red-500";
+    case "suficiente":
+      return "bg-amber-500";
+    case "bom":
+      return "bg-blue-500";
+    case "otimo":
+      return "bg-emerald-500";
+    default:
+      return "bg-muted-foreground";
   }
 };
 
@@ -133,18 +148,22 @@ export const TratamentoQuadrimesterCards = ({ patients }: TratamentoQuadrimester
         const totalPatients = patients.length;
         const score = totalPatients > 0 ? average / totalPatients : 0;
         const category = getScoreCategory(score);
-        const styles = getScoreStyles(category);
+        const borderColor = getScoreBorderColor(category);
+        const dotColor = getScoreDotColor(category);
         
         return (
-          <Card key={label} className={`border ${styles} transition-all hover:shadow-md`}>
+          <Card key={label} className={`border-l-4 ${borderColor} bg-card transition-all hover:shadow-md`}>
             <CardContent className="p-4">
-              <div className="flex flex-col items-center text-center">
-                <span className="text-xs font-medium opacity-80 mb-1">{label}</span>
-                <span className="text-2xl font-bold">{average}</span>
-                <span className="text-xs opacity-70">
-                  média/mês ({total} em {months}m)
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className={`w-2 h-2 rounded-full ${dotColor}`} />
+                  <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                </div>
+                <span className="text-3xl font-bold text-foreground">{average.toFixed(1)}</span>
+                <span className="text-sm text-muted-foreground mt-1">
+                  Média/mês ({total} total)
                 </span>
-                <span className="text-xs opacity-60 mt-1">
+                <span className="text-xs text-muted-foreground mt-0.5">
                   {(score * 100).toFixed(1)}%
                 </span>
               </div>
