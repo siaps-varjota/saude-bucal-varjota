@@ -73,7 +73,7 @@ export const PatientFilters = ({
       toast.error("Erro ao gerar PDF");
     }
   };
-  return <div className="flex flex-wrap items-center p-4 bg-card rounded-lg shadow-sm gap-[12px] border-2 my-0 px-px py-[14px]">
+  return <div className="flex flex-wrap items-center p-4 bg-card rounded-lg shadow-sm gap-[12px] border-2 my-0 px-[16px] py-[16px]">
       <div className="flex items-center gap-2">
         <Filter className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
