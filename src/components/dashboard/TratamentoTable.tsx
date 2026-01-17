@@ -35,7 +35,7 @@ interface TratamentoTableProps {
   patients: TratamentoPatient[];
 }
 
-type SortField = "id" | "nome" | "equipe" | "microarea" | "idade" | "tratamentoConcluido";
+type SortField = "id" | "nome" | "equipe" | "microarea" | "idade" | "primeiraConsulta" | "tratamentoConcluido";
 type SortDirection = "asc" | "desc";
 
 export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
@@ -91,6 +91,9 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
           break;
         case "idade":
           comparison = a.idade - b.idade;
+          break;
+        case "primeiraConsulta":
+          comparison = a.primeiraConsulta.localeCompare(b.primeiraConsulta);
           break;
         case "tratamentoConcluido":
           comparison = a.tratamentoConcluido.localeCompare(b.tratamentoConcluido);
@@ -188,20 +191,28 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
                 <TableHead className="font-semibold">Sexo</TableHead>
                 <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("primeiraConsulta")}
+                >
+                  <div className="flex items-center">
+                    1ª Consulta {getSortIcon("primeiraConsulta")}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("tratamentoConcluido")}
                 >
                   <div className="flex items-center">
-                    Tratamento {getSortIcon("tratamentoConcluido")}
+                    Tratamento Concluído {getSortIcon("tratamentoConcluido")}
                   </div>
                 </TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Com Tratamento Concluído</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedPatients.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={10}
                     className="text-center py-8 text-muted-foreground"
                   >
                     Nenhum paciente encontrado
@@ -244,6 +255,9 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
+                        {patient.primeiraConsulta}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {patient.tratamentoConcluido}
                       </TableCell>
                       <TableCell>
@@ -255,7 +269,7 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
                               : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/30"
                           }
                         >
-                          {isPendente ? "Pendente" : "Concluído"}
+                          {isPendente ? "NÃO" : "SIM"}
                         </Badge>
                       </TableCell>
                     </TableRow>

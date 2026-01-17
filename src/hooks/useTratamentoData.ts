@@ -9,6 +9,7 @@ export interface TratamentoPatient {
   cpfCns: string;
   sexo: string;
   idade: number;
+  primeiraConsulta: string;
   tratamentoConcluido: string;
   comTratamentoConcluido: string;
 }
@@ -53,8 +54,9 @@ const parseCSV = (csv: string): TratamentoPatient[] => {
         cpfCns: fields[5] || "",
         sexo: fields[6] || "",
         idade,
-        tratamentoConcluido: fields[8] || "-",
-        comTratamentoConcluido: fields[9] || "NÃO",
+        primeiraConsulta: fields[8] || "-",
+        tratamentoConcluido: fields[9] || "-",
+        comTratamentoConcluido: fields[10] || "NÃO",
       };
     })
     .filter((patient) => patient.id > 0);
