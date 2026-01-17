@@ -26,25 +26,25 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
   return null;
 };
 
-const getScoreCategory = (score: number): string => {
-  if (score < 0.25) return "regular";
-  if (score < 0.50) return "suficiente";
-  if (score < 0.75) return "bom";
-  return "otimo";
+const getScoreCategory = (percentage: number): string => {
+  if (percentage <= 25) return "regular";      // Vermelho
+  if (percentage <= 50) return "suficiente";   // Amarelo
+  if (percentage <= 75) return "bom";          // Verde
+  return "otimo";                              // Azul
 };
 
 const getScoreStyles = (category: string) => {
   switch (category) {
     case "regular":
-      return { border: "border-l-red-500", dot: "bg-red-500", bg: "bg-red-50" };
+      return { border: "border-l-red-500", bg: "bg-red-50", text: "text-red-600" };
     case "suficiente":
-      return { border: "border-l-amber-500", dot: "bg-amber-500", bg: "bg-amber-50" };
+      return { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-600" };
     case "bom":
-      return { border: "border-l-blue-500", dot: "bg-blue-500", bg: "bg-blue-50" };
+      return { border: "border-l-emerald-500", bg: "bg-emerald-50", text: "text-emerald-600" };
     case "otimo":
-      return { border: "border-l-emerald-500", dot: "bg-emerald-500", bg: "bg-emerald-50" };
+      return { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-600" };
     default:
-      return { border: "border-l-muted-foreground", dot: "bg-muted-foreground", bg: "bg-muted" };
+      return { border: "border-l-muted-foreground", bg: "bg-muted", text: "text-muted-foreground" };
   }
 };
 
@@ -88,8 +88,8 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
     <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
         {monthlyData.map(({ label, tratamentoCount, consultaCount }) => {
-          const score = consultaCount > 0 ? tratamentoCount / consultaCount : 0;
-          const category = getScoreCategory(score);
+          const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 : 0;
+          const category = getScoreCategory(percentage);
           const styles = getScoreStyles(category);
           
           return (
@@ -102,8 +102,8 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
                 <span className="text-xs font-medium text-muted-foreground">{label}</span>
               </div>
               <div className="text-xl font-bold text-foreground">{tratamentoCount}</div>
-              <div className="text-xs text-muted-foreground">
-                {(score * 100).toFixed(1)}%
+              <div className={`text-xs font-medium ${styles.text}`}>
+                {percentage.toFixed(1)}%
               </div>
             </Card>
           );
@@ -119,19 +119,19 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
         <div className="flex items-center border rounded-md divide-x text-xs">
           <div className="px-3 py-1.5 flex flex-col items-center">
             <span className="font-medium text-red-600">Regular</span>
-            <span className="text-muted-foreground">&lt; 25</span>
+            <span className="text-muted-foreground">≤ 25%</span>
           </div>
           <div className="px-3 py-1.5 flex flex-col items-center">
             <span className="font-medium text-amber-600">Suficiente</span>
-            <span className="text-muted-foreground">&gt; 25 e &lt; 50</span>
+            <span className="text-muted-foreground">&gt; 25% e ≤ 50%</span>
           </div>
           <div className="px-3 py-1.5 flex flex-col items-center">
-            <span className="font-medium text-blue-600">Bom</span>
-            <span className="text-muted-foreground">&gt; 50 e &lt; 75</span>
+            <span className="font-medium text-emerald-600">Bom</span>
+            <span className="text-muted-foreground">&gt; 50% e ≤ 75%</span>
           </div>
           <div className="px-3 py-1.5 flex flex-col items-center">
-            <span className="font-medium text-emerald-600">Ótimo</span>
-            <span className="text-muted-foreground">&gt; 75 a 100</span>
+            <span className="font-medium text-blue-600">Ótimo</span>
+            <span className="text-muted-foreground">&gt; 75%</span>
           </div>
         </div>
       </div>
