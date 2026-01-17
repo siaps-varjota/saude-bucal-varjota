@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
-  
   const {
     data: patients,
     isLoading: isLoadingPatients,
@@ -26,7 +25,6 @@ const Index = () => {
     refetch: refetchPatients,
     isFetching: isFetchingPatients
   } = usePatientData();
-  
   const {
     data: tratamentoPatients,
     isLoading: isLoadingTratamento,
@@ -34,22 +32,18 @@ const Index = () => {
     refetch: refetchTratamento,
     isFetching: isFetchingTratamento
   } = useTratamentoData();
-  
   const [filtersConsulta, setFiltersConsulta] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
     status: "all"
   });
-  
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
     status: "all"
   });
-  
   const filteredPatients = useFilteredPatients(patients || [], filtersConsulta);
   const filteredTratamento = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
-  
   const isLoading = activeTab === "consulta" ? isLoadingPatients : isLoadingTratamento;
   const error = activeTab === "consulta" ? errorPatients : errorTratamento;
   const isFetching = activeTab === "consulta" ? isFetchingPatients : isFetchingTratamento;
@@ -71,10 +65,8 @@ const Index = () => {
   }
   const totalPatients = filteredPatients.length;
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-  
   const totalTratamento = filteredTratamento.length;
   const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
-  
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
@@ -104,26 +96,20 @@ const Index = () => {
           
           <TabsContent value="consulta" className="mt-6">
             {/* Filters for Consulta */}
-            {!isLoadingPatients && patients && (
-              <div className="mb-6">
+            {!isLoadingPatients && patients && <div className="mb-6">
                 <PatientFilters patients={patients} filters={filtersConsulta} onFiltersChange={setFiltersConsulta} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-consulta">
               {/* Stats Cards */}
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingPatients ? (
-                  <>
+                {isLoadingPatients ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <QuadrimesterCards patients={filteredPatients} />
-                  </>
-                )}
+                  </>}
               </div>
 
               {/* Monthly Cards */}
@@ -131,13 +117,9 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   Consultas por Mês (Últimos 12 meses)
                 </h2>
-                {isLoadingPatients ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                {isLoadingPatients ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <MonthlyCards patients={filteredPatients} />
-                )}
+                  </div> : <MonthlyCards patients={filteredPatients} />}
               </div>
 
               {/* Patient Table */}
@@ -147,40 +129,28 @@ const Index = () => {
           
           <TabsContent value="tratamento" className="mt-6">
             {/* Filters for Tratamento */}
-            {!isLoadingTratamento && tratamentoPatients && (
-              <div className="mb-6">
+            {!isLoadingTratamento && tratamentoPatients && <div className="mb-6">
                 <PatientFilters patients={tratamentoPatients as any} filters={filtersTratamento} onFiltersChange={setFiltersTratamento} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-tratamento">
               {/* Stats Cards */}
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingTratamento ? (
-                  <>
+                {isLoadingTratamento ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <TratamentoQuadrimesterCards patients={filteredTratamento} />
-                  </>
-                )}
+                  </>}
               </div>
 
               {/* Monthly Cards */}
               <div className="mb-8">
-                <h2 className="mb-4 text-lg font-semibold text-foreground">
-                  Tratamentos por Mês (Últimos 12 meses)
-                </h2>
-                {isLoadingTratamento ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)</h2>
+                {isLoadingTratamento ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <TratamentoMonthlyCards patients={filteredTratamento} />
-                )}
+                  </div> : <TratamentoMonthlyCards patients={filteredTratamento} />}
               </div>
 
               {/* Tratamento Table */}
