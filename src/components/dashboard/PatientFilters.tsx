@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Filter } from "lucide-react";
+import { Filter, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Patient } from "@/hooks/usePatientData";
+import { toast } from "sonner";
 
 export interface FilterState {
   equipe: string;
@@ -43,6 +44,34 @@ export const PatientFilters = ({ patients, filters, onFiltersChange }: PatientFi
   };
 
   const hasActiveFilters = filters.equipe !== "all" || filters.microarea !== "all" || filters.status !== "all";
+
+  const handleGeneratePDF = async () => {
+    toast.info("Gerando PDF...");
+    
+    const element = document.getElementById("dashboard-content");
+    if (!element) {
+      toast.error("Erro ao gerar PDF");
+      return;
+    }
+
+    try {
+      const html2pdf = (await import("html2pdf.js")).default;
+      
+      const opt = {
+        margin: 10,
+        filename: `dashboard-saude-bucal-${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'landscape' as const }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF");
+    }
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 bg-card rounded-lg border shadow-sm">
@@ -104,6 +133,13 @@ export const PatientFilters = ({ patients, filters, onFiltersChange }: PatientFi
           Limpar filtros
         </Button>
       )}
+
+      <div className="ml-auto">
+        <Button variant="outline" size="sm" onClick={handleGeneratePDF} className="h-9 gap-2">
+          <FileDown className="h-4 w-4" />
+          Gerar PDF
+        </Button>
+      </div>
     </div>
   );
 };

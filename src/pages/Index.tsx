@@ -65,28 +65,30 @@ const Index = () => {
             <PatientFilters patients={patients} filters={filters} onFiltersChange={setFilters} />
           </div>}
 
-        {/* Stats Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2">
-          {isLoading ? <>
-              {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-            </> : <>
-              <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-              <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-            </>}
-        </div>
+        <div id="dashboard-content">
+          {/* Stats Cards */}
+          <div className="mb-8 grid gap-4 sm:grid-cols-2">
+            {isLoading ? <>
+                {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+              </> : <>
+                <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+              </>}
+          </div>
 
-        {/* Monthly Cards */}
-        <div className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
-            Consultas por Mês (Últimos 12 meses)
-          </h2>
-          {isLoading ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-              {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-            </div> : <MonthlyCards patients={filteredPatients} />}
-        </div>
+          {/* Monthly Cards */}
+          <div className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
+              Consultas por Mês (Últimos 12 meses)
+            </h2>
+            {isLoading ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+              </div> : <MonthlyCards patients={filteredPatients} />}
+          </div>
 
-        {/* Patient Table */}
-        {isLoading ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
+          {/* Patient Table */}
+          {isLoading ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
+        </div>
       </main>
 
       {/* Footer */}
