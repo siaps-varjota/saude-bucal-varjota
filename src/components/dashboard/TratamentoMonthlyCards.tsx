@@ -85,28 +85,56 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
   }, [patients]);
 
   return (
-    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-      {monthlyData.map(({ label, tratamentoCount, consultaCount }) => {
-        const score = consultaCount > 0 ? tratamentoCount / consultaCount : 0;
-        const category = getScoreCategory(score);
-        const styles = getScoreStyles(category);
-        
-        return (
-          <Card
-            key={label}
-            className={`p-3 border-l-4 ${styles.border} ${styles.bg} transition-all hover:shadow-md`}
-          >
-            <div className="flex items-center gap-1 mb-1">
-              <Calendar className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">{label}</span>
-            </div>
-            <div className="text-xl font-bold text-foreground">{tratamentoCount}</div>
-            <div className="text-xs text-muted-foreground">
-              {(score * 100).toFixed(1)}%
-            </div>
-          </Card>
-        );
-      })}
+    <div className="space-y-4">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+        {monthlyData.map(({ label, tratamentoCount, consultaCount }) => {
+          const score = consultaCount > 0 ? tratamentoCount / consultaCount : 0;
+          const category = getScoreCategory(score);
+          const styles = getScoreStyles(category);
+          
+          return (
+            <Card
+              key={label}
+              className={`p-3 border-l-4 ${styles.border} ${styles.bg} transition-all hover:shadow-md`}
+            >
+              <div className="flex items-center gap-1 mb-1">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">{label}</span>
+              </div>
+              <div className="text-xl font-bold text-foreground">{tratamentoCount}</div>
+              <div className="text-xs text-muted-foreground">
+                {(score * 100).toFixed(1)}%
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+      
+      {/* Score Legend */}
+      <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-1.5">
+          <span className="text-blue-500">●</span>
+          <span className="font-medium text-muted-foreground">Pontuação</span>
+        </div>
+        <div className="flex items-center border rounded-md divide-x text-xs">
+          <div className="px-3 py-1.5 flex flex-col items-center">
+            <span className="font-medium text-red-600">Regular</span>
+            <span className="text-muted-foreground">&lt; 25</span>
+          </div>
+          <div className="px-3 py-1.5 flex flex-col items-center">
+            <span className="font-medium text-amber-600">Suficiente</span>
+            <span className="text-muted-foreground">&gt; 25 e &lt; 50</span>
+          </div>
+          <div className="px-3 py-1.5 flex flex-col items-center">
+            <span className="font-medium text-blue-600">Bom</span>
+            <span className="text-muted-foreground">&gt; 50 e &lt; 75</span>
+          </div>
+          <div className="px-3 py-1.5 flex flex-col items-center">
+            <span className="font-medium text-emerald-600">Ótimo</span>
+            <span className="text-muted-foreground">&gt; 75 a 100</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
