@@ -4,6 +4,7 @@ import { useFilteredPatients } from "@/hooks/useFilteredPatients";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
+import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Users, UserCheck, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -67,12 +68,13 @@ const Index = () => {
 
         <div id="dashboard-content">
           {/* Stats Cards */}
-          <div className="mb-8 grid gap-4 sm:grid-cols-2">
+          <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
             {isLoading ? <>
-                {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
               </> : <>
                 <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                <QuadrimesterCards patients={filteredPatients} />
               </>}
           </div>
 
