@@ -51,7 +51,7 @@ const getScoreStyles = (category: string) => {
 export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps) => {
   const monthlyData = useMemo(() => {
     const now = new Date();
-    const months: { month: Date; label: string; count: number; total: number }[] = [];
+    const months: { month: Date; label: string; tratamentoCount: number; consultaCount: number }[] = [];
     
     // Get last 12 months including current
     for (let i = 11; i >= 0; i--) {
@@ -59,18 +59,25 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
       const monthKey = format(month, "MM/yyyy");
       const label = format(month, "MMM/yy", { locale: ptBR });
       
-      // Count patients with treatment in this month
-      const count = patients.filter(p => {
+      // Count patients with tratamento concluído in this month
+      const tratamentoCount = patients.filter(p => {
         const tratamentoDate = parseTratamentoDate(p.tratamentoConcluido);
         if (!tratamentoDate) return false;
         return format(tratamentoDate, "MM/yyyy") === monthKey;
       }).length;
       
+      // Count patients with 1ª consulta in this month
+      const consultaCount = patients.filter(p => {
+        const consultaDate = parseTratamentoDate(p.primeiraConsulta);
+        if (!consultaDate) return false;
+        return format(consultaDate, "MM/yyyy") === monthKey;
+      }).length;
+      
       months.push({
         month,
         label: label.charAt(0).toUpperCase() + label.slice(1),
-        count,
-        total: patients.length
+        tratamentoCount,
+        consultaCount
       });
     }
     
@@ -79,8 +86,8 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
 
   return (
     <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-      {monthlyData.map(({ label, count, total }) => {
-        const score = total > 0 ? count / total : 0;
+      {monthlyData.map(({ label, tratamentoCount, consultaCount }) => {
+        const score = consultaCount > 0 ? tratamentoCount / consultaCount : 0;
         const category = getScoreCategory(score);
         const styles = getScoreStyles(category);
         
@@ -93,7 +100,7 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
               <Calendar className="w-3 h-3 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground">{label}</span>
             </div>
-            <div className="text-xl font-bold text-foreground">{count}</div>
+            <div className="text-xl font-bold text-foreground">{tratamentoCount}</div>
             <div className="text-xs text-muted-foreground">
               {(score * 100).toFixed(1)}%
             </div>
