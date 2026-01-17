@@ -70,10 +70,10 @@ const Index = () => {
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
-        <div className="container mx-auto px-px py-[23px]">
+        <div className="container mx-auto py-[23px] px-[10px]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Indicadores de Saúde Bucal de Varjota</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl ml-0 mt-0 mr-0">Indicadores de Saúde Bucal de Varjota</h1>
               <p className="mt-1 text-muted-foreground">
                 Painel de Monitoramento da Saúde Bucal
               </p>
