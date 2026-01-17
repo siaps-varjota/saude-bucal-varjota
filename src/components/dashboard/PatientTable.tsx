@@ -137,14 +137,6 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                 </TableHead>
                 <TableHead
                   className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
-                  onClick={() => handleSort("nome")}
-                >
-                  <div className="flex items-center">
-                    Nome {getSortIcon("nome")}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => handleSort("equipe")}
                 >
                   <div className="flex items-center">
@@ -157,6 +149,19 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                 >
                   <div className="flex items-center">
                     Microárea {getSortIcon("microarea")}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => handleSort("nome")}
+                >
+                  <div className="flex items-center">
+                    Nome {getSortIcon("nome")}
+                  </div>
+                </TableHead>
+                <TableHead className="font-semibold">
+                  <div className="flex items-center">
+                    CPF/CNS
                   </div>
                 </TableHead>
                 <TableHead
@@ -202,9 +207,6 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                   <TableCell className="font-medium">
                     {(page - 1) * perPage + index + 1}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate font-medium">
-                    {patient.nome}
-                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="font-normal">
                       {patient.equipe || "-"}
@@ -214,6 +216,12 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
                     <Badge variant="outline" className="font-normal">
                       Área {patient.microarea}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate font-medium">
+                    {patient.nome}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {patient.cpfCns || "-"}
                   </TableCell>
                   <TableCell>{patient.idade} anos</TableCell>
                   <TableCell>
