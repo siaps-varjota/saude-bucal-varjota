@@ -110,35 +110,58 @@ export const MonthlyCards = ({ patients }: MonthlyCardsProps) => {
   });
 
   return (
-    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-      {last12Months.map((month) => {
-        const count = monthCounts.get(month.key) || 0;
-        const percentage = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
-        const category = getScoreCategory(percentage);
-        const styles = getScoreStyles(category);
-        
-        return (
-          <Card
-            key={month.key}
-            className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}
-          >
-            <CardContent className="p-3 text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Calendar className={`h-3 w-3 ${styles.icon}`} />
-                <span className={`text-xs font-medium uppercase ${styles.label}`}>
-                  {month.label}
-                </span>
-              </div>
-              <p className={`text-2xl font-bold ${styles.count}`}>
-                {count}
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {percentage.toFixed(1)}%
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="space-y-4">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+        {last12Months.map((month) => {
+          const count = monthCounts.get(month.key) || 0;
+          const percentage = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
+          const category = getScoreCategory(percentage);
+          const styles = getScoreStyles(category);
+          
+          return (
+            <Card
+              key={month.key}
+              className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}
+            >
+              <CardContent className="p-3 text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Calendar className={`h-3 w-3 ${styles.icon}`} />
+                  <span className={`text-xs font-medium uppercase ${styles.label}`}>
+                    {month.label}
+                  </span>
+                </div>
+                <p className={`text-2xl font-bold ${styles.count}`}>
+                  {count}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {percentage.toFixed(1)}%
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Score Legend */}
+      <div className="flex items-center justify-start gap-2 text-sm">
+        <span className="font-medium text-muted-foreground">Pontuação</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span>
+          <span className="text-red-600 text-xs">≤ 1%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span>
+          <span className="text-amber-600 text-xs">&gt; 1% e ≤ 3%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span>
+          <span className="text-emerald-600 text-xs">&gt; 3% e ≤ 5%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span>
+          <span className="text-blue-600 text-xs">&gt; 5%</span>
+        </div>
+      </div>
     </div>
   );
 };
