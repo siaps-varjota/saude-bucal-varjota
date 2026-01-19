@@ -17,8 +17,10 @@ import { TratamentoTable } from "@/components/dashboard/TratamentoTable";
 import { Tab4Table } from "@/components/dashboard/Tab4Table";
 import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
 import { TratamentoMonthlyCards } from "@/components/dashboard/TratamentoMonthlyCards";
+import { Tab4MonthlyCards } from "@/components/dashboard/Tab4MonthlyCards";
 import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
+import { Tab4QuadrimesterCards } from "@/components/dashboard/Tab4QuadrimesterCards";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserCheck, RefreshCw } from "lucide-react";
@@ -357,7 +359,7 @@ const Index = () => {
                   <>
                     <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <QuadrimesterCards patients={filteredTab4 as any} />
+                    <Tab4QuadrimesterCards patients={filteredTab4} />
                   </>
                 )}
               </div>
@@ -371,7 +373,7 @@ const Index = () => {
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
                   </div>
                 ) : (
-                  <MonthlyCards patients={filteredTab4 as any} />
+                  <Tab4MonthlyCards patients={filteredTab4} />
                 )}
               </div>
 
