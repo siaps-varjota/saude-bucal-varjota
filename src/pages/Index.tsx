@@ -210,12 +210,12 @@ const Index = () => {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full max-w-4xl grid-cols-6">
-            <TabsTrigger value="consulta">1ª Consulta</TabsTrigger>
+            <TabsTrigger value="consulta">1ª Consulta Odontológica</TabsTrigger>
             <TabsTrigger value="tratamento">Tratamento Concluído</TabsTrigger>
-            <TabsTrigger value="tab3">Aba 3</TabsTrigger>
-            <TabsTrigger value="tab4">Aba 4</TabsTrigger>
-            <TabsTrigger value="tab5">Aba 5</TabsTrigger>
-            <TabsTrigger value="tab6">Aba 6</TabsTrigger>
+            <TabsTrigger value="tab3">Taxa Exodontias</TabsTrigger>
+            <TabsTrigger value="tab4">Escovação Supervisionada</TabsTrigger>
+            <TabsTrigger value="tab5">Proced. Odont. Preventivos</TabsTrigger>
+            <TabsTrigger value="tab6">Trat. Restaurador Atraumático</TabsTrigger>
           </TabsList>
           
           {/* Tab 1 - 1ª Consulta */}
