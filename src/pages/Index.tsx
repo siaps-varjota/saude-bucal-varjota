@@ -242,7 +242,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 rounded-none py-[26px]">
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6 py-0 px-0 my-0 mx-[5px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="flex w-full max-w-5xl flex-wrap gap-1 h-auto p-1">
             <TabsTrigger value="consulta" className="text-xs px-2 py-1.5 flex-1 min-w-fit">1ª Consulta Odontológica</TabsTrigger>
             <TabsTrigger value="tratamento" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Tratamento Concluído</TabsTrigger>
