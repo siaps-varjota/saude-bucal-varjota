@@ -14,6 +14,7 @@ import { useFilteredTab6, isConsultaPendenteTab6 } from "@/hooks/useFilteredTab6
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { TratamentoTable } from "@/components/dashboard/TratamentoTable";
+import { Tab4Table } from "@/components/dashboard/Tab4Table";
 import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
 import { TratamentoMonthlyCards } from "@/components/dashboard/TratamentoMonthlyCards";
 import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
@@ -374,7 +375,7 @@ const Index = () => {
                 )}
               </div>
 
-              {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredTab4 as any} />}
+              {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
           </TabsContent>
 
