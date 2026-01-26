@@ -97,38 +97,30 @@ export const Tab4Table = ({ patients }: Tab4TableProps) => {
   );
 
   return (
-    <Card className="border-0 shadow-lg">
-      <CardHeader className="border-b border-border/50 bg-gradient-to-r from-card to-muted/20">
+    <Card className="shadow-lg">
+      <CardHeader className="pb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <Users className="h-5 w-5 text-primary" />
+          <CardTitle className="text-lg font-semibold">
+            Lista de Pacientes - Escovação Supervisionada ({sortedPatients.length})
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar paciente..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-9 w-64"
+              />
             </div>
-            <div>
-              <CardTitle className="text-lg font-semibold">
-                Pacientes Cadastrados
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {filteredPatients.length} pacientes encontrados
-              </p>
-            </div>
-          </div>
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, equipe..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="pl-10"
-            />
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
+      <CardContent>
+        <div className="rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -266,7 +258,7 @@ export const Tab4Table = ({ patients }: Tab4TableProps) => {
           </Table>
         </div>
         {/* Pagination */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border/50 px-6 py-4">
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Exibindo</span>
             <Select
