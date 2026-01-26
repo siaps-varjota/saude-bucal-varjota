@@ -127,28 +127,21 @@ export const TratamentoMonthlyCards = ({
       </div>
       
       {/* Score Legend */}
-      <div className="gap-2 text-sm items-center justify-center flex flex-row">
-        <div className="flex items-center gap-1.5">
-          <span className="text-blue-500">●</span>
-          <span className="font-medium text-muted-foreground">Pontuação</span>
-        </div>
-        <div className="flex items-center border rounded-md divide-x text-xs">
-          <div className="px-3 py-1.5 flex flex-col items-center">
-            <span className="font-medium text-red-600">Regular</span>
-            <span className="text-muted-foreground">≤ 25%</span>
-          </div>
-          <div className="px-3 py-1.5 flex flex-col items-center">
-            <span className="font-medium text-amber-600">Suficiente</span>
-            <span className="text-muted-foreground">&gt; 25% e ≤ 50%</span>
-          </div>
-          <div className="px-3 py-1.5 flex flex-col items-center">
-            <span className="font-medium text-emerald-600">Bom</span>
-            <span className="text-muted-foreground">&gt; 50% e ≤ 75%</span>
-          </div>
-          <div className="px-3 py-1.5 flex flex-col items-center">
-            <span className="font-medium text-blue-600">Ótimo</span>
-            <span className="text-muted-foreground">&gt; 75%</span>
-          </div>
+      <div className="flex items-center justify-center gap-2 text-sm">
+        <span className="font-medium text-muted-foreground">Pontuação</span>
+        <div className="flex items-center gap-1">
+          <span className="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-medium border border-red-200">
+            Regular ≤ 25%
+          </span>
+          <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 text-xs font-medium border border-amber-200">
+            Suficiente &gt; 25% e ≤ 50%
+          </span>
+          <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-medium border border-emerald-200">
+            Bom &gt; 50% e ≤ 75%
+          </span>
+          <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium border border-blue-200">
+            Ótimo &gt; 75%
+          </span>
         </div>
       </div>
     </div>;
