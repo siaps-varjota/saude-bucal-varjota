@@ -26,10 +26,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserCheck, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
-  
+
   // Tab 1 - 1ª Consulta
   const {
     data: patients,
@@ -38,7 +37,7 @@ const Index = () => {
     refetch: refetchPatients,
     isFetching: isFetchingPatients
   } = usePatientData();
-  
+
   // Tab 2 - Tratamento Concluído
   const {
     data: tratamentoPatients,
@@ -47,7 +46,7 @@ const Index = () => {
     refetch: refetchTratamento,
     isFetching: isFetchingTratamento
   } = useTratamentoData();
-  
+
   // Tab 3 - Placeholder
   const {
     data: tab3Patients,
@@ -56,7 +55,7 @@ const Index = () => {
     refetch: refetchTab3,
     isFetching: isFetchingTab3
   } = useTab3Data();
-  
+
   // Tab 4 - Placeholder
   const {
     data: tab4Patients,
@@ -65,7 +64,7 @@ const Index = () => {
     refetch: refetchTab4,
     isFetching: isFetchingTab4
   } = useTab4Data();
-  
+
   // Tab 5 - Placeholder
   const {
     data: tab5Patients,
@@ -74,7 +73,7 @@ const Index = () => {
     refetch: refetchTab5,
     isFetching: isFetchingTab5
   } = useTab5Data();
-  
+
   // Tab 6 - Placeholder
   const {
     data: tab6Patients,
@@ -128,24 +127,61 @@ const Index = () => {
   const getTabState = () => {
     switch (activeTab) {
       case "consulta":
-        return { isLoading: isLoadingPatients, error: errorPatients, isFetching: isFetchingPatients, refetch: refetchPatients };
+        return {
+          isLoading: isLoadingPatients,
+          error: errorPatients,
+          isFetching: isFetchingPatients,
+          refetch: refetchPatients
+        };
       case "tratamento":
-        return { isLoading: isLoadingTratamento, error: errorTratamento, isFetching: isFetchingTratamento, refetch: refetchTratamento };
+        return {
+          isLoading: isLoadingTratamento,
+          error: errorTratamento,
+          isFetching: isFetchingTratamento,
+          refetch: refetchTratamento
+        };
       case "tab3":
-        return { isLoading: isLoadingTab3, error: errorTab3, isFetching: isFetchingTab3, refetch: refetchTab3 };
+        return {
+          isLoading: isLoadingTab3,
+          error: errorTab3,
+          isFetching: isFetchingTab3,
+          refetch: refetchTab3
+        };
       case "tab4":
-        return { isLoading: isLoadingTab4, error: errorTab4, isFetching: isFetchingTab4, refetch: refetchTab4 };
+        return {
+          isLoading: isLoadingTab4,
+          error: errorTab4,
+          isFetching: isFetchingTab4,
+          refetch: refetchTab4
+        };
       case "tab5":
-        return { isLoading: isLoadingTab5, error: errorTab5, isFetching: isFetchingTab5, refetch: refetchTab5 };
+        return {
+          isLoading: isLoadingTab5,
+          error: errorTab5,
+          isFetching: isFetchingTab5,
+          refetch: refetchTab5
+        };
       case "tab6":
-        return { isLoading: isLoadingTab6, error: errorTab6, isFetching: isFetchingTab6, refetch: refetchTab6 };
+        return {
+          isLoading: isLoadingTab6,
+          error: errorTab6,
+          isFetching: isFetchingTab6,
+          refetch: refetchTab6
+        };
       default:
-        return { isLoading: false, error: null, isFetching: false, refetch: () => {} };
+        return {
+          isLoading: false,
+          error: null,
+          isFetching: false,
+          refetch: () => {}
+        };
     }
   };
-
-  const { error, isFetching, refetch } = getTabState();
-
+  const {
+    error,
+    isFetching,
+    refetch
+  } = getTabState();
   const refetchAll = () => {
     refetchPatients();
     refetchTratamento();
@@ -154,10 +190,8 @@ const Index = () => {
     refetchTab5();
     refetchTab6();
   };
-
   if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+    return <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="mb-4 text-2xl font-bold text-destructive">
             Erro ao carregar dados
@@ -169,8 +203,7 @@ const Index = () => {
             Tentar novamente
           </Button>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // Stats calculations
@@ -186,9 +219,7 @@ const Index = () => {
   const withConsultaTab5 = filteredTab5.filter(p => !isConsultaPendenteTab5(p.primeiraConsulta)).length;
   const totalTab6 = filteredTab6.length;
   const withConsultaTab6 = filteredTab6.filter(p => !isConsultaPendenteTab6(p.primeiraConsulta)).length;
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
         <div className="container mx-auto px-[14px] py-[20px]">
@@ -223,38 +254,28 @@ const Index = () => {
           
           {/* Tab 1 - 1ª Consulta */}
           <TabsContent value="consulta" className="mt-6">
-            {!isLoadingPatients && patients && (
-              <div className="mb-6">
+            {!isLoadingPatients && patients && <div className="mb-6">
                 <PatientFilters patients={patients} filters={filtersConsulta} onFiltersChange={setFiltersConsulta} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-consulta">
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingPatients ? (
-                  <>
+                {isLoadingPatients ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <QuadrimesterCards patients={filteredPatients} />
-                  </>
-                )}
+                  </>}
               </div>
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   Consultas por Mês (Últimos 12 meses)
                 </h2>
-                {isLoadingPatients ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                {isLoadingPatients ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <MonthlyCards patients={filteredPatients} />
-                )}
+                  </div> : <MonthlyCards patients={filteredPatients} />}
               </div>
 
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
@@ -263,38 +284,28 @@ const Index = () => {
           
           {/* Tab 2 - Tratamento Concluído */}
           <TabsContent value="tratamento" className="mt-6">
-            {!isLoadingTratamento && tratamentoPatients && (
-              <div className="mb-6">
+            {!isLoadingTratamento && tratamentoPatients && <div className="mb-6">
                 <PatientFilters patients={tratamentoPatients as any} filters={filtersTratamento} onFiltersChange={setFiltersTratamento} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-tratamento">
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingTratamento ? (
-                  <>
+                {isLoadingTratamento ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <TratamentoQuadrimesterCards patients={filteredTratamento} />
-                  </>
-                )}
+                  </>}
               </div>
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)
                 </h2>
-                {isLoadingTratamento ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                {isLoadingTratamento ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <TratamentoMonthlyCards patients={filteredTratamento} />
-                )}
+                  </div> : <TratamentoMonthlyCards patients={filteredTratamento} />}
               </div>
 
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamento} />}
@@ -303,38 +314,26 @@ const Index = () => {
 
           {/* Tab 3 - Placeholder */}
           <TabsContent value="tab3" className="mt-6">
-            {!isLoadingTab3 && tab3Patients && (
-              <div className="mb-6">
+            {!isLoadingTab3 && tab3Patients && <div className="mb-6">
                 <PatientFilters patients={tab3Patients as any} filters={filtersTab3} onFiltersChange={setFiltersTab3} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-tab3">
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingTab3 ? (
-                  <>
+                {isLoadingTab3 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultaTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <QuadrimesterCards patients={filteredTab3 as any} />
-                  </>
-                )}
+                  </>}
               </div>
 
               <div className="mb-8">
-                <h2 className="mb-4 text-lg font-semibold text-foreground">
-                  Consultas por Mês (Últimos 12 meses)
-                </h2>
-                {isLoadingTab3 ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês (Últimos 12 meses)</h2>
+                {isLoadingTab3 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <MonthlyCards patients={filteredTab3 as any} />
-                )}
+                  </div> : <MonthlyCards patients={filteredTab3 as any} />}
               </div>
 
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredTab3 as any} />}
@@ -343,38 +342,28 @@ const Index = () => {
 
           {/* Tab 4 - Placeholder */}
           <TabsContent value="tab4" className="mt-6">
-            {!isLoadingTab4 && tab4Patients && (
-              <div className="mb-6">
+            {!isLoadingTab4 && tab4Patients && <div className="mb-6">
                 <PatientFilters patients={tab4Patients as any} filters={filtersTab4} onFiltersChange={setFiltersTab4} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-tab4">
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingTab4 ? (
-                  <>
+                {isLoadingTab4 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab4QuadrimesterCards patients={filteredTab4} />
-                  </>
-                )}
+                  </>}
               </div>
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   Consultas por Mês (Últimos 12 meses)
                 </h2>
-                {isLoadingTab4 ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                {isLoadingTab4 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <Tab4MonthlyCards patients={filteredTab4} />
-                )}
+                  </div> : <Tab4MonthlyCards patients={filteredTab4} />}
               </div>
 
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
@@ -383,38 +372,28 @@ const Index = () => {
 
           {/* Tab 5 - Placeholder */}
           <TabsContent value="tab5" className="mt-6">
-            {!isLoadingTab5 && tab5Patients && (
-              <div className="mb-6">
+            {!isLoadingTab5 && tab5Patients && <div className="mb-6">
                 <PatientFilters patients={tab5Patients as any} filters={filtersTab5} onFiltersChange={setFiltersTab5} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-tab5">
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingTab5 ? (
-                  <>
+                {isLoadingTab5 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultaTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <QuadrimesterCards patients={filteredTab5 as any} />
-                  </>
-                )}
+                  </>}
               </div>
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   Consultas por Mês (Últimos 12 meses)
                 </h2>
-                {isLoadingTab5 ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                {isLoadingTab5 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <MonthlyCards patients={filteredTab5 as any} />
-                )}
+                  </div> : <MonthlyCards patients={filteredTab5 as any} />}
               </div>
 
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredTab5 as any} />}
@@ -423,38 +402,28 @@ const Index = () => {
 
           {/* Tab 6 - Placeholder */}
           <TabsContent value="tab6" className="mt-6">
-            {!isLoadingTab6 && tab6Patients && (
-              <div className="mb-6">
+            {!isLoadingTab6 && tab6Patients && <div className="mb-6">
                 <PatientFilters patients={tab6Patients as any} filters={filtersTab6} onFiltersChange={setFiltersTab6} />
-              </div>
-            )}
+              </div>}
 
             <div id="dashboard-content-tab6">
               <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-                {isLoadingTab6 ? (
-                  <>
+                {isLoadingTab6 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultaTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <QuadrimesterCards patients={filteredTab6 as any} />
-                  </>
-                )}
+                  </>}
               </div>
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   Consultas por Mês (Últimos 12 meses)
                 </h2>
-                {isLoadingTab6 ? (
-                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+                {isLoadingTab6 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div>
-                ) : (
-                  <MonthlyCards patients={filteredTab6 as any} />
-                )}
+                  </div> : <MonthlyCards patients={filteredTab6 as any} />}
               </div>
 
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredTab6 as any} />}
@@ -469,8 +438,6 @@ const Index = () => {
           <p>Secretaria Municipal de Saúde de Varjota - 2026 • Desenvolvido por Alidemberg Araújo - Coordenador do e-SUS Municipal</p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
