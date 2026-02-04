@@ -7,7 +7,7 @@ import { useTab5Data } from "@/hooks/useTab5Data";
 import { useTab6Data } from "@/hooks/useTab6Data";
 import { useFilteredPatients, isConsultaPendente } from "@/hooks/useFilteredPatients";
 import { useFilteredTratamento, isTratamentoPendente } from "@/hooks/useFilteredTratamento";
-import { useFilteredTab3, isConsultaPendenteTab3 } from "@/hooks/useFilteredTab3";
+import { useFilteredTab3, isExodontiaPendente } from "@/hooks/useFilteredTab3";
 import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
 import { useFilteredTab5, isConsultaPendenteTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6, isConsultaPendenteTab6 } from "@/hooks/useFilteredTab6";
@@ -17,10 +17,13 @@ import { TratamentoTable } from "@/components/dashboard/TratamentoTable";
 import { Tab4Table } from "@/components/dashboard/Tab4Table";
 import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
 import { TratamentoMonthlyCards } from "@/components/dashboard/TratamentoMonthlyCards";
+import { Tab3MonthlyCards } from "@/components/dashboard/Tab3MonthlyCards";
 import { Tab4MonthlyCards } from "@/components/dashboard/Tab4MonthlyCards";
 import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
+import { Tab3QuadrimesterCards } from "@/components/dashboard/Tab3QuadrimesterCards";
 import { Tab4QuadrimesterCards } from "@/components/dashboard/Tab4QuadrimesterCards";
+import { Tab3Table } from "@/components/dashboard/Tab3Table";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserCheck, RefreshCw } from "lucide-react";
@@ -212,7 +215,7 @@ const Index = () => {
   const totalTratamento = filteredTratamento.length;
   const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
   const totalTab3 = filteredTab3.length;
-  const withConsultaTab3 = filteredTab3.filter(p => !isConsultaPendenteTab3(p.primeiraConsulta)).length;
+  const withExodontia = filteredTab3.filter(p => !isExodontiaPendente(p.numeradorB3)).length;
   const totalTab4 = filteredTab4.length;
   const withConsultaTab4 = filteredTab4.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
   const totalTab5 = filteredTab5.length;
@@ -323,9 +326,9 @@ const Index = () => {
                 {isLoadingTab3 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
                   </> : <>
-                    <StatsCard title="Total de Pacientes" value={totalTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                    <StatsCard title="Com 1ª Consulta" value={withConsultaTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <QuadrimesterCards patients={filteredTab3 as any} />
+                    <StatsCard title="Total de Atendimentos" value={totalTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Com Exodontia" value={withExodontia.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab3QuadrimesterCards patients={filteredTab3} />
                   </>}
               </div>
 
@@ -333,10 +336,10 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês (Últimos 12 meses)</h2>
                 {isLoadingTab3 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div> : <MonthlyCards patients={filteredTab3 as any} />}
+                  </div> : <Tab3MonthlyCards patients={filteredTab3} />}
               </div>
 
-              {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredTab3 as any} />}
+              {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table patients={filteredTab3} />}
             </div>
           </TabsContent>
 

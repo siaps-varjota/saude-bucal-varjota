@@ -7,21 +7,22 @@ export interface Tab3Patient {
   nome: string;
   dataNascimento: string;
   cpfCns: string;
-  sexo: string;
   idade: number;
-  primeiraConsulta: string;
-  comPrimeiraConsulta: string;
+  sexo: string;
+  numeradorB3: string;
+  dataAtendimento: string;
 }
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCCU3B9MSiYLWTEMX4Cia2Tq4u_hMxTC3fqNscPPijatjZYoLxeL1jIIC0J6GrS6-1oqv0iDGpm3X8/pub?gid=1509802775&single=true&output=csv";
 
 const parseCSV = (csv: string): Tab3Patient[] => {
   const lines = csv.split("\n");
-  const dataLines = lines.slice(4);
+  // Skip header row (first line)
+  const dataLines = lines.slice(1);
 
   return dataLines
     .filter((line) => line.trim() !== "")
-    .map((line) => {
+    .map((line, index) => {
       const fields: string[] = [];
       let current = "";
       let inQuotes = false;
@@ -39,22 +40,23 @@ const parseCSV = (csv: string): Tab3Patient[] => {
       }
       fields.push(current.trim());
 
-      const idade = parseInt(fields[7]) || 0;
+      // CSV structure: Equipe, Microárea, Nome, Data de Nascimento, CPF/CNS, Idade, Sexo, Numerador B3, Data do atendimento
+      const idade = parseInt(fields[5]) || 0;
 
       return {
-        id: parseInt(fields[0]) || 0,
-        equipe: fields[1] || "",
-        microarea: fields[2] || "",
-        nome: fields[3] || "",
-        dataNascimento: fields[4] || "",
-        cpfCns: fields[5] || "",
-        sexo: fields[6] || "",
+        id: index + 1,
+        equipe: fields[0] || "",
+        microarea: fields[1] || "-",
+        nome: fields[2] || "",
+        dataNascimento: fields[3] || "",
+        cpfCns: fields[4] || "",
         idade,
-        primeiraConsulta: fields[8] || "-",
-        comPrimeiraConsulta: fields[9] || "NÃO",
+        sexo: fields[6] || "",
+        numeradorB3: fields[7] || "NÃO",
+        dataAtendimento: fields[8] || "-",
       };
     })
-    .filter((patient) => patient.id > 0);
+    .filter((patient) => patient.nome.trim() !== "");
 };
 
 const fetchTab3Data = async (): Promise<Tab3Patient[]> => {
@@ -70,7 +72,6 @@ export const useTab3Data = () => {
   return useQuery({
     queryKey: ["tab3-patients"],
     queryFn: fetchTab3Data,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 5 * 60 * 1000,
   });
 };
