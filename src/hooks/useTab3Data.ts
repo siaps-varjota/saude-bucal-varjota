@@ -13,8 +13,7 @@ export interface Tab3Patient {
   comPrimeiraConsulta: string;
 }
 
-// PLACEHOLDER: Substituir pelo link CSV real
-const CSV_URL = "PLACEHOLDER_CSV_URL_TAB3";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCCU3B9MSiYLWTEMX4Cia2Tq4u_hMxTC3fqNscPPijatjZYoLxeL1jIIC0J6GrS6-1oqv0iDGpm3X8/pub?gid=1509802775&single=true&output=csv";
 
 const parseCSV = (csv: string): Tab3Patient[] => {
   const lines = csv.split("\n");
