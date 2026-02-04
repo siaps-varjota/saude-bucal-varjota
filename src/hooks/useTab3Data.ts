@@ -70,6 +70,7 @@ export const useTab3Data = () => {
   return useQuery({
     queryKey: ["tab3-patients"],
     queryFn: fetchTab3Data,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 };
