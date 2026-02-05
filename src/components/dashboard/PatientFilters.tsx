@@ -13,11 +13,13 @@ interface PatientFiltersProps {
   patients: Patient[];
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
+  contentId?: string;
 }
 export const PatientFilters = ({
   patients,
   filters,
-  onFiltersChange
+  onFiltersChange,
+  contentId = "dashboard-content"
 }: PatientFiltersProps) => {
   // Get unique values for filters
   const uniqueEquipes = useMemo(() => {
@@ -42,9 +44,9 @@ export const PatientFilters = ({
   const hasActiveFilters = filters.equipe !== "all" || filters.microarea !== "all" || filters.status !== "all";
   const handleGeneratePDF = async () => {
     toast.info("Gerando PDF...");
-    const element = document.getElementById("dashboard-content");
+    const element = document.getElementById(contentId);
     if (!element) {
-      toast.error("Erro ao gerar PDF");
+      toast.error("Erro ao gerar PDF: elemento não encontrado");
       return;
     }
     try {
