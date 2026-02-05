@@ -2,111 +2,167 @@ import { useMemo } from "react";
 import { Tab3Patient } from "@/hooks/useTab3Data";
 import { isExodontiaPendente } from "@/hooks/useFilteredTab3";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Calendar } from "lucide-react";
+import { format, subMonths, isValid, parse } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Tab3MonthlyCardsProps {
   patients: Tab3Patient[];
 }
 
-const getMonthName = (month: number): string => {
-  const months = [
-    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-    "Jul", "Ago", "Set", "Out", "Nov", "Dez"
-  ];
-  return months[month];
-};
-
 const parseDate = (dateStr: string): Date | null => {
-  if (!dateStr || dateStr === "-") return null;
+  if (!dateStr || dateStr === "-" || dateStr.trim() === "") return null;
   
-  // Handle DD/MM/YYYY format
-  const parts = dateStr.split("/");
-  if (parts.length === 3) {
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]) - 1;
-    const year = parseInt(parts[2]);
-    return new Date(year, month, day);
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(dateStr.trim(), fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    } catch {
+      continue;
+    }
   }
   return null;
+};
+
+const getMonthYearKey = (date: Date): string => {
+  return format(date, "MM/yyyy");
+};
+
+const getMonthYearLabel = (date: Date): string => {
+  return format(date, "MMM/yyyy", { locale: ptBR });
+};
+
+type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
+
+// Aba 3: Regular (≤25%), Suficiente (≤50%), Bom (≤75%), Ótimo (>75%)
+const getScoreCategory = (percentage: number): ScoreCategory => {
+  if (percentage <= 0) return "none";
+  if (percentage <= 25) return "regular";
+  if (percentage <= 50) return "suficiente";
+  if (percentage <= 75) return "bom";
+  return "otimo";
+};
+
+const getScoreStyles = (category: ScoreCategory) => {
+  switch (category) {
+    case "regular":
+      return {
+        bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
+        icon: "text-red-600",
+        label: "text-red-700",
+        count: "text-red-700"
+      };
+    case "suficiente":
+      return {
+        bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
+        icon: "text-amber-600",
+        label: "text-amber-700",
+        count: "text-amber-700"
+      };
+    case "bom":
+      return {
+        bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
+        icon: "text-emerald-600",
+        label: "text-emerald-700",
+        count: "text-emerald-700"
+      };
+    case "otimo":
+      return {
+        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
+        icon: "text-blue-600",
+        label: "text-blue-700",
+        count: "text-blue-700"
+      };
+    default:
+      return {
+        bg: "bg-muted/30",
+        icon: "text-muted-foreground",
+        label: "text-muted-foreground",
+        count: "text-muted-foreground"
+      };
+  }
 };
 
 export const Tab3MonthlyCards = ({ patients }: Tab3MonthlyCardsProps) => {
   const totalPatients = patients.length;
 
-  const monthlyData = useMemo(() => {
-    const now = new Date();
-    const months: { month: number; year: number; countSim: number; total: number }[] = [];
-    
-    // Generate last 12 months
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        month: date.getMonth(),
-        year: date.getFullYear(),
-        countSim: 0,
-        total: 0
-      });
-    }
+  // Generate last 12 months
+  const now = new Date();
+  const last12Months = Array.from({ length: 12 }, (_, i) => {
+    const date = subMonths(now, i);
+    return {
+      key: getMonthYearKey(date),
+      label: getMonthYearLabel(date),
+      date
+    };
+  }).reverse();
 
-    // Count all patients and exodontias (numeradorB3 = "SIM") per month based on dataAtendimento
+  // Count exodontias (numeradorB3 = "SIM") per month based on dataAtendimento
+  const monthCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     patients.forEach(patient => {
       const date = parseDate(patient.dataAtendimento);
-      if (date) {
-        const monthIndex = months.findIndex(
-          m => m.month === date.getMonth() && m.year === date.getFullYear()
-        );
-        if (monthIndex !== -1) {
-          months[monthIndex].total++;
-          if (!isExodontiaPendente(patient.numeradorB3)) {
-            months[monthIndex].countSim++;
-          }
-        }
+      if (date && !isExodontiaPendente(patient.numeradorB3)) {
+        const key = getMonthYearKey(date);
+        counts.set(key, (counts.get(key) || 0) + 1);
       }
     });
-
-    return months;
+    return counts;
   }, [patients]);
-
-  // Calculate rate based on percentage thresholds
-  const getVariantByPercentage = (percentage: number) => {
-    if (percentage <= 25) return "bg-red-500/10 border-red-500/30 text-red-700";
-    if (percentage <= 50) return "bg-amber-500/10 border-amber-500/30 text-amber-700";
-    if (percentage <= 75) return "bg-emerald-500/10 border-emerald-500/30 text-emerald-700";
-    return "bg-blue-500/10 border-blue-500/30 text-blue-700";
-  };
 
   return (
     <div className="space-y-4">
-      {/* Score Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-        <span className="text-muted-foreground font-medium">Pontuação:</span>
-        <Badge className="bg-red-500 hover:bg-red-500 text-white">Regular: ≤ 25%</Badge>
-        <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Suficiente: &gt; 25% e ≤ 50%</Badge>
-        <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white">Bom: &gt; 50% e ≤ 75%</Badge>
-        <Badge className="bg-blue-500 hover:bg-blue-500 text-white">Ótimo: &gt; 75%</Badge>
-      </div>
-
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {monthlyData.map((data, index) => {
-          const percentage = totalPatients > 0 ? (data.countSim / totalPatients) * 100 : 0;
+        {last12Months.map(month => {
+          const count = monthCounts.get(month.key) || 0;
+          const percentage = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
+          const category = getScoreCategory(percentage);
+          const styles = getScoreStyles(category);
 
           return (
             <Card 
-              key={index} 
-              className={`border ${getVariantByPercentage(percentage)} transition-all hover:scale-105`}
+              key={month.key} 
+              className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}
             >
               <CardContent className="p-3 text-center">
-                <p className="text-xs font-medium opacity-70">
-                  {getMonthName(data.month)}/{data.year.toString().slice(-2)}
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Calendar className={`h-3 w-3 ${styles.icon}`} />
+                  <span className={`text-xs font-medium uppercase ${styles.label}`}>
+                    {month.label}
+                  </span>
+                </div>
+                <p className={`text-2xl font-bold ${styles.count}`}>
+                  {count}
                 </p>
-                <p className="text-2xl font-bold mt-1">{data.countSim}</p>
-                <p className="text-xs font-medium opacity-70 mt-1">
+                <p className="text-[10px] text-muted-foreground">
                   {percentage.toFixed(1)}%
                 </p>
               </CardContent>
             </Card>
           );
         })}
+      </div>
+
+      {/* Score Legend */}
+      <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
+        <span className="font-medium text-muted-foreground">Pontuação</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span>
+          <span className="text-red-600 text-xs">≤ 25%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span>
+          <span className="text-amber-600 text-xs">&gt; 25% e ≤ 50%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span>
+          <span className="text-emerald-600 text-xs">&gt; 50% e ≤ 75%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span>
+          <span className="text-blue-600 text-xs">&gt; 75%</span>
+        </div>
       </div>
     </div>
   );
