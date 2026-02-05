@@ -258,7 +258,7 @@ const Index = () => {
           {/* Tab 1 - 1ª Consulta */}
           <TabsContent value="consulta" className="mt-6">
             {!isLoadingPatients && patients && <div className="mb-6">
-                <PatientFilters patients={patients} filters={filtersConsulta} onFiltersChange={setFiltersConsulta} />
+                <PatientFilters patients={patients} filters={filtersConsulta} onFiltersChange={setFiltersConsulta} contentId="dashboard-content-consulta" />
               </div>}
 
             <div id="dashboard-content-consulta">
@@ -288,7 +288,7 @@ const Index = () => {
           {/* Tab 2 - Tratamento Concluído */}
           <TabsContent value="tratamento" className="mt-6">
             {!isLoadingTratamento && tratamentoPatients && <div className="mb-6">
-                <PatientFilters patients={tratamentoPatients as any} filters={filtersTratamento} onFiltersChange={setFiltersTratamento} />
+                <PatientFilters patients={tratamentoPatients as any} filters={filtersTratamento} onFiltersChange={setFiltersTratamento} contentId="dashboard-content-tratamento" />
               </div>}
 
             <div id="dashboard-content-tratamento">
@@ -318,7 +318,7 @@ const Index = () => {
           {/* Tab 3 - Placeholder */}
           <TabsContent value="tab3" className="mt-6">
             {!isLoadingTab3 && tab3Patients && <div className="mb-6">
-                <PatientFilters patients={tab3Patients as any} filters={filtersTab3} onFiltersChange={setFiltersTab3} />
+                <PatientFilters patients={tab3Patients as any} filters={filtersTab3} onFiltersChange={setFiltersTab3} contentId="dashboard-content-tab3" />
               </div>}
 
             <div id="dashboard-content-tab3">
@@ -346,7 +346,7 @@ const Index = () => {
           {/* Tab 4 - Placeholder */}
           <TabsContent value="tab4" className="mt-6">
             {!isLoadingTab4 && tab4Patients && <div className="mb-6">
-                <PatientFilters patients={tab4Patients as any} filters={filtersTab4} onFiltersChange={setFiltersTab4} />
+                <PatientFilters patients={tab4Patients as any} filters={filtersTab4} onFiltersChange={setFiltersTab4} contentId="dashboard-content-tab4" />
               </div>}
 
             <div id="dashboard-content-tab4">
@@ -376,7 +376,7 @@ const Index = () => {
           {/* Tab 5 - Placeholder */}
           <TabsContent value="tab5" className="mt-6">
             {!isLoadingTab5 && tab5Patients && <div className="mb-6">
-                <PatientFilters patients={tab5Patients as any} filters={filtersTab5} onFiltersChange={setFiltersTab5} />
+                <PatientFilters patients={tab5Patients as any} filters={filtersTab5} onFiltersChange={setFiltersTab5} contentId="dashboard-content-tab5" />
               </div>}
 
             <div id="dashboard-content-tab5">
@@ -406,7 +406,7 @@ const Index = () => {
           {/* Tab 6 - Placeholder */}
           <TabsContent value="tab6" className="mt-6">
             {!isLoadingTab6 && tab6Patients && <div className="mb-6">
-                <PatientFilters patients={tab6Patients as any} filters={filtersTab6} onFiltersChange={setFiltersTab6} />
+                <PatientFilters patients={tab6Patients as any} filters={filtersTab6} onFiltersChange={setFiltersTab6} contentId="dashboard-content-tab6" />
               </div>}
 
             <div id="dashboard-content-tab6">
