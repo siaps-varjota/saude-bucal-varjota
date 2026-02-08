@@ -258,7 +258,40 @@ const Index = () => {
           {/* Tab 1 - 1ª Consulta */}
           <TabsContent value="consulta" className="mt-6">
             {!isLoadingPatients && patients && <div className="mb-6">
-                <PatientFilters patients={patients} filters={filtersConsulta} onFiltersChange={setFiltersConsulta} contentId="dashboard-content-consulta" />
+                <PatientFilters 
+                  patients={patients} 
+                  filters={filtersConsulta} 
+                  onFiltersChange={setFiltersConsulta} 
+                  contentId="dashboard-content-consulta"
+                  pdfTitle="1ª Consulta Odontológica"
+                  pdfFileName="1a-consulta-odontologica"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalPatients.toLocaleString("pt-BR") },
+                    { label: "Com 1ª Consulta", value: withConsultation.toLocaleString("pt-BR"), percentage: `${totalPatients > 0 ? ((withConsultation / totalPatients) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" },
+                    { key: "equipe", header: "Equipe" },
+                    { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" },
+                    { key: "cpfCns", header: "CPF/CNS" },
+                    { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" },
+                    { key: "primeiraConsulta", header: "1ª Consulta" },
+                    { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredPatients.map((p, i) => ({
+                    num: i + 1,
+                    equipe: p.equipe || "-",
+                    microarea: p.microarea,
+                    nome: p.nome,
+                    cpfCns: p.cpfCns || "-",
+                    idade: `${p.idade} anos`,
+                    sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendente(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
+                />
               </div>}
 
             <div id="dashboard-content-consulta">
@@ -288,7 +321,42 @@ const Index = () => {
           {/* Tab 2 - Tratamento Concluído */}
           <TabsContent value="tratamento" className="mt-6">
             {!isLoadingTratamento && tratamentoPatients && <div className="mb-6">
-                <PatientFilters patients={tratamentoPatients as any} filters={filtersTratamento} onFiltersChange={setFiltersTratamento} contentId="dashboard-content-tratamento" />
+                <PatientFilters 
+                  patients={tratamentoPatients as any} 
+                  filters={filtersTratamento} 
+                  onFiltersChange={setFiltersTratamento} 
+                  contentId="dashboard-content-tratamento"
+                  pdfTitle="Tratamento Concluído"
+                  pdfFileName="tratamento-concluido"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTratamento.toLocaleString("pt-BR") },
+                    { label: "Com Tratamento", value: withTratamento.toLocaleString("pt-BR"), percentage: `${totalTratamento > 0 ? ((withTratamento / totalTratamento) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" },
+                    { key: "equipe", header: "Equipe" },
+                    { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" },
+                    { key: "cpfCns", header: "CPF/CNS" },
+                    { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" },
+                    { key: "primeiraConsulta", header: "1ª Consulta" },
+                    { key: "tratamentoConcluido", header: "Tratamento Concluído" },
+                    { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTratamento.map((p, i) => ({
+                    num: i + 1,
+                    equipe: p.equipe || "-",
+                    microarea: p.microarea,
+                    nome: p.nome,
+                    cpfCns: p.cpfCns || "-",
+                    idade: `${p.idade} anos`,
+                    sexo: p.sexo === "Masculino" ? "M" : "F",
+                    primeiraConsulta: p.primeiraConsulta,
+                    tratamentoConcluido: p.tratamentoConcluido,
+                    status: isTratamentoPendente(p.tratamentoConcluido) ? "Pendente" : "Concluído",
+                  }))}
+                />
               </div>}
 
             <div id="dashboard-content-tratamento">
@@ -315,10 +383,45 @@ const Index = () => {
             </div>
           </TabsContent>
 
-          {/* Tab 3 - Placeholder */}
+          {/* Tab 3 - Taxa Exodontias */}
           <TabsContent value="tab3" className="mt-6">
             {!isLoadingTab3 && tab3Patients && <div className="mb-6">
-                <PatientFilters patients={tab3Patients as any} filters={filtersTab3} onFiltersChange={setFiltersTab3} contentId="dashboard-content-tab3" />
+                <PatientFilters 
+                  patients={tab3Patients as any} 
+                  filters={filtersTab3} 
+                  onFiltersChange={setFiltersTab3} 
+                  contentId="dashboard-content-tab3"
+                  pdfTitle="Taxa de Exodontias"
+                  pdfFileName="taxa-exodontias"
+                  pdfSummaryCards={[
+                    { label: "Total de Atendimentos", value: totalTab3.toLocaleString("pt-BR") },
+                    { label: "Com Exodontia", value: withExodontia.toLocaleString("pt-BR"), percentage: `${totalTab3 > 0 ? ((withExodontia / totalTab3) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" },
+                    { key: "equipe", header: "Equipe" },
+                    { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" },
+                    { key: "dataNascimento", header: "DN" },
+                    { key: "cpfCns", header: "CPF/CNS" },
+                    { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" },
+                    { key: "numeradorB3", header: "Numerador B3" },
+                    { key: "dataAtendimento", header: "Data Atendimento" },
+                  ]}
+                  pdfData={filteredTab3.map((p, i) => ({
+                    num: i + 1,
+                    equipe: p.equipe || "-",
+                    microarea: p.microarea,
+                    nome: p.nome,
+                    dataNascimento: p.dataNascimento || "-",
+                    cpfCns: p.cpfCns || "-",
+                    idade: `${p.idade} anos`,
+                    sexo: p.sexo === "Feminino" ? "F" : "M",
+                    numeradorB3: p.numeradorB3,
+                    dataAtendimento: p.dataAtendimento || "-",
+                  }))}
+                />
               </div>}
 
             <div id="dashboard-content-tab3">
@@ -343,10 +446,43 @@ const Index = () => {
             </div>
           </TabsContent>
 
-          {/* Tab 4 - Placeholder */}
+          {/* Tab 4 - Escovação Supervisionada */}
           <TabsContent value="tab4" className="mt-6">
             {!isLoadingTab4 && tab4Patients && <div className="mb-6">
-                <PatientFilters patients={tab4Patients as any} filters={filtersTab4} onFiltersChange={setFiltersTab4} contentId="dashboard-content-tab4" />
+                <PatientFilters 
+                  patients={tab4Patients as any} 
+                  filters={filtersTab4} 
+                  onFiltersChange={setFiltersTab4} 
+                  contentId="dashboard-content-tab4"
+                  pdfTitle="Escovação Supervisionada"
+                  pdfFileName="escovacao-supervisionada"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTab4.toLocaleString("pt-BR") },
+                    { label: "Com Escovação", value: withConsultaTab4.toLocaleString("pt-BR"), percentage: `${totalTab4 > 0 ? ((withConsultaTab4 / totalTab4) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" },
+                    { key: "equipe", header: "Equipe" },
+                    { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" },
+                    { key: "cpfCns", header: "CPF/CNS" },
+                    { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" },
+                    { key: "primeiraConsulta", header: "Escovação Supervisionada" },
+                    { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTab4.map((p, i) => ({
+                    num: i + 1,
+                    equipe: p.equipe || "-",
+                    microarea: p.microarea,
+                    nome: p.nome,
+                    cpfCns: p.cpfCns || "-",
+                    idade: `${p.idade} anos`,
+                    sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendenteTab4(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
+                />
               </div>}
 
             <div id="dashboard-content-tab4">
@@ -373,10 +509,43 @@ const Index = () => {
             </div>
           </TabsContent>
 
-          {/* Tab 5 - Placeholder */}
+          {/* Tab 5 - Proced. Odont. Preventivos */}
           <TabsContent value="tab5" className="mt-6">
             {!isLoadingTab5 && tab5Patients && <div className="mb-6">
-                <PatientFilters patients={tab5Patients as any} filters={filtersTab5} onFiltersChange={setFiltersTab5} contentId="dashboard-content-tab5" />
+                <PatientFilters 
+                  patients={tab5Patients as any} 
+                  filters={filtersTab5} 
+                  onFiltersChange={setFiltersTab5} 
+                  contentId="dashboard-content-tab5"
+                  pdfTitle="Procedimentos Odontológicos Preventivos"
+                  pdfFileName="procedimentos-preventivos"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTab5.toLocaleString("pt-BR") },
+                    { label: "Com Procedimento", value: withConsultaTab5.toLocaleString("pt-BR"), percentage: `${totalTab5 > 0 ? ((withConsultaTab5 / totalTab5) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" },
+                    { key: "equipe", header: "Equipe" },
+                    { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" },
+                    { key: "cpfCns", header: "CPF/CNS" },
+                    { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" },
+                    { key: "primeiraConsulta", header: "Procedimento" },
+                    { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTab5.map((p, i) => ({
+                    num: i + 1,
+                    equipe: p.equipe || "-",
+                    microarea: p.microarea,
+                    nome: p.nome,
+                    cpfCns: p.cpfCns || "-",
+                    idade: `${p.idade} anos`,
+                    sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendenteTab5(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
+                />
               </div>}
 
             <div id="dashboard-content-tab5">
@@ -403,10 +572,43 @@ const Index = () => {
             </div>
           </TabsContent>
 
-          {/* Tab 6 - Placeholder */}
+          {/* Tab 6 - Trat. Restaurador Atraumático */}
           <TabsContent value="tab6" className="mt-6">
             {!isLoadingTab6 && tab6Patients && <div className="mb-6">
-                <PatientFilters patients={tab6Patients as any} filters={filtersTab6} onFiltersChange={setFiltersTab6} contentId="dashboard-content-tab6" />
+                <PatientFilters 
+                  patients={tab6Patients as any} 
+                  filters={filtersTab6} 
+                  onFiltersChange={setFiltersTab6} 
+                  contentId="dashboard-content-tab6"
+                  pdfTitle="Tratamento Restaurador Atraumático"
+                  pdfFileName="tratamento-restaurador"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTab6.toLocaleString("pt-BR") },
+                    { label: "Com Tratamento", value: withConsultaTab6.toLocaleString("pt-BR"), percentage: `${totalTab6 > 0 ? ((withConsultaTab6 / totalTab6) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" },
+                    { key: "equipe", header: "Equipe" },
+                    { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" },
+                    { key: "cpfCns", header: "CPF/CNS" },
+                    { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" },
+                    { key: "primeiraConsulta", header: "Tratamento" },
+                    { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTab6.map((p, i) => ({
+                    num: i + 1,
+                    equipe: p.equipe || "-",
+                    microarea: p.microarea,
+                    nome: p.nome,
+                    cpfCns: p.cpfCns || "-",
+                    idade: `${p.idade} anos`,
+                    sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendenteTab6(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
+                />
               </div>}
 
             <div id="dashboard-content-tab6">
