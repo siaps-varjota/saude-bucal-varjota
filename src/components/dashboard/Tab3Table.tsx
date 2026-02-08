@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Tab3Patient } from "@/hooks/useTab3Data";
-import { isExodontiaPendente } from "@/hooks/useFilteredTab3";
 import {
   Table,
   TableBody,
@@ -11,19 +10,24 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Tab3TableProps {
   patients: Tab3Patient[];
 }
 
-const ITEMS_PER_PAGE = 15;
-
 export const Tab3Table = ({ patients }: Tab3TableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const filteredPatients = patients.filter((patient) =>
     patient.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -31,19 +35,19 @@ export const Tab3Table = ({ patients }: Tab3TableProps) => {
     patient.equipe.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filteredPatients.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedPatients = filteredPatients.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredPatients.length / perPage);
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedPatients = filteredPatients.slice(startIndex, startIndex + perPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
   return (
-    <Card className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+    <Card className="shadow-lg">
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-lg font-semibold text-foreground">
+          <CardTitle className="text-lg font-semibold">
             Lista de Exodontias ({filteredPatients.length} pacientes)
           </CardTitle>
           <div className="relative w-full sm:w-64">
@@ -60,11 +64,11 @@ export const Tab3Table = ({ patients }: Tab3TableProps) => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
+      <CardContent>
+        <div className="rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold">Nº</TableHead>
                 <TableHead className="font-semibold">Equipe</TableHead>
                 <TableHead className="font-semibold">Microárea</TableHead>
@@ -81,18 +85,14 @@ export const Tab3Table = ({ patients }: Tab3TableProps) => {
               {paginatedPatients.map((patient, index) => (
                 <TableRow key={patient.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="font-medium">{startIndex + index + 1}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{patient.equipe}</TableCell>
+                  <TableCell>{patient.equipe}</TableCell>
                   <TableCell>{patient.microarea}</TableCell>
                   <TableCell className="font-medium">{patient.nome}</TableCell>
                   <TableCell>{patient.dataNascimento}</TableCell>
-                  <TableCell className="font-mono text-sm">{patient.cpfCns}</TableCell>
+                  <TableCell>{patient.cpfCns}</TableCell>
                   <TableCell>{patient.idade}</TableCell>
                   <TableCell>{patient.sexo}</TableCell>
-                  <TableCell>
-                    <Badge variant={isExodontiaPendente(patient.numeradorB3) ? "destructive" : "default"}>
-                      {patient.numeradorB3}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{patient.numeradorB3}</TableCell>
                   <TableCell>{patient.dataAtendimento}</TableCell>
                 </TableRow>
               ))}
@@ -101,25 +101,45 @@ export const Tab3Table = ({ patients }: Tab3TableProps) => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
-          <p className="text-sm text-muted-foreground">
-            Mostrando {startIndex + 1} a {Math.min(startIndex + ITEMS_PER_PAGE, filteredPatients.length)} de {filteredPatients.length}
-          </p>
-          <div className="flex items-center gap-2">
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Exibindo</span>
+            <Select
+              value={perPage.toString()}
+              onValueChange={(value) => {
+                setPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span>de {filteredPatients.length} pacientes</span>
+          </div>
+
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium">
-              {currentPage} / {totalPages || 1}
+            <span className="px-4 text-sm">
+              Página {currentPage} de {totalPages || 1}
             </span>
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages || totalPages === 0}
             >
