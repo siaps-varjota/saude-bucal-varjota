@@ -15,6 +15,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { TratamentoTable } from "@/components/dashboard/TratamentoTable";
 import { Tab4Table } from "@/components/dashboard/Tab4Table";
+import { Tab6Table } from "@/components/dashboard/Tab6Table";
 import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
 import { TratamentoMonthlyCards } from "@/components/dashboard/TratamentoMonthlyCards";
 import { Tab3MonthlyCards } from "@/components/dashboard/Tab3MonthlyCards";
@@ -631,7 +632,7 @@ const Index = () => {
                   </div> : <MonthlyCards patients={filteredTab6 as any} />}
               </div>
 
-              {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredTab6 as any} />}
+              {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table patients={filteredTab6} />}
             </div>
           </TabsContent>
         </Tabs>
