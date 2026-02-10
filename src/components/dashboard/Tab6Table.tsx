@@ -9,10 +9,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tab6Patient } from "@/hooks/useTab6Data";
-import { isConsultaPendenteTab6 } from "@/hooks/useFilteredTab6";
+import { isTRAPendente } from "@/hooks/useFilteredTab6";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
-type SortKey = "id" | "nome" | "equipe" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
+type SortKey = "nome" | "equipe" | "idade" | "sexo" | "teveTRA" | "ultimaData";
 type SortDirection = "asc" | "desc" | null;
 
 interface Tab6TableProps {
@@ -46,8 +46,8 @@ export const Tab6Table = ({ patients }: Tab6TableProps) => {
 
   const filteredPatients = patients.filter((patient) =>
     patient.nome.toLowerCase().includes(search.toLowerCase()) ||
-    patient.microarea.includes(search) ||
-    patient.cpfCns.includes(search) ||
+    patient.cns.includes(search) ||
+    patient.cpf.includes(search) ||
     patient.equipe.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -56,7 +56,7 @@ export const Tab6Table = ({ patients }: Tab6TableProps) => {
     return [...filteredPatients].sort((a, b) => {
       let aValue: string | number = a[sortKey];
       let bValue: string | number = b[sortKey];
-      if (sortKey === "id" || sortKey === "idade") {
+      if (sortKey === "idade") {
         aValue = Number(aValue) || 0;
         bValue = Number(bValue) || 0;
         return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
@@ -90,30 +90,26 @@ export const Tab6Table = ({ patients }: Tab6TableProps) => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("id")}>
-                  <div className="flex items-center">Nº {getSortIcon("id")}</div>
-                </TableHead>
+                <TableHead className="font-semibold">Nº</TableHead>
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("equipe")}>
                   <div className="flex items-center">Equipe {getSortIcon("equipe")}</div>
-                </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("microarea")}>
-                  <div className="flex items-center">Microárea {getSortIcon("microarea")}</div>
                 </TableHead>
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("nome")}>
                   <div className="flex items-center">Nome {getSortIcon("nome")}</div>
                 </TableHead>
-                <TableHead className="font-semibold">CPF/CNS</TableHead>
+                <TableHead className="font-semibold">CNS</TableHead>
+                <TableHead className="font-semibold">CPF</TableHead>
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("idade")}>
                   <div className="flex items-center">Idade {getSortIcon("idade")}</div>
                 </TableHead>
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("sexo")}>
                   <div className="flex items-center">Sexo {getSortIcon("sexo")}</div>
                 </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("primeiraConsulta")}>
-                  <div className="flex items-center">Trat. Restaurador {getSortIcon("primeiraConsulta")}</div>
+                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("teveTRA")}>
+                  <div className="flex items-center">Teve TRA {getSortIcon("teveTRA")}</div>
                 </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("comPrimeiraConsulta")}>
-                  <div className="flex items-center">Status {getSortIcon("comPrimeiraConsulta")}</div>
+                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("ultimaData")}>
+                  <div className="flex items-center">Última Data {getSortIcon("ultimaData")}</div>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -122,13 +118,13 @@ export const Tab6Table = ({ patients }: Tab6TableProps) => {
                 <TableRow key={patient.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
                   <TableCell>{patient.equipe || "-"}</TableCell>
-                  <TableCell>{patient.microarea}</TableCell>
                   <TableCell className="max-w-[200px] truncate">{patient.nome}</TableCell>
-                  <TableCell>{patient.cpfCns || "-"}</TableCell>
+                  <TableCell>{patient.cns || "-"}</TableCell>
+                  <TableCell>{patient.cpf || "-"}</TableCell>
                   <TableCell>{patient.idade} anos</TableCell>
-                  <TableCell>{patient.sexo === "Feminino" ? "F" : "M"}</TableCell>
-                  <TableCell>{patient.primeiraConsulta === "-" ? "Sem registro" : patient.primeiraConsulta}</TableCell>
-                  <TableCell>{isConsultaPendenteTab6(patient.primeiraConsulta) ? "Pendente" : "Concluído"}</TableCell>
+                  <TableCell>{patient.sexo === "MASCULINO" ? "M" : "F"}</TableCell>
+                  <TableCell>{patient.teveTRA}</TableCell>
+                  <TableCell>{patient.ultimaData}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
