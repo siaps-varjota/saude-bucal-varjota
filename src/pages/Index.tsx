@@ -20,6 +20,7 @@ import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
 import { TratamentoMonthlyCards } from "@/components/dashboard/TratamentoMonthlyCards";
 import { Tab3MonthlyCards } from "@/components/dashboard/Tab3MonthlyCards";
 import { Tab4MonthlyCards } from "@/components/dashboard/Tab4MonthlyCards";
+import { Tab6MonthlyCards } from "@/components/dashboard/Tab6MonthlyCards";
 import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
 import { Tab3QuadrimesterCards } from "@/components/dashboard/Tab3QuadrimesterCards";
@@ -625,11 +626,11 @@ const Index = () => {
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
-                  Consultas por Mês (Últimos 12 meses)
+                  TRA por Mês (Últimos 12 meses)
                 </h2>
                 {isLoadingTab6 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div> : <MonthlyCards patients={filteredTab6 as any} />}
+                  </div> : <Tab6MonthlyCards patients={filteredTab6} />}
               </div>
 
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table patients={filteredTab6} />}
