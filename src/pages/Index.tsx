@@ -10,7 +10,7 @@ import { useFilteredTratamento, isTratamentoPendente } from "@/hooks/useFiltered
 import { useFilteredTab3, isExodontiaPendente } from "@/hooks/useFilteredTab3";
 import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
 import { useFilteredTab5, isConsultaPendenteTab5 } from "@/hooks/useFilteredTab5";
-import { useFilteredTab6, isConsultaPendenteTab6 } from "@/hooks/useFilteredTab6";
+import { useFilteredTab6, isTRAPendente } from "@/hooks/useFilteredTab6";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { TratamentoTable } from "@/components/dashboard/TratamentoTable";
@@ -222,7 +222,7 @@ const Index = () => {
   const totalTab5 = filteredTab5.length;
   const withConsultaTab5 = filteredTab5.filter(p => !isConsultaPendenteTab5(p.primeiraConsulta)).length;
   const totalTab6 = filteredTab6.length;
-  const withConsultaTab6 = filteredTab6.filter(p => !isConsultaPendenteTab6(p.primeiraConsulta)).length;
+  const withConsultaTab6 = filteredTab6.filter(p => !isTRAPendente(p.teveTRA)).length;
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
@@ -587,27 +587,27 @@ const Index = () => {
                     { label: "Total de Pacientes", value: totalTab6.toLocaleString("pt-BR") },
                     { label: "Com Tratamento", value: withConsultaTab6.toLocaleString("pt-BR"), percentage: `${totalTab6 > 0 ? ((withConsultaTab6 / totalTab6) * 100).toFixed(1) : 0}%` },
                   ]}
-                  pdfColumns={[
+                   pdfColumns={[
                     { key: "num", header: "Nº" },
                     { key: "equipe", header: "Equipe" },
-                    { key: "microarea", header: "Microárea" },
                     { key: "nome", header: "Nome" },
-                    { key: "cpfCns", header: "CPF/CNS" },
+                    { key: "cns", header: "CNS" },
+                    { key: "cpf", header: "CPF" },
                     { key: "idade", header: "Idade" },
                     { key: "sexo", header: "Sexo" },
-                    { key: "primeiraConsulta", header: "Tratamento" },
-                    { key: "status", header: "Status" },
+                    { key: "teveTRA", header: "Teve TRA" },
+                    { key: "ultimaData", header: "Última Data" },
                   ]}
                   pdfData={filteredTab6.map((p, i) => ({
                     num: i + 1,
                     equipe: p.equipe || "-",
-                    microarea: p.microarea,
                     nome: p.nome,
-                    cpfCns: p.cpfCns || "-",
+                    cns: p.cns || "-",
+                    cpf: p.cpf || "-",
                     idade: `${p.idade} anos`,
-                    sexo: p.sexo === "Feminino" ? "F" : "M",
-                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
-                    status: isConsultaPendenteTab6(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                    sexo: p.sexo === "MASCULINO" ? "M" : "F",
+                    teveTRA: p.teveTRA,
+                    ultimaData: p.ultimaData,
                   }))}
                 />
               </div>}

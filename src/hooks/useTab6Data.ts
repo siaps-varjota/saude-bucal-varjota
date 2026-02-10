@@ -3,26 +3,26 @@ import { useQuery } from "@tanstack/react-query";
 export interface Tab6Patient {
   id: number;
   equipe: string;
-  microarea: string;
   nome: string;
+  cns: string;
+  cpf: string;
   dataNascimento: string;
-  cpfCns: string;
-  sexo: string;
   idade: number;
-  primeiraConsulta: string;
-  comPrimeiraConsulta: string;
+  sexo: string;
+  teveTRA: string;
+  ultimaData: string;
 }
 
-// PLACEHOLDER: Substituir pelo link CSV real
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmWTBTuo3l7yKebZuk-qJxQfpG_qvoKSHK6_DxSmaV0cT_iKHZQkZLAakrvYeDPh1oe20_vlOJJ7ex/pub?gid=817850522&single=true&output=csv";
 
 const parseCSV = (csv: string): Tab6Patient[] => {
   const lines = csv.split("\n");
-  const dataLines = lines.slice(4);
+  // Skip header row
+  const dataLines = lines.slice(1);
 
   return dataLines
     .filter((line) => line.trim() !== "")
-    .map((line) => {
+    .map((line, index) => {
       const fields: string[] = [];
       let current = "";
       let inQuotes = false;
@@ -40,22 +40,20 @@ const parseCSV = (csv: string): Tab6Patient[] => {
       }
       fields.push(current.trim());
 
-      const idade = parseInt(fields[7]) || 0;
-
       return {
-        id: parseInt(fields[0]) || 0,
-        equipe: fields[1] || "",
-        microarea: fields[2] || "",
-        nome: fields[3] || "",
+        id: index + 1,
+        equipe: fields[0] || "",
+        nome: fields[1] || "",
+        cns: fields[2] || "",
+        cpf: fields[3] || "",
         dataNascimento: fields[4] || "",
-        cpfCns: fields[5] || "",
+        idade: parseInt(fields[5]) || 0,
         sexo: fields[6] || "",
-        idade,
-        primeiraConsulta: fields[8] || "-",
-        comPrimeiraConsulta: fields[9] || "NÃO",
+        teveTRA: fields[7] || "NÃO",
+        ultimaData: fields[8] || "-",
       };
     })
-    .filter((patient) => patient.id > 0);
+    .filter((p) => p.nome.trim() !== "");
 };
 
 const fetchTab6Data = async (): Promise<Tab6Patient[]> => {

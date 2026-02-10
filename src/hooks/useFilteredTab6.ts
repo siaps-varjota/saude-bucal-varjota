@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import { Tab6Patient } from "./useTab6Data";
 import { FilterState } from "@/components/dashboard/PatientFilters";
 
-export const isConsultaPendenteTab6 = (consulta: string): boolean => {
-  return !consulta || consulta === "-" || consulta.trim() === "";
+export const isTRAPendente = (teveTRA: string): boolean => {
+  return teveTRA !== "SIM";
 };
 
 export const useFilteredTab6 = (patients: Tab6Patient[], filters: FilterState): Tab6Patient[] => {
@@ -12,11 +12,8 @@ export const useFilteredTab6 = (patients: Tab6Patient[], filters: FilterState): 
       if (filters.equipe !== "all" && patient.equipe !== filters.equipe) {
         return false;
       }
-      if (filters.microarea !== "all" && patient.microarea !== filters.microarea) {
-        return false;
-      }
       if (filters.status !== "all") {
-        const isPendente = isConsultaPendenteTab6(patient.primeiraConsulta);
+        const isPendente = isTRAPendente(patient.teveTRA);
         if (filters.status === "pendente" && !isPendente) return false;
         if (filters.status === "concluido" && isPendente) return false;
       }
