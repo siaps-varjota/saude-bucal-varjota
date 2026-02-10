@@ -14,7 +14,7 @@ export interface Tab6Patient {
 }
 
 // PLACEHOLDER: Substituir pelo link CSV real
-const CSV_URL = "PLACEHOLDER_CSV_URL_TAB6";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmWTBTuo3l7yKebZuk-qJxQfpG_qvoKSHK6_DxSmaV0cT_iKHZQkZLAakrvYeDPh1oe20_vlOJJ7ex/pub?gid=817850522&single=true&output=csv";
 
 const parseCSV = (csv: string): Tab6Patient[] => {
   const lines = csv.split("\n");
