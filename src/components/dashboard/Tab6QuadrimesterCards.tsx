@@ -165,7 +165,7 @@ export const Tab6QuadrimesterCards = ({
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.countSim}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalRecords} registros</p>
               <p className="text-xs text-muted-foreground">Média mensal: {quad.avgMonthlySim.toFixed(1)}</p>
-              <p className="text-muted-foreground text-base">{quad.percentage.toFixed(1)}%</p>
+              <p className="text-muted-foreground text-sm">{quad.percentage.toFixed(1)}%</p>
             </CardContent>
           </Card>;
     })}
