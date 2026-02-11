@@ -176,7 +176,7 @@ export const QuadrimesterCards = ({
               <p className="text-xs text-muted-foreground mt-1">
                 Média/mês ({quad.total} total)
               </p>
-              <p className="text-muted-foreground text-lg">
+              <p className="text-muted-foreground text-base">
                 {percentage.toFixed(1)}%
               </p>
             </CardContent>
