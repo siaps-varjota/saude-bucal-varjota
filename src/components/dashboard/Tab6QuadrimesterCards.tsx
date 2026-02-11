@@ -103,23 +103,35 @@ export const Tab6QuadrimesterCards = ({ patients }: Tab6QuadrimesterCardsProps) 
     quadrimesters.reverse();
 
     return quadrimesters.map((q) => {
-      let totalRecords = 0;
-      let countSim = 0;
+      const monthlyData: { sim: number; total: number }[] = [];
 
-      patients.forEach((patient) => {
-        const d = parseDateField(patient.ultimaData);
-        if (d) {
-          const m = getMonth(d);
-          const y = getYear(d);
-          if (y === q.year && q.months.includes(m)) {
-            totalRecords++;
-            if (patient.teveTRA === "SIM") countSim++;
+      q.months.forEach((m) => {
+        let totalMonth = 0;
+        let simMonth = 0;
+        patients.forEach((patient) => {
+          const d = parseDateField(patient.ultimaData);
+          if (d) {
+            const dm = getMonth(d);
+            const dy = getYear(d);
+            if (dy === q.year && dm === m) {
+              totalMonth++;
+              if (patient.teveTRA === "SIM") simMonth++;
+            }
           }
+        });
+        if (totalMonth > 0) {
+          monthlyData.push({ sim: simMonth, total: totalMonth });
         }
       });
 
-      const percentage = totalRecords > 0 ? (countSim / totalRecords) * 100 : 0;
-      return { ...q, countSim, totalRecords, percentage };
+      const totalRecords = monthlyData.reduce((s, m) => s + m.total, 0);
+      const countSim = monthlyData.reduce((s, m) => s + m.sim, 0);
+      const monthlyPercentages = monthlyData.map((m) => (m.sim / m.total) * 100);
+      const avgPercentage = monthlyPercentages.length > 0
+        ? monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length
+        : 0;
+
+      return { ...q, countSim, totalRecords, percentage: avgPercentage };
     });
   }, [patients, currentQuad, currentYear]);
 
