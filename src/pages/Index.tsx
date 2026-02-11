@@ -25,6 +25,7 @@ import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
 import { Tab3QuadrimesterCards } from "@/components/dashboard/Tab3QuadrimesterCards";
 import { Tab4QuadrimesterCards } from "@/components/dashboard/Tab4QuadrimesterCards";
+import { Tab6QuadrimesterCards } from "@/components/dashboard/Tab6QuadrimesterCards";
 import { Tab3Table } from "@/components/dashboard/Tab3Table";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -620,7 +621,7 @@ const Index = () => {
                   </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultaTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <QuadrimesterCards patients={filteredTab6 as any} />
+                    <Tab6QuadrimesterCards patients={filteredTab6} />
                   </>}
               </div>
 
