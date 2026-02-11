@@ -130,49 +130,49 @@ export const QuadrimesterCards = ({ patients }: QuadrimesterCardsProps) => {
   // Reverse to show oldest first
   quadrimesters.reverse();
 
-  // Count consultations per quadrimester with monthly breakdown
+  // Count consultations per quadrimester
   const quadCounts = quadrimesters.map((q) => {
-    const monthlyData: { count: number }[] = [];
-
-    q.months.forEach((m) => {
-      // Only consider months that have passed or are current
-      if (q.year < currentYear || (q.year === currentYear && m <= currentMonth)) {
-        let monthCount = 0;
-        patients.forEach((patient) => {
-          const consultaDate = parseConsultaDate(patient.primeiraConsulta);
-          if (consultaDate) {
-            const consultaMonth = getMonth(consultaDate);
-            const consultaYear = getYear(consultaDate);
-            if (consultaYear === q.year && consultaMonth === m) {
-              monthCount++;
-            }
-          }
-        });
-        monthlyData.push({ count: monthCount });
+    let count = 0;
+    let monthsWithData = 0;
+    const monthCounts = new Map<number, number>();
+    
+    patients.forEach((patient) => {
+      const consultaDate = parseConsultaDate(patient.primeiraConsulta);
+      if (consultaDate) {
+        const consultaMonth = getMonth(consultaDate);
+        const consultaYear = getYear(consultaDate);
+        
+        if (consultaYear === q.year && q.months.includes(consultaMonth)) {
+          count++;
+          monthCounts.set(consultaMonth, (monthCounts.get(consultaMonth) || 0) + 1);
+        }
       }
     });
-
-    const total = monthlyData.reduce((s, m) => s + m.count, 0);
-    const avgMonthlySim = monthlyData.length > 0 ? total / monthlyData.length : 0;
-    const monthlyPercentages = monthlyData.map((m) =>
-      totalPatients > 0 ? (m.count / totalPatients) * 100 : 0
-    );
-    const avgPercentage = monthlyPercentages.length > 0
-      ? monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length
-      : 0;
-
+    
+    // Count months that have passed or have data in the quadrimester
+    const now = new Date();
+    q.months.forEach((m) => {
+      if (q.year < currentYear || (q.year === currentYear && m <= currentMonth)) {
+        monthsWithData++;
+      }
+    });
+    
+    // Calculate average (total / months with data, minimum 1 to avoid division by 0)
+    const average = monthsWithData > 0 ? count / monthsWithData : 0;
+    
     return {
       ...q,
-      total,
-      avgMonthlySim,
-      percentage: avgPercentage,
+      total: count,
+      average,
+      monthsWithData,
     };
   });
 
   return (
     <>
       {quadCounts.map((quad) => {
-        const category = getScoreCategory(quad.percentage);
+        const percentage = totalPatients > 0 ? (quad.average / totalPatients) * 100 : 0;
+        const category = getScoreCategory(percentage);
         const styles = getScoreStyles(category);
         
         return (
@@ -188,16 +188,13 @@ export const QuadrimesterCards = ({ patients }: QuadrimesterCardsProps) => {
                 </span>
               </div>
               <p className={`text-3xl font-bold ${styles.count}`}>
-                {quad.total}
+                {quad.average.toFixed(1)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                de {totalPatients} registros
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Média mensal: {quad.avgMonthlySim.toFixed(1)}
+                Média/mês ({quad.total} total)
               </p>
               <p className="text-[10px] text-muted-foreground">
-                {quad.percentage.toFixed(1)}%
+                {percentage.toFixed(1)}%
               </p>
             </CardContent>
           </Card>
