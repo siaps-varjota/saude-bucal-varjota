@@ -130,8 +130,11 @@ export const Tab6QuadrimesterCards = ({ patients }: Tab6QuadrimesterCardsProps) 
       const avgPercentage = monthlyPercentages.length > 0
         ? monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length
         : 0;
+      const avgMonthlySim = monthlyData.length > 0
+        ? countSim / monthlyData.length
+        : 0;
 
-      return { ...q, countSim, totalRecords, percentage: avgPercentage };
+      return { ...q, countSim, totalRecords, percentage: avgPercentage, avgMonthlySim };
     });
   }, [patients, currentQuad, currentYear]);
 
@@ -150,6 +153,7 @@ export const Tab6QuadrimesterCards = ({ patients }: Tab6QuadrimesterCardsProps) 
               </div>
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.countSim}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalRecords} registros</p>
+              <p className="text-xs text-muted-foreground">Média mensal: {quad.avgMonthlySim.toFixed(1)}</p>
               <p className="text-[10px] text-muted-foreground">{quad.percentage.toFixed(1)}%</p>
             </CardContent>
           </Card>
