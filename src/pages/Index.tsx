@@ -554,7 +554,7 @@ const Index = () => {
                 {isLoadingTab5 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
                   </> : <>
-                    <StatsCard title="Total de Registros" value={totalTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab5QuadrimesterCards records={filteredTab5} />
                   </>}
