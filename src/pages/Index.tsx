@@ -9,10 +9,13 @@ import { useFilteredPatients, isConsultaPendente } from "@/hooks/useFilteredPati
 import { useFilteredTratamento, isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { useFilteredTab3, isExodontiaPendente } from "@/hooks/useFilteredTab3";
 import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
-import { useFilteredTab5, isConsultaPendenteTab5 } from "@/hooks/useFilteredTab5";
+import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6, isTRAPendente } from "@/hooks/useFilteredTab6";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
+import { Tab5Table } from "@/components/dashboard/Tab5Table";
+import { Tab5MonthlyCards } from "@/components/dashboard/Tab5MonthlyCards";
+import { Tab5QuadrimesterCards } from "@/components/dashboard/Tab5QuadrimesterCards";
 import { TratamentoTable } from "@/components/dashboard/TratamentoTable";
 import { Tab4Table } from "@/components/dashboard/Tab4Table";
 import { Tab6Table } from "@/components/dashboard/Tab6Table";
@@ -222,7 +225,8 @@ const Index = () => {
   const totalTab4 = filteredTab4.length;
   const withConsultaTab4 = filteredTab4.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
   const totalTab5 = filteredTab5.length;
-  const withConsultaTab5 = filteredTab5.filter(p => !isConsultaPendenteTab5(p.primeiraConsulta)).length;
+  const totalPreventivosTab5 = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
+  const totalIndividuaisTab5 = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
   const totalTab6 = filteredTab6.length;
   const withConsultaTab6 = filteredTab6.filter(p => !isTRAPendente(p.teveTRA)).length;
   return <div className="min-h-screen bg-background">
@@ -523,30 +527,24 @@ const Index = () => {
                   pdfTitle="Procedimentos Odontológicos Preventivos"
                   pdfFileName="procedimentos-preventivos"
                   pdfSummaryCards={[
-                    { label: "Total de Pacientes", value: totalTab5.toLocaleString("pt-BR") },
-                    { label: "Com Procedimento", value: withConsultaTab5.toLocaleString("pt-BR"), percentage: `${totalTab5 > 0 ? ((withConsultaTab5 / totalTab5) * 100).toFixed(1) : 0}%` },
+                    { label: "Total de Registros", value: totalTab5.toLocaleString("pt-BR") },
+                    { label: "Preventivos", value: totalPreventivosTab5.toLocaleString("pt-BR"), percentage: `${totalIndividuaisTab5 > 0 ? ((totalPreventivosTab5 / totalIndividuaisTab5) * 100).toFixed(1) : 0}%` },
                   ]}
                   pdfColumns={[
                     { key: "num", header: "Nº" },
+                    { key: "mesAno", header: "Mês/Ano" },
                     { key: "equipe", header: "Equipe" },
-                    { key: "microarea", header: "Microárea" },
-                    { key: "nome", header: "Nome" },
-                    { key: "cpfCns", header: "CPF/CNS" },
-                    { key: "idade", header: "Idade" },
-                    { key: "sexo", header: "Sexo" },
-                    { key: "primeiraConsulta", header: "Procedimento" },
-                    { key: "status", header: "Status" },
+                    { key: "preventivos", header: "Preventivos" },
+                    { key: "totalIndividuais", header: "Total Individuais" },
+                    { key: "porcentagem", header: "Pontuação" },
                   ]}
-                  pdfData={filteredTab5.map((p, i) => ({
+                  pdfData={filteredTab5.map((r, i) => ({
                     num: i + 1,
-                    equipe: p.equipe || "-",
-                    microarea: p.microarea,
-                    nome: p.nome,
-                    cpfCns: p.cpfCns || "-",
-                    idade: `${p.idade} anos`,
-                    sexo: p.sexo === "Feminino" ? "F" : "M",
-                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
-                    status: isConsultaPendenteTab5(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                    mesAno: r.mesAno,
+                    equipe: r.equipe,
+                    preventivos: r.preventivos,
+                    totalIndividuais: r.totalIndividuais,
+                    porcentagem: `${r.porcentagem.toFixed(2)}%`,
                   }))}
                 />
               </div>}
@@ -556,22 +554,22 @@ const Index = () => {
                 {isLoadingTab5 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
                   </> : <>
-                    <StatsCard title="Total de Pacientes" value={totalTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                    <StatsCard title="Com 1ª Consulta" value={withConsultaTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <QuadrimesterCards patients={filteredTab5 as any} />
+                    <StatsCard title="Total de Registros" value={totalTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab5QuadrimesterCards records={filteredTab5} />
                   </>}
               </div>
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
-                  Consultas por Mês (Últimos 12 meses)
+                  Procedimentos Preventivos por Mês
                 </h2>
                 {isLoadingTab5 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div> : <MonthlyCards patients={filteredTab5 as any} />}
+                  </div> : <Tab5MonthlyCards records={filteredTab5} />}
               </div>
 
-              {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredTab5 as any} />}
+              {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
           </TabsContent>
 

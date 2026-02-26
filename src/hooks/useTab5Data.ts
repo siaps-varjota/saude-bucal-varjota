@@ -1,75 +1,69 @@
 import { useQuery } from "@tanstack/react-query";
 
-export interface Tab5Patient {
-  id: number;
+export interface Tab5Record {
   equipe: string;
-  microarea: string;
-  nome: string;
-  dataNascimento: string;
-  cpfCns: string;
-  sexo: string;
-  idade: number;
-  primeiraConsulta: string;
-  comPrimeiraConsulta: string;
+  preventivos: number;
+  totalIndividuais: number;
+  porcentagem: number;
+  mesAno: string; // "janeiro/2026"
 }
 
-// PLACEHOLDER: Substituir pelo link CSV real
-const CSV_URL = "PLACEHOLDER_CSV_URL_TAB5";
+const TSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTLJd6v3fx1eOqe31mCAmxPHdJz0eDhQuujwRx5O6tQpFbPAQSMXzRNMpi3CKNT8mpw7UnMyfsOaPMD/pub?gid=0&single=true&output=tsv";
 
-const parseCSV = (csv: string): Tab5Patient[] => {
-  const lines = csv.split("\n");
-  const dataLines = lines.slice(4);
+const parseTSV = (tsv: string): Tab5Record[] => {
+  const lines = tsv.split("\n").map((l) => l.replace(/\r$/, ""));
+  const records: Tab5Record[] = [];
+  let currentMonth = "";
 
-  return dataLines
-    .filter((line) => line.trim() !== "")
-    .map((line) => {
-      const fields: string[] = [];
-      let current = "";
-      let inQuotes = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
 
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === "," && !inQuotes) {
-          fields.push(current.trim());
-          current = "";
-        } else {
-          current += char;
-        }
-      }
-      fields.push(current.trim());
+    const fields = line.split("\t");
 
-      const idade = parseInt(fields[7]) || 0;
+    // Check if this is a month header line (single field, no tabs, contains "/")
+    if (fields.length === 1 && /[a-záàâãéèêíïóôõúç]+\/\d{4}/i.test(line)) {
+      currentMonth = line;
+      continue;
+    }
 
-      return {
-        id: parseInt(fields[0]) || 0,
-        equipe: fields[1] || "",
-        microarea: fields[2] || "",
-        nome: fields[3] || "",
-        dataNascimento: fields[4] || "",
-        cpfCns: fields[5] || "",
-        sexo: fields[6] || "",
-        idade,
-        primeiraConsulta: fields[8] || "-",
-        comPrimeiraConsulta: fields[9] || "NÃO",
-      };
-    })
-    .filter((patient) => patient.id > 0);
+    // Skip column header rows
+    if (fields[0] === "EQUIPE" || fields[0]?.toUpperCase().includes("EQUIPE")) {
+      continue;
+    }
+
+    // Data row
+    if (fields.length >= 3 && currentMonth && fields[0]?.startsWith("ESF")) {
+      const preventivos = parseInt(fields[1]) || 0;
+      const totalIndividuais = parseInt(fields[2]) || 0;
+      const porcentagemStr = fields[3]?.replace(",", ".").replace("%", "") || "0";
+      const porcentagem = parseFloat(porcentagemStr) || 0;
+
+      records.push({
+        equipe: fields[0].trim(),
+        preventivos,
+        totalIndividuais,
+        porcentagem,
+        mesAno: currentMonth,
+      });
+    }
+  }
+
+  return records;
 };
 
-const fetchTab5Data = async (): Promise<Tab5Patient[]> => {
-  const response = await fetch(CSV_URL);
+const fetchTab5Data = async (): Promise<Tab5Record[]> => {
+  const response = await fetch(TSV_URL);
   if (!response.ok) {
     throw new Error("Falha ao carregar dados");
   }
-  const csv = await response.text();
-  return parseCSV(csv);
+  const tsv = await response.text();
+  return parseTSV(tsv);
 };
 
 export const useTab5Data = () => {
   return useQuery({
-    queryKey: ["tab5-patients"],
+    queryKey: ["tab5-data"],
     queryFn: fetchTab5Data,
     staleTime: 5 * 60 * 1000,
   });
