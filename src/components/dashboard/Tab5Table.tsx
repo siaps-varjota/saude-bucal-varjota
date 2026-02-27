@@ -10,6 +10,14 @@ import {
 } from "@/components/ui/select";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+const getScoreColor = (percentage: number) => {
+  if (percentage <= 30) return "bg-red-100 text-red-700 border-red-200";
+  if (percentage <= 50) return "bg-amber-100 text-amber-700 border-amber-200";
+  if (percentage <= 70) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  return "bg-blue-100 text-blue-700 border-blue-200";
+};
 
 type SortKey = "equipe" | "preventivos" | "totalIndividuais" | "porcentagem" | "mesAno";
 type SortDirection = "asc" | "desc" | null;
@@ -110,7 +118,11 @@ export const Tab5Table = ({ records }: Tab5TableProps) => {
                   <TableCell>{r.equipe}</TableCell>
                   <TableCell>{r.preventivos}</TableCell>
                   <TableCell>{r.totalIndividuais}</TableCell>
-                  <TableCell>{r.porcentagem.toFixed(2)}%</TableCell>
+                  <TableCell>
+                    <Badge className={`${getScoreColor(r.porcentagem)} font-semibold`}>
+                      {r.porcentagem.toFixed(2)}%
+                    </Badge>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
