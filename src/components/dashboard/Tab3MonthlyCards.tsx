@@ -1,37 +1,11 @@
 import { useMemo } from "react";
-import { Tab3Patient } from "@/hooks/useTab3Data";
-import { isExodontiaPendente } from "@/hooks/useFilteredTab3";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tab3Record } from "@/hooks/useTab3Data";
 import { Calendar } from "lucide-react";
-import { format, subMonths, isValid, parse } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface Tab3MonthlyCardsProps {
-  patients: Tab3Patient[];
+  records: Tab3Record[];
 }
-
-const parseDate = (dateStr: string): Date | null => {
-  if (!dateStr || dateStr === "-" || dateStr.trim() === "") return null;
-  
-  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-  for (const fmt of formats) {
-    try {
-      const parsed = parse(dateStr.trim(), fmt, new Date());
-      if (isValid(parsed)) return parsed;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-
-const getMonthYearKey = (date: Date): string => {
-  return format(date, "MM/yyyy");
-};
-
-const getMonthYearLabel = (date: Date): string => {
-  return format(date, "MMM/yyyy", { locale: ptBR });
-};
 
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
@@ -41,103 +15,72 @@ const getScoreCategory = (percentage: number): ScoreCategory => {
   if (percentage >= 8 && percentage <= 10) return "otimo";
   if (percentage > 10 && percentage < 12) return "bom";
   if (percentage >= 12 && percentage < 14) return "suficiente";
-  return "regular"; // <8% ou >=14%
+  return "regular";
 };
 
 const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
     case "regular":
-      return {
-        bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
-        icon: "text-red-600",
-        label: "text-red-700",
-        count: "text-red-700"
-      };
+      return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500", icon: "text-red-600", label: "text-red-700", count: "text-red-700" };
     case "suficiente":
-      return {
-        bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
-        icon: "text-amber-600",
-        label: "text-amber-700",
-        count: "text-amber-700"
-      };
+      return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
     case "bom":
-      return {
-        bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
-        icon: "text-emerald-600",
-        label: "text-emerald-700",
-        count: "text-emerald-700"
-      };
+      return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
     case "otimo":
-      return {
-        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
-        icon: "text-blue-600",
-        label: "text-blue-700",
-        count: "text-blue-700"
-      };
+      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
     default:
-      return {
-        bg: "bg-muted/30",
-        icon: "text-muted-foreground",
-        label: "text-muted-foreground",
-        count: "text-muted-foreground"
-      };
+      return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
-export const Tab3MonthlyCards = ({ patients }: Tab3MonthlyCardsProps) => {
-  const totalPatients = patients.length;
+const MONTH_ORDER = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
 
-  // Generate last 12 months
-  const now = new Date();
-  const last12Months = Array.from({ length: 12 }, (_, i) => {
-    const date = subMonths(now, i);
-    return {
-      key: getMonthYearKey(date),
-      label: getMonthYearLabel(date),
-      date
-    };
-  }).reverse();
+export const Tab3MonthlyCards = ({ records }: Tab3MonthlyCardsProps) => {
+  const monthlyData = useMemo(() => {
+    const byMonth = new Map<string, { exodontias: number; total: number }>();
 
-  // Count exodontias (numeradorB3 = "SIM") per month based on dataAtendimento
-  const monthCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    patients.forEach(patient => {
-      const date = parseDate(patient.dataAtendimento);
-      if (date && !isExodontiaPendente(patient.numeradorB3)) {
-        const key = getMonthYearKey(date);
-        counts.set(key, (counts.get(key) || 0) + 1);
-      }
+    records.forEach((r) => {
+      const existing = byMonth.get(r.mesAno) || { exodontias: 0, total: 0 };
+      existing.exodontias += r.exodontias;
+      existing.total += r.totalAtendimentos;
+      byMonth.set(r.mesAno, existing);
     });
-    return counts;
-  }, [patients]);
+
+    return Array.from(byMonth.entries())
+      .map(([mesAno, data]) => {
+        const percentage = data.total > 0 ? (data.exodontias / data.total) * 100 : 0;
+        return { mesAno, ...data, percentage };
+      })
+      .sort((a, b) => {
+        const [mesA, anoA] = a.mesAno.split("/");
+        const [mesB, anoB] = b.mesAno.split("/");
+        const yearDiff = parseInt(anoA) - parseInt(anoB);
+        if (yearDiff !== 0) return yearDiff;
+        return MONTH_ORDER.indexOf(mesA.toLowerCase()) - MONTH_ORDER.indexOf(mesB.toLowerCase());
+      });
+  }, [records]);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {last12Months.map(month => {
-          const count = monthCounts.get(month.key) || 0;
-          const percentage = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
-          const category = getScoreCategory(percentage);
+        {monthlyData.map((month) => {
+          const category = getScoreCategory(month.percentage);
           const styles = getScoreStyles(category);
 
           return (
-            <Card 
-              key={month.key} 
-              className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}
-            >
+            <Card key={month.mesAno} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Calendar className={`h-3 w-3 ${styles.icon}`} />
                   <span className={`text-xs font-medium uppercase ${styles.label}`}>
-                    {month.label}
+                    {month.mesAno.split("/")[0].slice(0, 3)}/{month.mesAno.split("/")[1]}
                   </span>
                 </div>
-                <p className={`text-2xl font-bold ${styles.count}`}>
-                  {count}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {percentage.toFixed(1)}%
-                </p>
+                <p className={`text-2xl font-bold ${styles.count}`}>{month.exodontias}</p>
+                <p className="text-[10px] text-muted-foreground">de {month.total} | {month.percentage.toFixed(1)}%</p>
               </CardContent>
             </Card>
           );

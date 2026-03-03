@@ -7,7 +7,7 @@ import { useTab5Data } from "@/hooks/useTab5Data";
 import { useTab6Data } from "@/hooks/useTab6Data";
 import { useFilteredPatients, isConsultaPendente } from "@/hooks/useFilteredPatients";
 import { useFilteredTratamento, isTratamentoPendente } from "@/hooks/useFilteredTratamento";
-import { useFilteredTab3, isExodontiaPendente } from "@/hooks/useFilteredTab3";
+import { useFilteredTab3 } from "@/hooks/useFilteredTab3";
 import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
 import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6, isTRAPendente } from "@/hooks/useFilteredTab6";
@@ -221,7 +221,8 @@ const Index = () => {
   const totalTratamento = filteredTratamento.length;
   const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
   const totalTab3 = filteredTab3.length;
-  const withExodontia = filteredTab3.filter(p => !isExodontiaPendente(p.numeradorB3)).length;
+  const totalExodontiasTab3 = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
+  const totalAtendimentosTab3 = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
   const totalTab4 = filteredTab4.length;
   const withConsultaTab4 = filteredTab4.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
   const totalTab5 = filteredTab5.length;
@@ -401,32 +402,24 @@ const Index = () => {
                   pdfTitle="Taxa de Exodontias"
                   pdfFileName="taxa-exodontias"
                   pdfSummaryCards={[
-                    { label: "Total de Atendimentos", value: totalTab3.toLocaleString("pt-BR") },
-                    { label: "Com Exodontia", value: withExodontia.toLocaleString("pt-BR"), percentage: `${totalTab3 > 0 ? ((withExodontia / totalTab3) * 100).toFixed(1) : 0}%` },
+                    { label: "Total de Registros", value: totalAtendimentosTab3.toLocaleString("pt-BR") },
+                    { label: "Exodontias", value: totalExodontiasTab3.toLocaleString("pt-BR"), percentage: `${totalAtendimentosTab3 > 0 ? ((totalExodontiasTab3 / totalAtendimentosTab3) * 100).toFixed(1) : 0}%` },
                   ]}
                   pdfColumns={[
                     { key: "num", header: "Nº" },
+                    { key: "mesAno", header: "Mês/Ano" },
                     { key: "equipe", header: "Equipe" },
-                    { key: "microarea", header: "Microárea" },
-                    { key: "nome", header: "Nome" },
-                    { key: "dataNascimento", header: "DN" },
-                    { key: "cpfCns", header: "CPF/CNS" },
-                    { key: "idade", header: "Idade" },
-                    { key: "sexo", header: "Sexo" },
-                    { key: "numeradorB3", header: "Numerador B3" },
-                    { key: "dataAtendimento", header: "Data Atendimento" },
+                    { key: "exodontias", header: "Exodontias" },
+                    { key: "totalAtendimentos", header: "Total Atendimentos" },
+                    { key: "porcentagem", header: "Pontuação" },
                   ]}
-                  pdfData={filteredTab3.map((p, i) => ({
+                  pdfData={filteredTab3.map((r, i) => ({
                     num: i + 1,
-                    equipe: p.equipe || "-",
-                    microarea: p.microarea,
-                    nome: p.nome,
-                    dataNascimento: p.dataNascimento || "-",
-                    cpfCns: p.cpfCns || "-",
-                    idade: `${p.idade} anos`,
-                    sexo: p.sexo === "Feminino" ? "F" : "M",
-                    numeradorB3: p.numeradorB3,
-                    dataAtendimento: p.dataAtendimento || "-",
+                    mesAno: r.mesAno,
+                    equipe: r.equipe,
+                    exodontias: r.exodontias,
+                    totalAtendimentos: r.totalAtendimentos,
+                    porcentagem: `${r.porcentagem.toFixed(2)}%`,
                   }))}
                 />
               </div>}
@@ -436,20 +429,20 @@ const Index = () => {
                 {isLoadingTab3 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
                   </> : <>
-                    <StatsCard title="Total de Atendimentos" value={totalTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                    <StatsCard title="Com Exodontia" value={withExodontia.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <Tab3QuadrimesterCards patients={filteredTab3} />
+                    <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab3QuadrimesterCards records={filteredTab3} />
                   </>}
               </div>
 
               <div className="mb-8">
-                <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês (Últimos 12 meses)</h2>
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab3 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div> : <Tab3MonthlyCards patients={filteredTab3} />}
+                  </div> : <Tab3MonthlyCards records={filteredTab3} />}
               </div>
 
-              {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table patients={filteredTab3} />}
+              {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
           </TabsContent>
 
