@@ -13,10 +13,10 @@ import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp
 import { Badge } from "@/components/ui/badge";
 
 const getScoreColor = (percentage: number) => {
-  if (percentage >= 14 || percentage < 8) return "bg-red-100 text-red-700 border-red-200";
-  if (percentage >= 12) return "bg-amber-100 text-amber-700 border-amber-200";
-  if (percentage > 10) return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  return "bg-blue-100 text-blue-700 border-blue-200";
+  if (percentage > 8) return "bg-blue-100 text-blue-700 border-blue-200";
+  if (percentage > 6) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  if (percentage > 3) return "bg-amber-100 text-amber-700 border-amber-200";
+  return "bg-red-100 text-red-700 border-red-200";
 };
 
 type SortKey = "equipe" | "exodontias" | "totalProcedimentos" | "porcentagem" | "mesAno";
