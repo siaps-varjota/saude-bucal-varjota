@@ -1,23 +1,14 @@
 import { useMemo } from "react";
-import { Tab6Patient } from "./useTab6Data";
+import { Tab6Record } from "./useTab6Data";
 import { FilterState } from "@/components/dashboard/PatientFilters";
 
-export const isTRAPendente = (teveTRA: string): boolean => {
-  return teveTRA !== "SIM";
-};
-
-export const useFilteredTab6 = (patients: Tab6Patient[], filters: FilterState): Tab6Patient[] => {
+export const useFilteredTab6 = (records: Tab6Record[], filters: FilterState): Tab6Record[] => {
   return useMemo(() => {
-    return patients.filter((patient) => {
-      if (filters.equipe !== "all" && patient.equipe !== filters.equipe) {
+    return records.filter((record) => {
+      if (filters.equipe !== "all" && record.equipe !== filters.equipe) {
         return false;
-      }
-      if (filters.status !== "all") {
-        const isPendente = isTRAPendente(patient.teveTRA);
-        if (filters.status === "pendente" && !isPendente) return false;
-        if (filters.status === "concluido" && isPendente) return false;
       }
       return true;
     });
-  }, [patients, filters]);
+  }, [records, filters]);
 };
