@@ -1,38 +1,20 @@
+import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tab6Patient } from "@/hooks/useTab6Data";
+import { Tab6Record } from "@/hooks/useTab6Data";
 import { Calendar } from "lucide-react";
-import { format, parse, subMonths, isValid } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface Tab6MonthlyCardsProps {
-  patients: Tab6Patient[];
+  records: Tab6Record[];
 }
-
-const parseDateField = (dateStr: string): Date | null => {
-  if (!dateStr || dateStr === "-" || dateStr.trim() === "") return null;
-  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "yyyy-MM-dd"];
-  for (const fmt of formats) {
-    try {
-      const parsed = parse(dateStr.trim(), fmt, new Date());
-      if (isValid(parsed)) return parsed;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-
-const getMonthYearKey = (date: Date): string => format(date, "MM/yyyy");
-const getMonthYearLabel = (date: Date): string => format(date, "MMM/yyyy", { locale: ptBR });
 
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
 const getScoreCategory = (percentage: number): ScoreCategory => {
   if (percentage <= 0) return "none";
-  if (percentage <= 3) return "regular";
-  if (percentage <= 6) return "suficiente";
-  if (percentage <= 8) return "bom";
-  return "otimo";
+  if (percentage >= 8 && percentage <= 10) return "otimo";
+  if (percentage > 10 && percentage < 12) return "bom";
+  if (percentage >= 12 && percentage < 14) return "suficiente";
+  return "regular";
 };
 
 const getScoreStyles = (category: ScoreCategory) => {
@@ -65,47 +47,54 @@ const getScoreStyles = (category: ScoreCategory) => {
   }
 };
 
-export const Tab6MonthlyCards = ({ patients }: Tab6MonthlyCardsProps) => {
-  const now = new Date();
-  const last12Months = Array.from({ length: 12 }, (_, i) => {
-    const date = subMonths(now, i);
-    return { key: getMonthYearKey(date), label: getMonthYearLabel(date), date };
-  }).reverse();
+const MONTH_ORDER = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
 
-  // Count total and SIM per month based on ultimaData
-  const monthTotal = new Map<string, number>();
-  const monthSim = new Map<string, number>();
+export const Tab6MonthlyCards = ({ records }: Tab6MonthlyCardsProps) => {
+  const monthlyData = useMemo(() => {
+    const byMonth = new Map<string, { exodontias: number; total: number }>();
 
-  patients.forEach((patient) => {
-    const d = parseDateField(patient.ultimaData);
-    if (d) {
-      const key = getMonthYearKey(d);
-      monthTotal.set(key, (monthTotal.get(key) || 0) + 1);
-      if (patient.teveTRA === "SIM") {
-        monthSim.set(key, (monthSim.get(key) || 0) + 1);
-      }
-    }
-  });
+    records.forEach((r) => {
+      const existing = byMonth.get(r.mesAno) || { exodontias: 0, total: 0 };
+      existing.exodontias += r.exodontias;
+      existing.total += r.totalProcedimentos;
+      byMonth.set(r.mesAno, existing);
+    });
+
+    return Array.from(byMonth.entries())
+      .map(([mesAno, data]) => {
+        const percentage = data.total > 0 ? (data.exodontias / data.total) * 100 : 0;
+        return { mesAno, ...data, percentage };
+      })
+      .sort((a, b) => {
+        const [mesA, anoA] = a.mesAno.split("/");
+        const [mesB, anoB] = b.mesAno.split("/");
+        const yearDiff = parseInt(anoA) - parseInt(anoB);
+        if (yearDiff !== 0) return yearDiff;
+        return MONTH_ORDER.indexOf(mesA.toLowerCase()) - MONTH_ORDER.indexOf(mesB.toLowerCase());
+      });
+  }, [records]);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {last12Months.map((month) => {
-          const total = monthTotal.get(month.key) || 0;
-          const sim = monthSim.get(month.key) || 0;
-          const percentage = total > 0 ? (sim / total) * 100 : 0;
-          const category = getScoreCategory(percentage);
+        {monthlyData.map((month) => {
+          const category = getScoreCategory(month.percentage);
           const styles = getScoreStyles(category);
 
           return (
-            <Card key={month.key} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
+            <Card key={month.mesAno} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Calendar className={`h-3 w-3 ${styles.icon}`} />
-                  <span className={`text-xs font-medium uppercase ${styles.label}`}>{month.label}</span>
+                  <span className={`text-xs font-medium uppercase ${styles.label}`}>
+                    {month.mesAno.split("/")[0].slice(0, 3)}/{month.mesAno.split("/")[1]}
+                  </span>
                 </div>
-                <p className={`text-2xl font-bold ${styles.count}`}>{sim}</p>
-                <p className="text-[10px] text-muted-foreground">{percentage.toFixed(1)}%</p>
+                <p className={`text-2xl font-bold ${styles.count}`}>{month.exodontias}</p>
+                <p className="text-[10px] text-muted-foreground">de {month.total} | {month.percentage.toFixed(1)}%</p>
               </CardContent>
             </Card>
           );
@@ -115,21 +104,21 @@ export const Tab6MonthlyCards = ({ patients }: Tab6MonthlyCardsProps) => {
       {/* Score Legend */}
       <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
         <span className="font-medium text-muted-foreground">Pontuação</span>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
-          <span className="text-red-700 font-medium">Regular</span>
-          <span className="text-red-600 text-xs">≤ 3%</span>
-        </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
-          <span className="text-amber-700 font-medium">Suficiente</span>
-          <span className="text-amber-600 text-xs">&gt; 3% e ≤ 6%</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span>
+          <span className="text-blue-600 text-xs">≥ 8% e ≤ 10%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
           <span className="text-emerald-700 font-medium">Bom</span>
-          <span className="text-emerald-600 text-xs">&gt; 6% e ≤ 8%</span>
+          <span className="text-emerald-600 text-xs">&gt; 10% e &lt; 12%</span>
         </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
-          <span className="text-blue-700 font-medium">Ótimo</span>
-          <span className="text-blue-600 text-xs">&gt; 8%</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span>
+          <span className="text-amber-600 text-xs">≥ 12% e &lt; 14%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span>
+          <span className="text-red-600 text-xs">&lt; 8% ou ≥ 14%</span>
         </div>
       </div>
     </div>

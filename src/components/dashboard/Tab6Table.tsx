@@ -8,18 +8,25 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tab6Patient } from "@/hooks/useTab6Data";
-import { isTRAPendente } from "@/hooks/useFilteredTab6";
+import { Tab6Record } from "@/hooks/useTab6Data";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-type SortKey = "nome" | "equipe" | "idade" | "sexo" | "teveTRA" | "ultimaData";
+const getScoreColor = (percentage: number) => {
+  if (percentage >= 14 || percentage < 8) return "bg-red-100 text-red-700 border-red-200";
+  if (percentage >= 12) return "bg-amber-100 text-amber-700 border-amber-200";
+  if (percentage > 10) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  return "bg-blue-100 text-blue-700 border-blue-200";
+};
+
+type SortKey = "equipe" | "exodontias" | "totalProcedimentos" | "porcentagem" | "mesAno";
 type SortDirection = "asc" | "desc" | null;
 
 interface Tab6TableProps {
-  patients: Tab6Patient[];
+  records: Tab6Record[];
 }
 
-export const Tab6Table = ({ patients }: Tab6TableProps) => {
+export const Tab6Table = ({ records }: Tab6TableProps) => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -44,44 +51,39 @@ export const Tab6Table = ({ patients }: Tab6TableProps) => {
     return <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
-  const filteredPatients = patients.filter((patient) =>
-    patient.nome.toLowerCase().includes(search.toLowerCase()) ||
-    patient.cns.includes(search) ||
-    patient.cpf.includes(search) ||
-    patient.equipe.toLowerCase().includes(search.toLowerCase())
+  const filtered = records.filter((r) =>
+    r.equipe.toLowerCase().includes(search.toLowerCase()) ||
+    r.mesAno.toLowerCase().includes(search.toLowerCase())
   );
 
-  const sortedPatients = useMemo(() => {
-    if (!sortKey || !sortDirection) return filteredPatients;
-    return [...filteredPatients].sort((a, b) => {
-      let aValue: string | number = a[sortKey];
-      let bValue: string | number = b[sortKey];
-      if (sortKey === "idade") {
-        aValue = Number(aValue) || 0;
-        bValue = Number(bValue) || 0;
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+  const sorted = useMemo(() => {
+    if (!sortKey || !sortDirection) return filtered;
+    return [...filtered].sort((a, b) => {
+      if (sortKey === "exodontias" || sortKey === "totalProcedimentos" || sortKey === "porcentagem") {
+        const av = a[sortKey], bv = b[sortKey];
+        return sortDirection === "asc" ? av - bv : bv - av;
       }
-      aValue = String(aValue).toLowerCase();
-      bValue = String(bValue).toLowerCase();
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      const av = String(a[sortKey]).toLowerCase();
+      const bv = String(b[sortKey]).toLowerCase();
+      if (av < bv) return sortDirection === "asc" ? -1 : 1;
+      if (av > bv) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
-  }, [filteredPatients, sortKey, sortDirection]);
+  }, [filtered, sortKey, sortDirection]);
 
-  const totalPages = Math.ceil(sortedPatients.length / perPage);
-  const paginatedPatients = sortedPatients.slice((page - 1) * perPage, page * perPage);
+  const totalPages = Math.ceil(sorted.length / perPage);
+  const paginated = sorted.slice((page - 1) * perPage, page * perPage);
 
   return (
     <Card className="shadow-lg">
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg font-semibold">
-            Lista de Pacientes - Trat. Restaurador Atraumático ({sortedPatients.length})
+            Taxa de Exodontias - TRA ({sorted.length} registros)
           </CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar paciente..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-9 w-64" />
+            <Input placeholder="Buscar equipe ou mês..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-9 w-64" />
           </div>
         </div>
       </CardHeader>
@@ -91,40 +93,36 @@ export const Tab6Table = ({ patients }: Tab6TableProps) => {
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold">Nº</TableHead>
+                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("mesAno")}>
+                  <div className="flex items-center">Mês/Ano {getSortIcon("mesAno")}</div>
+                </TableHead>
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("equipe")}>
                   <div className="flex items-center">Equipe {getSortIcon("equipe")}</div>
                 </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("nome")}>
-                  <div className="flex items-center">Nome {getSortIcon("nome")}</div>
+                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("exodontias")}>
+                  <div className="flex items-center">Exodontias {getSortIcon("exodontias")}</div>
                 </TableHead>
-                <TableHead className="font-semibold">CNS</TableHead>
-                <TableHead className="font-semibold">CPF</TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("idade")}>
-                  <div className="flex items-center">Idade {getSortIcon("idade")}</div>
+                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("totalProcedimentos")}>
+                  <div className="flex items-center">Total Procedimentos {getSortIcon("totalProcedimentos")}</div>
                 </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("sexo")}>
-                  <div className="flex items-center">Sexo {getSortIcon("sexo")}</div>
-                </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("teveTRA")}>
-                  <div className="flex items-center">Teve TRA {getSortIcon("teveTRA")}</div>
-                </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("ultimaData")}>
-                  <div className="flex items-center">Última Data {getSortIcon("ultimaData")}</div>
+                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("porcentagem")}>
+                  <div className="flex items-center">Pontuação {getSortIcon("porcentagem")}</div>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedPatients.map((patient, index) => (
-                <TableRow key={patient.id} className="transition-colors hover:bg-muted/30">
+              {paginated.map((r, index) => (
+                <TableRow key={`${r.mesAno}-${r.equipe}`} className="transition-colors hover:bg-muted/30">
                   <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
-                  <TableCell>{patient.equipe || "-"}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{patient.nome}</TableCell>
-                  <TableCell>{patient.cns || "-"}</TableCell>
-                  <TableCell>{patient.cpf || "-"}</TableCell>
-                  <TableCell>{patient.idade} anos</TableCell>
-                  <TableCell>{patient.sexo === "MASCULINO" ? "M" : "F"}</TableCell>
-                  <TableCell>{patient.teveTRA}</TableCell>
-                  <TableCell>{patient.ultimaData}</TableCell>
+                  <TableCell>{r.mesAno}</TableCell>
+                  <TableCell>{r.equipe}</TableCell>
+                  <TableCell>{r.exodontias}</TableCell>
+                  <TableCell>{r.totalProcedimentos}</TableCell>
+                  <TableCell>
+                    <Badge className={`${getScoreColor(r.porcentagem)} font-semibold`}>
+                      {r.porcentagem.toFixed(2)}%
+                    </Badge>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -143,7 +141,7 @@ export const Tab6Table = ({ patients }: Tab6TableProps) => {
                 <SelectItem value="100">100</SelectItem>
               </SelectContent>
             </Select>
-            <span>de {sortedPatients.length} pacientes</span>
+            <span>de {sorted.length} registros</span>
           </div>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={() => setPage(1)} disabled={page === 1}><ChevronsLeft className="h-4 w-4" /></Button>

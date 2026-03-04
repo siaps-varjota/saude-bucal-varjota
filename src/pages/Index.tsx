@@ -10,7 +10,7 @@ import { useFilteredTratamento, isTratamentoPendente } from "@/hooks/useFiltered
 import { useFilteredTab3 } from "@/hooks/useFilteredTab3";
 import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
 import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
-import { useFilteredTab6, isTRAPendente } from "@/hooks/useFilteredTab6";
+import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
@@ -229,7 +229,8 @@ const Index = () => {
   const totalPreventivosTab5 = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
   const totalIndividuaisTab5 = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
   const totalTab6 = filteredTab6.length;
-  const withConsultaTab6 = filteredTab6.filter(p => !isTRAPendente(p.teveTRA)).length;
+  const totalExodontiasTab6 = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
+  const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
@@ -577,30 +578,24 @@ const Index = () => {
                   pdfTitle="Tratamento Restaurador Atraumático"
                   pdfFileName="tratamento-restaurador"
                   pdfSummaryCards={[
-                    { label: "Total de Pacientes", value: totalTab6.toLocaleString("pt-BR") },
-                    { label: "Com Tratamento", value: withConsultaTab6.toLocaleString("pt-BR"), percentage: `${totalTab6 > 0 ? ((withConsultaTab6 / totalTab6) * 100).toFixed(1) : 0}%` },
+                    { label: "Total de Registros", value: totalTab6.toLocaleString("pt-BR") },
+                    { label: "Exodontias", value: totalExodontiasTab6.toLocaleString("pt-BR"), percentage: `${totalProcedimentosTab6 > 0 ? ((totalExodontiasTab6 / totalProcedimentosTab6) * 100).toFixed(1) : 0}%` },
                   ]}
-                   pdfColumns={[
+                  pdfColumns={[
                     { key: "num", header: "Nº" },
+                    { key: "mesAno", header: "Mês/Ano" },
                     { key: "equipe", header: "Equipe" },
-                    { key: "nome", header: "Nome" },
-                    { key: "cns", header: "CNS" },
-                    { key: "cpf", header: "CPF" },
-                    { key: "idade", header: "Idade" },
-                    { key: "sexo", header: "Sexo" },
-                    { key: "teveTRA", header: "Teve TRA" },
-                    { key: "ultimaData", header: "Última Data" },
+                    { key: "exodontias", header: "Exodontias" },
+                    { key: "totalProcedimentos", header: "Total Procedimentos" },
+                    { key: "porcentagem", header: "Pontuação" },
                   ]}
-                  pdfData={filteredTab6.map((p, i) => ({
+                  pdfData={filteredTab6.map((r, i) => ({
                     num: i + 1,
-                    equipe: p.equipe || "-",
-                    nome: p.nome,
-                    cns: p.cns || "-",
-                    cpf: p.cpf || "-",
-                    idade: `${p.idade} anos`,
-                    sexo: p.sexo === "MASCULINO" ? "M" : "F",
-                    teveTRA: p.teveTRA,
-                    ultimaData: p.ultimaData,
+                    mesAno: r.mesAno,
+                    equipe: r.equipe,
+                    exodontias: r.exodontias,
+                    totalProcedimentos: r.totalProcedimentos,
+                    porcentagem: `${r.porcentagem.toFixed(2)}%`,
                   }))}
                 />
               </div>}
@@ -610,22 +605,22 @@ const Index = () => {
                 {isLoadingTab6 ? <>
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
                   </> : <>
-                    <StatsCard title="Total de Pacientes" value={totalTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                    <StatsCard title="Com 1ª Consulta" value={withConsultaTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <Tab6QuadrimesterCards patients={filteredTab6} />
+                    <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Exodontias" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab6QuadrimesterCards records={filteredTab6} />
                   </>}
               </div>
 
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
-                  TRA por Mês (Últimos 12 meses)
+                  Exodontias por Mês
                 </h2>
                 {isLoadingTab6 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-                  </div> : <Tab6MonthlyCards patients={filteredTab6} />}
+                  </div> : <Tab6MonthlyCards records={filteredTab6} />}
               </div>
 
-              {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table patients={filteredTab6} />}
+              {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
           </TabsContent>
         </Tabs>
