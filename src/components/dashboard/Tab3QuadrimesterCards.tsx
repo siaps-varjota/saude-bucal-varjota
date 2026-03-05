@@ -34,7 +34,7 @@ const getScoreStyles = (category: ScoreCategory) => {
 
 const MONTH_MAP: Record<string, number> = {
   janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
-  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
+  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11
 };
 
 const getQuadrimesterForMonth = (month: number): number => {
@@ -52,19 +52,19 @@ export const Tab3QuadrimesterCards = ({ records }: Tab3QuadrimesterCardsProps) =
   const currentQuad = getQuadrimesterForMonth(currentMonth);
 
   const quadCounts = useMemo(() => {
-    const quadrimesters: { label: string; quadNum: number; year: number }[] = [];
+    const quadrimesters: {label: string;quadNum: number;year: number;}[] = [];
     let quad = currentQuad;
     let year = currentYear;
     for (let i = 0; i < 3; i++) {
       quadrimesters.push({ label: getQuadrimesterLabel(quad, year), quadNum: quad, year });
       quad--;
-      if (quad < 1) { quad = 3; year--; }
+      if (quad < 1) {quad = 3;year--;}
     }
     quadrimesters.reverse();
 
     return quadrimesters.map((q) => {
       const quadMonths = q.quadNum === 1 ? [0, 1, 2, 3] : q.quadNum === 2 ? [4, 5, 6, 7] : [8, 9, 10, 11];
-      const byMonth = new Map<number, { exodontias: number; total: number }>();
+      const byMonth = new Map<number, {exodontias: number;total: number;}>();
 
       records.forEach((r) => {
         const parts = r.mesAno.split("/");
@@ -79,21 +79,21 @@ export const Tab3QuadrimesterCards = ({ records }: Tab3QuadrimesterCardsProps) =
         byMonth.set(mesIdx, existing);
       });
 
-      const monthlyData: { exodontias: number; total: number }[] = [];
-      byMonth.forEach((data) => { if (data.total > 0) monthlyData.push(data); });
+      const monthlyData: {exodontias: number;total: number;}[] = [];
+      byMonth.forEach((data) => {if (data.total > 0) monthlyData.push(data);});
 
       const totalExodontias = monthlyData.reduce((s, m) => s + m.exodontias, 0);
       const totalAtendimentos = monthlyData.reduce((s, m) => s + m.total, 0);
-      const monthlyPercentages = monthlyData.map((m) => (m.exodontias / m.total) * 100);
-      const avgPercentage = monthlyPercentages.length > 0
-        ? monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length
-        : 0;
+      const monthlyPercentages = monthlyData.map((m) => m.exodontias / m.total * 100);
+      const avgPercentage = monthlyPercentages.length > 0 ?
+      monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length :
+      0;
 
       return {
         ...q,
         totalExodontias,
         totalAtendimentos,
-        percentage: avgPercentage,
+        percentage: avgPercentage
       };
     });
   }, [records, currentQuad, currentYear]);
@@ -112,11 +112,11 @@ export const Tab3QuadrimesterCards = ({ records }: Tab3QuadrimesterCardsProps) =
               </div>
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.totalExodontias}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalAtendimentos} atendimentos</p>
-              <p className="text-muted-foreground text-sm">{quad.percentage.toFixed(1)}%</p>
+              <p className="text-muted-foreground text-sm font-medium">{quad.percentage.toFixed(1)}%</p>
             </CardContent>
-          </Card>
-        );
+          </Card>);
+
       })}
-    </>
-  );
+    </>);
+
 };
