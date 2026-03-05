@@ -97,7 +97,7 @@ export const Tab4MonthlyCards = ({
 
   // Count patients per month based on "primeiraConsulta" field
   const monthCounts = new Map<string, number>();
-  patients.forEach(patient => {
+  patients.forEach((patient) => {
     const consultaDate = parseConsultaDate(patient.primeiraConsulta);
     if (consultaDate) {
       const key = getMonthYearKey(consultaDate);
@@ -106,7 +106,7 @@ export const Tab4MonthlyCards = ({
   });
   return <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {last12Months.map(month => {
+        {last12Months.map((month) => {
         const count = monthCounts.get(month.key) || 0;
         const percentage = totalPatients > 0 ? count / totalPatients * 100 : 0;
         const category = getScoreCategory(percentage);
@@ -122,7 +122,7 @@ export const Tab4MonthlyCards = ({
                 <p className={`text-2xl font-bold ${styles.count}`}>
                   {count}
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {percentage.toFixed(2)}%
                 </p>
               </CardContent>
