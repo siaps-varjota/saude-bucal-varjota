@@ -94,7 +94,7 @@ export const Tab6MonthlyCards = ({ records }: Tab6MonthlyCardsProps) => {
                   </span>
                 </div>
                 <p className={`text-2xl font-bold ${styles.count}`}>{month.exodontias}</p>
-                <p className="text-muted-foreground text-sm font-medium">de {month.total} | {month.percentage.toFixed(1)}%</p>
+                <p className="text-muted-foreground font-medium text-xs">de {month.total} | {month.percentage.toFixed(1)}%</p>
               </CardContent>
             </Card>);
 
