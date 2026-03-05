@@ -186,7 +186,7 @@ export const Tab4QuadrimesterCards = ({ patients }: Tab4QuadrimesterCardsProps) 
               <p className="text-xs text-muted-foreground mt-1">
                 Média/mês ({quad.total} total)
               </p>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-sm font-medium">
                 {percentage.toFixed(2)}%
               </p>
             </CardContent>

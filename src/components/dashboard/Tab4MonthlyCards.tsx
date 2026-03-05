@@ -122,7 +122,7 @@ export const Tab4MonthlyCards = ({
                 <p className={`text-2xl font-bold ${styles.count}`}>
                   {count}
                 </p>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-sm font-medium">
                   {percentage.toFixed(2)}%
                 </p>
               </CardContent>
