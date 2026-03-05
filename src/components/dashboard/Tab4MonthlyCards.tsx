@@ -134,19 +134,19 @@ export const Tab4MonthlyCards = ({
       <div className="gap-2 text-sm flex-wrap flex items-center justify-center">
         <span className="font-medium text-muted-foreground">Pontuação</span>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
-          <span className="text-red-700 font-medium">Vermelho</span>
+          <span className="text-red-700 font-medium">Regular</span>
           <span className="text-red-600 text-xs">≤ 0,25%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
-          <span className="text-amber-700 font-medium">Amarelo</span>
+          <span className="text-amber-700 font-medium">Suficiente</span>
           <span className="text-amber-600 text-xs">&gt; 0,25% e ≤ 0,5%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
-          <span className="text-emerald-700 font-medium">Verde</span>
+          <span className="text-emerald-700 font-medium">Bom</span>
           <span className="text-emerald-600 text-xs">&gt; 0,5% e ≤ 1%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
-          <span className="text-blue-700 font-medium">Azul</span>
+          <span className="text-blue-700 font-medium">Ótimo</span>
           <span className="text-blue-600 text-xs">&gt; 1%</span>
         </div>
       </div>
