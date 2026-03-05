@@ -104,21 +104,21 @@ export const Tab6MonthlyCards = ({ records }: Tab6MonthlyCardsProps) => {
       {/* Score Legend */}
       <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
         <span className="font-medium text-muted-foreground">Pontuação</span>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
-          <span className="text-blue-700 font-medium">Ótimo</span>
-          <span className="text-blue-600 text-xs">&gt; 8%</span>
-        </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
-          <span className="text-emerald-700 font-medium">Bom</span>
-          <span className="text-emerald-600 text-xs">&gt; 6% e ≤ 8%</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span>
+          <span className="text-red-600 text-xs">≤ 3%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
           <span className="text-amber-700 font-medium">Suficiente</span>
           <span className="text-amber-600 text-xs">&gt; 3% e ≤ 6%</span>
         </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
-          <span className="text-red-700 font-medium">Regular</span>
-          <span className="text-red-600 text-xs">≤ 3%</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span>
+          <span className="text-emerald-600 text-xs">&gt; 6% e ≤ 8%</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span>
+          <span className="text-blue-600 text-xs">&gt; 8%</span>
         </div>
       </div>
     </div>
