@@ -34,13 +34,13 @@ const getScoreStyles = (category: ScoreCategory) => {
 };
 
 const MONTH_ORDER = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-];
+"janeiro", "fevereiro", "março", "abril", "maio", "junho",
+"julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
 
 export const Tab3MonthlyCards = ({ records }: Tab3MonthlyCardsProps) => {
   const monthlyData = useMemo(() => {
-    const byMonth = new Map<string, { exodontias: number; total: number }>();
+    const byMonth = new Map<string, {exodontias: number;total: number;}>();
 
     records.forEach((r) => {
       const existing = byMonth.get(r.mesAno) || { exodontias: 0, total: 0 };
@@ -49,18 +49,18 @@ export const Tab3MonthlyCards = ({ records }: Tab3MonthlyCardsProps) => {
       byMonth.set(r.mesAno, existing);
     });
 
-    return Array.from(byMonth.entries())
-      .map(([mesAno, data]) => {
-        const percentage = data.total > 0 ? (data.exodontias / data.total) * 100 : 0;
-        return { mesAno, ...data, percentage };
-      })
-      .sort((a, b) => {
-        const [mesA, anoA] = a.mesAno.split("/");
-        const [mesB, anoB] = b.mesAno.split("/");
-        const yearDiff = parseInt(anoA) - parseInt(anoB);
-        if (yearDiff !== 0) return yearDiff;
-        return MONTH_ORDER.indexOf(mesA.toLowerCase()) - MONTH_ORDER.indexOf(mesB.toLowerCase());
-      });
+    return Array.from(byMonth.entries()).
+    map(([mesAno, data]) => {
+      const percentage = data.total > 0 ? data.exodontias / data.total * 100 : 0;
+      return { mesAno, ...data, percentage };
+    }).
+    sort((a, b) => {
+      const [mesA, anoA] = a.mesAno.split("/");
+      const [mesB, anoB] = b.mesAno.split("/");
+      const yearDiff = parseInt(anoA) - parseInt(anoB);
+      if (yearDiff !== 0) return yearDiff;
+      return MONTH_ORDER.indexOf(mesA.toLowerCase()) - MONTH_ORDER.indexOf(mesB.toLowerCase());
+    });
   }, [records]);
 
   return (
@@ -80,10 +80,10 @@ export const Tab3MonthlyCards = ({ records }: Tab3MonthlyCardsProps) => {
                   </span>
                 </div>
                 <p className={`text-2xl font-bold ${styles.count}`}>{month.exodontias}</p>
-                <p className="text-[10px] text-muted-foreground">de {month.total} | {month.percentage.toFixed(1)}%</p>
+                <p className="text-muted-foreground text-sm">de {month.total} | {month.percentage.toFixed(1)}%</p>
               </CardContent>
-            </Card>
-          );
+            </Card>);
+
         })}
       </div>
 
@@ -107,6 +107,6 @@ export const Tab3MonthlyCards = ({ records }: Tab3MonthlyCardsProps) => {
           <span className="text-blue-600 text-xs">≥ 8% e ≤ 10%</span>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 };
