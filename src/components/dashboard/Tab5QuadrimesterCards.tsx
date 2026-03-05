@@ -22,34 +22,34 @@ const getScoreStyles = (category: ScoreCategory) => {
     case "regular":
       return {
         bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
-        icon: "text-red-600", label: "text-red-700", count: "text-red-700",
+        icon: "text-red-600", label: "text-red-700", count: "text-red-700"
       };
     case "suficiente":
       return {
         bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
-        icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700",
+        icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700"
       };
     case "bom":
       return {
         bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
-        icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700",
+        icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700"
       };
     case "otimo":
       return {
         bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
-        icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700",
+        icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700"
       };
     default:
       return {
         bg: "bg-muted/30",
-        icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground",
+        icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground"
       };
   }
 };
 
 const MONTH_MAP: Record<string, number> = {
   janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
-  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
+  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11
 };
 
 const getQuadrimesterForMonth = (month: number): number => {
@@ -67,13 +67,13 @@ export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) =
   const currentQuad = getQuadrimesterForMonth(currentMonth);
 
   const quadCounts = useMemo(() => {
-    const quadrimesters: { label: string; quadNum: number; year: number }[] = [];
+    const quadrimesters: {label: string;quadNum: number;year: number;}[] = [];
     let quad = currentQuad;
     let year = currentYear;
     for (let i = 0; i < 3; i++) {
       quadrimesters.push({ label: getQuadrimesterLabel(quad, year), quadNum: quad, year });
       quad--;
-      if (quad < 1) { quad = 3; year--; }
+      if (quad < 1) {quad = 3;year--;}
     }
     quadrimesters.reverse();
 
@@ -81,8 +81,8 @@ export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) =
       const quadMonths = q.quadNum === 1 ? [0, 1, 2, 3] : q.quadNum === 2 ? [4, 5, 6, 7] : [8, 9, 10, 11];
 
       // Group records by month within this quadrimester
-      const monthlyData: { preventivos: number; total: number }[] = [];
-      const byMonth = new Map<number, { preventivos: number; total: number }>();
+      const monthlyData: {preventivos: number;total: number;}[] = [];
+      const byMonth = new Map<number, {preventivos: number;total: number;}>();
 
       records.forEach((r) => {
         const parts = r.mesAno.split("/");
@@ -103,10 +103,10 @@ export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) =
 
       const totalPreventivos = monthlyData.reduce((s, m) => s + m.preventivos, 0);
       const totalIndividuais = monthlyData.reduce((s, m) => s + m.total, 0);
-      const monthlyPercentages = monthlyData.map((m) => (m.preventivos / m.total) * 100);
-      const avgPercentage = monthlyPercentages.length > 0
-        ? monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length
-        : 0;
+      const monthlyPercentages = monthlyData.map((m) => m.preventivos / m.total * 100);
+      const avgPercentage = monthlyPercentages.length > 0 ?
+      monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length :
+      0;
       const avgMonthlyPreventivos = monthlyData.length > 0 ? totalPreventivos / monthlyData.length : 0;
 
       return {
@@ -114,7 +114,7 @@ export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) =
         totalPreventivos,
         totalIndividuais,
         percentage: avgPercentage,
-        avgMonthlyPreventivos,
+        avgMonthlyPreventivos
       };
     });
   }, [records, currentQuad, currentYear]);
@@ -134,11 +134,11 @@ export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) =
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.totalPreventivos}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalIndividuais} individuais</p>
               <p className="text-xs text-muted-foreground">Média mensal: {quad.avgMonthlyPreventivos.toFixed(1)}</p>
-              <p className="text-muted-foreground text-sm">{quad.percentage.toFixed(1)}%</p>
+              <p className="text-muted-foreground text-sm font-medium">{quad.percentage.toFixed(1)}%</p>
             </CardContent>
-          </Card>
-        );
+          </Card>);
+
       })}
-    </>
-  );
+    </>);
+
 };
