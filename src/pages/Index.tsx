@@ -492,7 +492,7 @@ const Index = () => {
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
                   </> : <>
                     <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                    <StatsCard title="Com 1ª Consulta" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab4QuadrimesterCards patients={filteredTab4} />
                   </>}
               </div>
