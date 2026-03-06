@@ -52,6 +52,9 @@ export const LoginGate = ({ children }: LoginGateProps) => {
               placeholder="Senha"
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
