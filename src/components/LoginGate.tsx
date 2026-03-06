@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
 
 const STORED_KEY = "saude-bucal-auth";
-const VALID_PASSWORD = "varjota2025";
+const VALID_PASSWORD = "sbvjt2026";
 
 interface LoginGateProps {
   children: React.ReactNode;
