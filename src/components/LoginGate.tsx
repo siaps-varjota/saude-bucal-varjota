@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Lock } from "lucide-react";
+import { Lock, Eye, EyeOff } from "lucide-react";
 
 const STORED_KEY = "saude-bucal-auth";
 const VALID_PASSWORD = "sbvjt2026";
@@ -15,6 +15,7 @@ export const LoginGate = ({ children }: LoginGateProps) => {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem(STORED_KEY) === "true") {
@@ -47,16 +48,26 @@ export const LoginGate = ({ children }: LoginGateProps) => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              type="password"
-              placeholder="Senha"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(""); }}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              autoFocus
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                autoFocus
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" className="w-full">Entrar</Button>
           </form>
