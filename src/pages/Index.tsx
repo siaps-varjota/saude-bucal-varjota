@@ -11,6 +11,8 @@ import { useFilteredTab3 } from "@/hooks/useFilteredTab3";
 import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
 import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
+import { useResultadoFinal } from "@/hooks/useResultadoFinal";
+import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
@@ -177,6 +179,13 @@ const Index = () => {
           isFetching: isFetchingTab6,
           refetch: refetchTab6
         };
+      case "resultado":
+        return {
+          isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6,
+          error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
+          isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
+          refetch: refetchAll
+        };
       default:
         return {
           isLoading: false,
@@ -231,6 +240,17 @@ const Index = () => {
   const totalTab6 = filteredTab6.length;
   const totalExodontiasTab6 = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
+
+  // Resultado Final
+  const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
+  const resultadoFinal = useResultadoFinal(
+    patients || [],
+    tratamentoPatients || [],
+    tab3Patients || [],
+    tab4Patients || [],
+    tab5Patients || [],
+    tab6Patients || []
+  );
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
@@ -262,6 +282,7 @@ const Index = () => {
             <TabsTrigger value="tab4" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Escovação Supervisionada</TabsTrigger>
             <TabsTrigger value="tab5" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
             <TabsTrigger value="tab6" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
+            <TabsTrigger value="resultado" className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
           </TabsList>
           
           {/* Tab 1 - 1ª Consulta */}
@@ -622,6 +643,17 @@ const Index = () => {
 
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
+          </TabsContent>
+
+          {/* Tab 7 - Resultado Final */}
+          <TabsContent value="resultado" className="mt-6">
+            {!isAllLoaded ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+              </div>
+            ) : (
+              <ResultadoFinalTab geral={resultadoFinal.geral} porEquipe={resultadoFinal.porEquipe} />
+            )}
           </TabsContent>
         </Tabs>
       </main>
