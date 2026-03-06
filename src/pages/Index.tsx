@@ -179,6 +179,13 @@ const Index = () => {
           isFetching: isFetchingTab6,
           refetch: refetchTab6
         };
+      case "resultado":
+        return {
+          isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6,
+          error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
+          isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
+          refetch: refetchAll
+        };
       default:
         return {
           isLoading: false,
