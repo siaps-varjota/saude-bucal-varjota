@@ -68,7 +68,7 @@ const parseCSV = (csv: string): Tab5Record[] => {
     if (fields[0]?.toUpperCase().includes("EQUIPE")) continue;
 
     // Data row: must start with ESF and have a current month
-    if (fields[0]?.startsWith("ESF") && currentMonth) {
+    if ((fields[0]?.startsWith("ESF") || fields[0]?.startsWith("ESB")) && currentMonth) {
       const preventivos = parseInt(fields[1]) || 0;
       const totalIndividuais = parseInt(fields[2]) || 0;
       

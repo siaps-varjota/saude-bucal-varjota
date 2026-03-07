@@ -67,7 +67,7 @@ const parseCSV = (csv: string): Tab3Record[] => {
     if (fields[0]?.toUpperCase().includes("EQUIPE")) continue;
 
     // Data row
-    if (fields[0]?.startsWith("ESF") && currentMonth) {
+    if ((fields[0]?.startsWith("ESF") || fields[0]?.startsWith("ESB")) && currentMonth) {
       const exodontias = parseInt(fields[1]) || 0;
       const totalAtendimentos = parseInt(fields[2]) || 0;
       const porcentagemStr = (fields[3] || "0").replace(",", ".").replace("%", "");
