@@ -109,27 +109,6 @@ export const ResultadoFinalTab = ({ geral, porEquipe }: ResultadoFinalTabProps) 
 
   return (
     <div className="space-y-8">
-      {/* Legend */}
-      <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
-        <span className="font-medium text-muted-foreground">Conceito no Indicador:</span>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
-          <span className="text-red-700 font-medium">Regular</span>
-          <span className="text-red-600 text-xs">= 0,25</span>
-        </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
-          <span className="text-amber-700 font-medium">Suficiente</span>
-          <span className="text-amber-600 text-xs">= 0,50</span>
-        </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
-          <span className="text-emerald-700 font-medium">Bom</span>
-          <span className="text-emerald-600 text-xs">= 0,75</span>
-        </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
-          <span className="text-blue-700 font-medium">Ótimo</span>
-          <span className="text-blue-600 text-xs">= 1,00</span>
-        </div>
-      </div>
-
       {/* Ranking Cards */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
@@ -162,6 +141,27 @@ export const ResultadoFinalTab = ({ geral, porEquipe }: ResultadoFinalTabProps) 
 
       {/* Geral Table */}
       <ResultTable result={geral} title="Resultado Geral" />
+
+      {/* Legend */}
+      <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
+        <span className="font-medium text-muted-foreground">Conceito no Indicador:</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span>
+          <span className="text-red-600 text-xs">= 0,25</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span>
+          <span className="text-amber-600 text-xs">= 0,50</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span>
+          <span className="text-emerald-600 text-xs">= 0,75</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span>
+          <span className="text-blue-600 text-xs">= 1,00</span>
+        </div>
+      </div>
 
       {/* Per Team Tables */}
       <div className="space-y-6">
