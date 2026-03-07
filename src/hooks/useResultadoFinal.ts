@@ -5,9 +5,15 @@ import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
-import { isConsultaPendente } from "@/hooks/useFilteredPatients";
-import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
-import { isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
+// Inline helpers to avoid circular dependency issues
+const isConsultaPendente = (val: string): boolean =>
+  !val || val === "-" || val.trim() === "";
+
+const isTratamentoPendente = (val: string): boolean =>
+  !val || val === "-" || val.trim() === "";
+
+const isConsultaPendenteTab4 = (val: string): boolean =>
+  !val || val === "-" || val.trim() === "";
 
 export type Conceito = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
