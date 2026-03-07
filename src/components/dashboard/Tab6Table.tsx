@@ -112,10 +112,10 @@ export const Tab6Table = ({ records }: Tab6TableProps) => {
             </TableHeader>
             <TableBody>
               {paginated.map((r, index) => (
-                <TableRow key={`${r.mesAno}-${r.equipe}`} className="transition-colors hover:bg-muted/30">
-                  <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
-                  <TableCell>{r.mesAno}</TableCell>
-                  <TableCell>{r.equipe}</TableCell>
+                 <TableRow key={`${r.mesAno}-${r.equipe}`} className="transition-colors hover:bg-muted/30">
+                   <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
+                   <TableCell>{r.mesAno}</TableCell>
+                   <TableCell>{r.equipe.replace(/^ESF/, "ESB")}</TableCell>
                   <TableCell>{r.exodontias}</TableCell>
                   <TableCell>{r.totalProcedimentos}</TableCell>
                   <TableCell>
