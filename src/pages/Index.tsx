@@ -134,6 +134,15 @@ const Index = () => {
   const filteredTab5 = useFilteredTab5(tab5Patients || [], filtersTab5);
   const filteredTab6 = useFilteredTab6(tab6Patients || [], filtersTab6);
 
+  const refetchAll = () => {
+    refetchPatients();
+    refetchTratamento();
+    refetchTab3();
+    refetchTab4();
+    refetchTab5();
+    refetchTab6();
+  };
+
   // Get current tab's loading/error/refetch states
   const getTabState = () => {
     switch (activeTab) {
@@ -200,14 +209,6 @@ const Index = () => {
     isFetching,
     refetch
   } = getTabState();
-  const refetchAll = () => {
-    refetchPatients();
-    refetchTratamento();
-    refetchTab3();
-    refetchTab4();
-    refetchTab5();
-    refetchTab6();
-  };
   if (error) {
     return <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
