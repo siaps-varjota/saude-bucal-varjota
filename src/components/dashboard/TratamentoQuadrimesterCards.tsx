@@ -142,9 +142,12 @@ export const TratamentoQuadrimesterCards = ({ patients }: TratamentoQuadrimester
       
       // Count 1ª consultas in this quadrimester
     // Denominador fixo: total de pacientes com 1ª consulta registrada
-const consultaCount = patients.filter(p =>
-  p.primeiraConsulta && p.primeiraConsulta !== "-" && p.primeiraConsulta.trim() !== ""
-).length;
+// Denominador: pacientes com 1ª consulta no mesmo quadrimestre
+const consultaCount = patients.filter(p => {
+  const consultaDate = parseTratamentoDate(p.primeiraConsulta);
+  if (!consultaDate) return false;
+  return isWithinInterval(consultaDate, { start: startDate, end: endDate });
+}).length;
 
 const average = monthsCount > 0 ? Math.round(tratamentoCount / monthsCount) : 0;
 const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 : 0;
