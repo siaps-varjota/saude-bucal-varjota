@@ -208,7 +208,9 @@ const Index = () => {
   filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe
 ).length;
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-  const totalTratamento = filteredTratamento.length;
+  const totalTratamento = (tratamentoPatients || []).filter(p =>
+  filtersConsulta.equipe === "all" || p.equipe === filtersTratamento.equipe
+).length;
   const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
   const totalTab3 = filteredTab3.length;
   const totalExodontiasTab3 = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
