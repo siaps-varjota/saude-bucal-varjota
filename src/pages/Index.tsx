@@ -60,6 +60,7 @@ const Index = () => {
   const filteredPatients = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
   const filteredTratamento = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
+  const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
   const filteredTab3 = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4 = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab5 = useFilteredTab5(tab5Patients || [], filtersTab5);
@@ -118,8 +119,8 @@ const Index = () => {
   // Stats calculations
   const totalPatients = patientsByEquipe.length;
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-  const totalTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
-  const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+  const totalTratamento = filteredTratamentoNoQuad.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
+  const withTratamento = filteredTratamentoNoQuad.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
   const totalTab3 = filteredTab3.length;
   const totalExodontiasTab3 = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
   const totalAtendimentosTab3 = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
@@ -227,7 +228,7 @@ const Index = () => {
                 { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" },
                 { key: "tratamentoConcluido", header: "Tratamento Concluído" }, { key: "status", header: "Status" },
               ]}
-              pdfData={filteredTratamento.map((p, i) => ({
+              pdfData={filteredTratamentoNoQuad.map((p, i) => ({
                 num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
                 cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Masculino" ? "M" : "F",
                 primeiraConsulta: p.primeiraConsulta, tratamentoConcluido: p.tratamentoConcluido,
@@ -241,8 +242,8 @@ const Index = () => {
                 <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                 <TratamentoQuadrimesterCards
-                  patients={tratamentoByEquipe}
-                  totalComConsulta={tratamentoByEquipe.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                  patients={filteredTratamento}
+                  totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
                 />
               </>}
             </div>
@@ -252,7 +253,7 @@ const Index = () => {
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                 : <TratamentoMonthlyCards patients={filteredTratamento} />}
             </div>
-            {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamento} />}
+            {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
           </div>
         </TabsContent>
 
