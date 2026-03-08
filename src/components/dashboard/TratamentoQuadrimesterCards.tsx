@@ -7,6 +7,11 @@ import { Calendar } from "lucide-react";
 
 interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
+  totalComConsulta: number;
+}
+
+export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: TratamentoQuadrimesterCardsProps) => {
+  patients: TratamentoPatient[];
 }
 
 const parseTratamentoDate = (tratamento: string): Date | null => {
