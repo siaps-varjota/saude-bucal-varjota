@@ -209,7 +209,8 @@ const Index = () => {
 ).length;
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
   const totalTratamento = (tratamentoPatients || []).filter(p =>
-  filtersConsulta.equipe === "all" || p.equipe === filtersTratamento.equipe
+  (filtersTratamento.equipe === "all" || p.equipe === filtersTratamento.equipe) &&
+  !isTratamentoPendente(p.primeiraConsulta)
 ).length;
   const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
   const totalTab3 = filteredTab3.length;
