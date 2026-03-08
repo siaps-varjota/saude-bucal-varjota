@@ -58,6 +58,7 @@ const Index = () => {
   const [filtersTab6, setFiltersTab6] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
 
   const filteredPatients = useFilteredPatients(patients || [], filtersConsulta);
+  const filteredPatientsNoQuad = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
   const filteredTratamento = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTab3 = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4 = useFilteredTab4(tab4Patients || [], filtersTab4);
@@ -180,7 +181,7 @@ const Index = () => {
                 { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
                 { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" }, { key: "status", header: "Status" },
               ]}
-              pdfData={filteredPatients.map((p, i) => ({
+              pdfData={filteredPatientsNoQuad.map((p, i) => ({
                 num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
                 cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Feminino" ? "F" : "M",
                 primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
@@ -198,12 +199,11 @@ const Index = () => {
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
-             {isLoadingPatients
-  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-  : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />
-}
+              {isLoadingPatients
+                ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />}
             </div>
-            {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
+            {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
           </div>
         </TabsContent>
 
