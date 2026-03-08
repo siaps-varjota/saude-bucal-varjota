@@ -5,9 +5,14 @@ import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
-import { Quadrimestre } from "@/hooks/useQuadrimestre";
+import {
+  Quadrimestre,
+  filterPatientsByQuadrimestre,
+  filterTratamentoByQuadrimestre,
+  filterByQuadrimestre,
+  filterTab4ByQuadrimestre,
+} from "@/hooks/useQuadrimesterFilter";
 
-// Inline helpers to avoid circular dependency issues
 const isConsultaPendente = (val: string): boolean =>
   !val || val === "-" || val.trim() === "";
 
@@ -113,82 +118,6 @@ function buildIndicador(key: string, porcentagem: number): IndicadorResult {
   };
 }
 
-// ─── Filtro por Quadrimestre ──────────────────────────────────────────────────
-
-const MONTH_NAME_TO_NUM: Record<string, number> = {
-  janeiro: 1, fevereiro: 2, março: 3, abril: 4,
-  maio: 5, junho: 6, julho: 7, agosto: 8,
-  setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
-};
-
-const QUAD_MONTHS: Record<string, number[]> = {
-  Q1: [1, 2, 3, 4],
-  Q2: [5, 6, 7, 8],
-  Q3: [9, 10, 11, 12],
-};
-
-function parseQuad(quad: Quadrimestre): { q: string; year: number } | null {
-  if (quad === "todos") return null;
-  const [q, yearStr] = quad.split("-");
-  return { q, year: parseInt(yearStr, 10) };
-}
-
-// "dd/mm/yyyy" → { month, year }
-function getMonthYearFromDateStr(dateStr: string): { month: number; year: number } | null {
-  if (!dateStr || dateStr === "-" || dateStr.trim() === "") return null;
-  const parts = dateStr.split("/");
-  if (parts.length >= 3) {
-    const month = parseInt(parts[1], 10);
-    const year = parseInt(parts[2], 10);
-    if (month >= 1 && month <= 12 && year > 0) return { month, year };
-  }
-  return null;
-}
-
-// "janeiro/2026" → { month, year }
-function getMonthYearFromMesAno(mesAno: string): { month: number; year: number } | null {
-  const parts = mesAno.split("/");
-  const monthName = parts[0]?.toLowerCase().trim();
-  const year = parseInt(parts[1], 10);
-  const month = MONTH_NAME_TO_NUM[monthName];
-  if (!month || isNaN(year)) return null;
-  return { month, year };
-}
-
-function matchesQuad(data: { month: number; year: number } | null, quad: Quadrimestre): boolean {
-  if (quad === "todos" || data === null) return true;
-  const parsed = parseQuad(quad);
-  if (!parsed) return true;
-  return data.year === parsed.year && (QUAD_MONTHS[parsed.q]?.includes(data.month) ?? false);
-}
-
-function filterPatients(patients: Patient[], quad: Quadrimestre): Patient[] {
-  if (quad === "todos") return patients;
-  return patients.filter((p) => matchesQuad(getMonthYearFromDateStr(p.primeiraConsulta), quad));
-}
-
-function filterTratamento(tratamento: TratamentoPatient[], quad: Quadrimestre): TratamentoPatient[] {
-  if (quad === "todos") return tratamento;
-  return tratamento.filter((p) => {
-    const data =
-      getMonthYearFromDateStr(p.tratamentoConcluido) ??
-      getMonthYearFromDateStr(p.primeiraConsulta);
-    return matchesQuad(data, quad);
-  });
-}
-
-function filterTab4(tab4: Tab4Patient[], quad: Quadrimestre): Tab4Patient[] {
-  if (quad === "todos") return tab4;
-  return tab4.filter((p) => matchesQuad(getMonthYearFromDateStr(p.primeiraConsulta), quad));
-}
-
-function filterMesAno<T extends { mesAno: string }>(records: T[], quad: Quadrimestre): T[] {
-  if (quad === "todos") return records;
-  return records.filter((r) => matchesQuad(getMonthYearFromMesAno(r.mesAno), quad));
-}
-
-// ─── Equipes ──────────────────────────────────────────────────────────────────
-
 function getAllEquipes(
   patients: Patient[],
   tratamento: TratamentoPatient[],
@@ -207,8 +136,13 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-function avgMonthlyPct(records: { porcentagem: number; mesAno: string }[], equipe?: string): number {
-  const filtered = equipe ? records.filter((r) => (r as any).equipe === equipe) : records;
+function avgMonthlyPct(
+  records: { porcentagem: number; mesAno: string }[],
+  equipe?: string
+): number {
+  const filtered = equipe
+    ? records.filter((r) => (r as any).equipe === equipe)
+    : records;
   if (filtered.length === 0) return 0;
 
   const byMonth = new Map<string, number[]>();
@@ -223,8 +157,6 @@ function avgMonthlyPct(records: { porcentagem: number; mesAno: string }[], equip
   );
   return monthAvgs.reduce((s, v) => s + v, 0) / monthAvgs.length;
 }
-
-// ─── Cálculo por equipe ───────────────────────────────────────────────────────
 
 function calcEquipeIndicadores(
   equipe: string,
@@ -265,8 +197,6 @@ function calcEquipeIndicadores(
   ];
 }
 
-// ─── Hook principal ───────────────────────────────────────────────────────────
-
 export function useResultadoFinal(
   patients: Patient[],
   tratamento: TratamentoPatient[],
@@ -274,20 +204,19 @@ export function useResultadoFinal(
   tab4: Tab4Patient[],
   tab5: Tab5Record[],
   tab6: Tab6Record[],
-  quad: Quadrimestre = "todos"   // ← novo parâmetro
+  quad: Quadrimestre = "todos"
 ) {
   return useMemo(() => {
-    // Aplica filtro de quadrimestre em todos os dados
-    const fPatients   = filterPatients(patients, quad);
-    const fTratamento = filterTratamento(tratamento, quad);
-    const fTab3       = filterMesAno(tab3, quad);
-    const fTab4       = filterTab4(tab4, quad);
-    const fTab5       = filterMesAno(tab5, quad);
-    const fTab6       = filterMesAno(tab6, quad);
+    // Usa as funções do useQuadrimesterFilter (mesmas usadas nas outras abas)
+    const fPatients   = filterPatientsByQuadrimestre(patients, quad);
+    const fTratamento = filterTratamentoByQuadrimestre(tratamento, quad);
+    const fTab3       = filterByQuadrimestre(tab3, quad);
+    const fTab4       = filterTab4ByQuadrimestre(tab4, quad);
+    const fTab5       = filterByQuadrimestre(tab5, quad);
+    const fTab6       = filterByQuadrimestre(tab6, quad);
 
     const equipes = getAllEquipes(fPatients, fTratamento, fTab3, fTab4, fTab5, fTab6);
 
-    // Por equipe
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
       const indicadores = calcEquipeIndicadores(
         equipe, fPatients, fTratamento, fTab3, fTab4, fTab5, fTab6
@@ -296,7 +225,6 @@ export function useResultadoFinal(
       return { equipe, indicadores, notaFinal };
     });
 
-    // Geral
     const totalPatients = fPatients.length;
     const withConsulta  = fPatients.filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
     const pctB1 = totalPatients > 0 ? (withConsulta / totalPatients) * 100 : 0;
