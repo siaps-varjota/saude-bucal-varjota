@@ -7,6 +7,7 @@ import { Calendar } from "lucide-react";
 
 interface TratamentoMonthlyCardsProps {
   patients: TratamentoPatient[];
+  allPatients: TratamentoPatient[];
 }
 
 const parseTratamentoDate = (tratamento: string): Date | null => {
@@ -38,7 +39,7 @@ const getScoreStyles = (category: string) => {
   }
 };
 
-export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps) => {
+export const TratamentoMonthlyCards = ({ patients, allPatients }: TratamentoMonthlyCardsProps) => {
   const monthlyData = useMemo(() => {
     const now = new Date();
     const months: { label: string; tratamentoCount: number; consultaCount: number }[] = [];
@@ -48,18 +49,16 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
       const monthKey = format(month, "MM/yyyy");
       const label = format(month, "MMM/yy", { locale: ptBR });
 
-      // Tratamentos concluídos no mês
+      // Tratamentos concluídos no mês (respeita filtro quadrimestre — zera fora do período)
       const tratamentoCount = patients.filter(p => {
-        const tratamentoDate = parseTratamentoDate(p.tratamentoConcluido);
-        if (!tratamentoDate) return false;
-        return format(tratamentoDate, "MM/yyyy") === monthKey;
+        const d = parseTratamentoDate(p.tratamentoConcluido);
+        return d ? format(d, "MM/yyyy") === monthKey : false;
       }).length;
 
-      // 1ªs consultas no mesmo mês (denominador)
-      const consultaCount = patients.filter(p => {
-        const consultaDate = parseTratamentoDate(p.primeiraConsulta);
-        if (!consultaDate) return false;
-        return format(consultaDate, "MM/yyyy") === monthKey;
+      // 1ªs consultas no mês (sem filtro quadrimestre — denominador fixo)
+      const consultaCount = allPatients.filter(p => {
+        const d = parseTratamentoDate(p.primeiraConsulta);
+        return d ? format(d, "MM/yyyy") === monthKey : false;
       }).length;
 
       months.push({
@@ -69,7 +68,7 @@ export const TratamentoMonthlyCards = ({ patients }: TratamentoMonthlyCardsProps
       });
     }
     return months;
-  }, [patients]);
+  }, [patients, allPatients]);
 
   return (
     <div className="space-y-4">
