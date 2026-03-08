@@ -6,6 +6,7 @@ import { Calendar } from "lucide-react";
 
 interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
+  allPatients: TratamentoPatient[];
   totalComConsulta: number;
 }
 
@@ -46,7 +47,7 @@ const getQuadrimesterInfo = (date: Date) => {
   return { quad: 3, year };
 };
 
-export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: TratamentoQuadrimesterCardsProps) => {
+export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComConsulta }: TratamentoQuadrimesterCardsProps) => {
   const quadrimesterData = useMemo(() => {
     const now = new Date();
     const currentQuad = getQuadrimesterInfo(now);
@@ -80,36 +81,32 @@ export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: Trat
         monthsCount = actualEndMonth - startMonth + 1;
       }
 
+      // Tratamentos concluídos no período (usa patients — respeita filtro quadrimestre)
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
-      // Tratamentos concluídos no período
       const tratamentoCount = patients.filter(p => {
-        const tratamentoDate = parseTratamentoDate(p.tratamentoConcluido);
-        if (!tratamentoDate) return false;
-        return isWithinInterval(tratamentoDate, { start: startDate, end: endDate });
+        const d = parseTratamentoDate(p.tratamentoConcluido);
+        return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
-      // 1ªs consultas no mesmo período (denominador)
-      const consultaCount = patients.filter(p => {
-        const consultaDate = parseTratamentoDate(p.primeiraConsulta);
-        if (!consultaDate) return false;
-        return isWithinInterval(consultaDate, { start: startDate, end: endDate });
-      }).length;
-
-      // Média mensal percentual: média dos meses do quadrimestre
+      // Média mensal percentual usando allPatients como denominador (sem filtro quadrimestre)
       const monthlyPcts: number[] = [];
       for (let m = startMonth; m <= actualEndMonth; m++) {
         const mStart = startOfMonth(new Date(targetYear, m, 1));
         const mEnd = endOfMonth(new Date(targetYear, m, 1));
+
         const mTratamento = patients.filter(p => {
           const d = parseTratamentoDate(p.tratamentoConcluido);
           return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
         }).length;
-        const mConsulta = patients.filter(p => {
+
+        // Denominador: 1ªs consultas do mês sem filtro quadrimestre
+        const mConsulta = allPatients.filter(p => {
           const d = parseTratamentoDate(p.primeiraConsulta);
           return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
         }).length;
+
         monthlyPcts.push(mConsulta > 0 ? (mTratamento / mConsulta) * 100 : 0);
       }
 
@@ -123,7 +120,7 @@ export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: Trat
     }
 
     return quadrimesters;
-  }, [patients, totalComConsulta]);
+  }, [patients, allPatients, totalComConsulta]);
 
   return (
     <>
