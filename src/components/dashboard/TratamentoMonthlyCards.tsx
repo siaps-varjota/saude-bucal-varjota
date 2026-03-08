@@ -30,14 +30,43 @@ const getScoreCategory = (percentage: number, total: number): string => {
   return "otimo";
 };
 
-const getScoreStyles = (category: string) => {
+const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
-    case "regular": return { border: "border-l-red-500", bg: "bg-red-50", text: "text-red-600" };
-    case "suficiente": return { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-600" };
-    case "bom": return { border: "border-l-emerald-500", bg: "bg-emerald-50", text: "text-emerald-600" };
-    case "otimo": return { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-600" };
-    case "none":
-    default: return { border: "border-l-gray-300", bg: "bg-gray-50", text: "text-gray-400" };
+    case "regular":
+      return {
+        bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
+        icon: "text-red-600",
+        label: "text-red-700",
+        count: "text-red-700"
+      };
+    case "suficiente":
+      return {
+        bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
+        icon: "text-amber-600",
+        label: "text-amber-700",
+        count: "text-amber-700"
+      };
+    case "bom":
+      return {
+        bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
+        icon: "text-emerald-600",
+        label: "text-emerald-700",
+        count: "text-emerald-700"
+      };
+    case "otimo":
+      return {
+        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
+        icon: "text-blue-600",
+        label: "text-blue-700",
+        count: "text-blue-700"
+      };
+    default:
+      return {
+        bg: "bg-muted/30",
+        icon: "text-muted-foreground",
+        label: "text-muted-foreground",
+        count: "text-muted-foreground"
+      };
   }
 };
 
