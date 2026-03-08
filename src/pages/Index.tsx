@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { useTab3Data } from "@/hooks/useTab3Data";
@@ -13,6 +13,7 @@ import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
+import { Quadrimestre, filterByQuadrimestre, filterPatientsByQuadrimestre, filterTratamentoByQuadrimestre, filterTab4ByQuadrimestre } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
@@ -39,6 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>("todos");
 
   // Tab 1 - 1ª Consulta
   const {
@@ -209,6 +211,17 @@ const Index = () => {
     isFetching,
     refetch
   } = getTabState();
+
+  // Resultado Final (must be before early return for hooks rules)
+  const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
+  const rfPatients = useMemo(() => filterPatientsByQuadrimestre(patients || [], quadrimestre), [patients, quadrimestre]);
+  const rfTratamento = useMemo(() => filterTratamentoByQuadrimestre(tratamentoPatients || [], quadrimestre), [tratamentoPatients, quadrimestre]);
+  const rfTab3 = useMemo(() => filterByQuadrimestre(tab3Patients || [], quadrimestre), [tab3Patients, quadrimestre]);
+  const rfTab4 = useMemo(() => filterTab4ByQuadrimestre(tab4Patients || [], quadrimestre), [tab4Patients, quadrimestre]);
+  const rfTab5 = useMemo(() => filterByQuadrimestre(tab5Patients || [], quadrimestre), [tab5Patients, quadrimestre]);
+  const rfTab6 = useMemo(() => filterByQuadrimestre(tab6Patients || [], quadrimestre), [tab6Patients, quadrimestre]);
+  const resultadoFinal = useResultadoFinal(rfPatients, rfTratamento, rfTab3, rfTab4, rfTab5, rfTab6);
+
   if (error) {
     return <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -242,16 +255,6 @@ const Index = () => {
   const totalExodontiasTab6 = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
-  // Resultado Final
-  const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
-  const resultadoFinal = useResultadoFinal(
-    patients || [],
-    tratamentoPatients || [],
-    tab3Patients || [],
-    tab4Patients || [],
-    tab5Patients || [],
-    tab6Patients || []
-  );
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
@@ -653,7 +656,12 @@ const Index = () => {
                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
               </div>
             ) : (
-              <ResultadoFinalTab geral={resultadoFinal.geral} porEquipe={resultadoFinal.porEquipe} />
+              <ResultadoFinalTab
+                geral={resultadoFinal.geral}
+                porEquipe={resultadoFinal.porEquipe}
+                quadrimestre={quadrimestre}
+                onQuadrimestreChange={setQuadrimestre}
+              />
             )}
           </TabsContent>
         </Tabs>
