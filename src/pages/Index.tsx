@@ -100,32 +100,38 @@ const Index = () => {
   const [filtersConsulta, setFiltersConsulta] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
-    status: "all"
+    status: "all",
+    quadrimestre: "todos"
   });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
-    status: "all"
+    status: "all",
+    quadrimestre: "todos"
   });
   const [filtersTab3, setFiltersTab3] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
-    status: "all"
+    status: "all",
+    quadrimestre: "todos"
   });
   const [filtersTab4, setFiltersTab4] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
-    status: "all"
+    status: "all",
+    quadrimestre: "todos"
   });
   const [filtersTab5, setFiltersTab5] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
-    status: "all"
+    status: "all",
+    quadrimestre: "todos"
   });
   const [filtersTab6, setFiltersTab6] = useState<FilterState>({
     equipe: "all",
     microarea: "all",
-    status: "all"
+    status: "all",
+    quadrimestre: "todos"
   });
 
   // Filtered data
