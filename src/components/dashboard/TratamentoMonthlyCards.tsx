@@ -1,3 +1,4 @@
+```tsx
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { parse, isValid, format, subMonths } from "date-fns";
@@ -22,7 +23,8 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
   return null;
 };
 
-const getScoreCategory = (percentage: number): string => {
+const getScoreCategory = (percentage: number, total: number): string => {
+  if (total === 0) return "none";
   if (percentage <= 25) return "regular";
   if (percentage <= 50) return "suficiente";
   if (percentage <= 75) return "bom";
@@ -35,7 +37,8 @@ const getScoreStyles = (category: string) => {
     case "suficiente": return { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-600" };
     case "bom": return { border: "border-l-emerald-500", bg: "bg-emerald-50", text: "text-emerald-600" };
     case "otimo": return { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-600" };
-    default: return { border: "border-l-muted-foreground", bg: "bg-muted", text: "text-muted-foreground" };
+    case "none":
+    default: return { border: "border-l-gray-300", bg: "bg-gray-50", text: "text-gray-400" };
   }
 };
 
@@ -49,13 +52,11 @@ export const TratamentoMonthlyCards = ({ patients, allPatients }: TratamentoMont
       const monthKey = format(month, "MM/yyyy");
       const label = format(month, "MMM/yy", { locale: ptBR });
 
-      // Tratamentos concluídos no mês (respeita filtro quadrimestre — zera fora do período)
       const tratamentoCount = patients.filter(p => {
         const d = parseTratamentoDate(p.tratamentoConcluido);
         return d ? format(d, "MM/yyyy") === monthKey : false;
       }).length;
 
-      // 1ªs consultas no mês (sem filtro quadrimestre — denominador fixo)
       const consultaCount = allPatients.filter(p => {
         const d = parseTratamentoDate(p.primeiraConsulta);
         return d ? format(d, "MM/yyyy") === monthKey : false;
@@ -75,7 +76,7 @@ export const TratamentoMonthlyCards = ({ patients, allPatients }: TratamentoMont
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
         {monthlyData.map(({ label, tratamentoCount, consultaCount }) => {
           const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 : 0;
-          const category = getScoreCategory(percentage);
+          const category = getScoreCategory(percentage, tratamentoCount);
           const styles = getScoreStyles(category);
           return (
             <Card key={label} className={`p-3 border-l-4 ${styles.border} ${styles.bg} transition-all hover:shadow-md`}>
@@ -102,3 +103,4 @@ export const TratamentoMonthlyCards = ({ patients, allPatients }: TratamentoMont
     </div>
   );
 };
+```
