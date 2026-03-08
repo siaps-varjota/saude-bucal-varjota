@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Patient } from "@/hooks/usePatientData";
 import { PDFGenerator } from "./PDFGenerator";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
 
 export interface FilterState {
   equipe: string;
   microarea: string;
   status: string;
+  quadrimestre: Quadrimestre;
 }
 
 interface PDFSummaryCard {
@@ -27,6 +29,8 @@ interface PatientFiltersProps {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   contentId?: string;
+  hideMicroarea?: boolean;
+  hideStatus?: boolean;
   // PDF configuration
   pdfTitle?: string;
   pdfSummaryCards?: PDFSummaryCard[];
@@ -40,6 +44,8 @@ export const PatientFilters = ({
   filters,
   onFiltersChange,
   contentId = "dashboard-content",
+  hideMicroarea = false,
+  hideStatus = false,
   pdfTitle = "Relatório",
   pdfSummaryCards = [],
   pdfColumns = [],
@@ -65,11 +71,12 @@ export const PatientFilters = ({
     onFiltersChange({
       equipe: "all",
       microarea: "all",
-      status: "all"
+      status: "all",
+      quadrimestre: "todos"
     });
   };
 
-  const hasActiveFilters = filters.equipe !== "all" || filters.microarea !== "all" || filters.status !== "all";
+  const hasActiveFilters = filters.equipe !== "all" || filters.microarea !== "all" || filters.status !== "all" || filters.quadrimestre !== "todos";
 
   // Build filter info string
   const filterInfo = useMemo(() => {
@@ -77,6 +84,10 @@ export const PatientFilters = ({
     if (filters.equipe !== "all") parts.push(`equipe: ${filters.equipe}`);
     if (filters.microarea !== "all") parts.push(`microárea: ${filters.microarea}`);
     if (filters.status !== "all") parts.push(`status: ${filters.status}`);
+    if (filters.quadrimestre !== "todos") {
+      const opt = QUADRIMESTRE_OPTIONS.find(o => o.value === filters.quadrimestre);
+      if (opt) parts.push(`período: ${opt.label}`);
+    }
     return parts.length > 0 ? parts.join(", ") : undefined;
   }, [filters]);
 
@@ -99,26 +110,41 @@ export const PatientFilters = ({
         </SelectContent>
       </Select>
 
-      <Select value={filters.microarea} onValueChange={value => onFiltersChange({ ...filters, microarea: value })}>
-        <SelectTrigger className="w-[160px] h-9">
-          <SelectValue placeholder="Microárea" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas Microáreas</SelectItem>
-          {uniqueMicroareas.map(microarea => (
-            <SelectItem key={microarea} value={microarea}>Área {microarea}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {!hideMicroarea && (
+        <Select value={filters.microarea} onValueChange={value => onFiltersChange({ ...filters, microarea: value })}>
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Microárea" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas Microáreas</SelectItem>
+            {uniqueMicroareas.map(microarea => (
+              <SelectItem key={microarea} value={microarea}>Área {microarea}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
-      <Select value={filters.status} onValueChange={value => onFiltersChange({ ...filters, status: value })}>
-        <SelectTrigger className="w-[140px] h-9">
-          <SelectValue placeholder="Status" />
+      {!hideStatus && (
+        <Select value={filters.status} onValueChange={value => onFiltersChange({ ...filters, status: value })}>
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Status</SelectItem>
+            <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="concluido">Concluído</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+
+      <Select value={filters.quadrimestre} onValueChange={value => onFiltersChange({ ...filters, quadrimestre: value as Quadrimestre })}>
+        <SelectTrigger className="w-[250px] h-9">
+          <SelectValue placeholder="Quadrimestre" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todos Status</SelectItem>
-          <SelectItem value="pendente">Pendente</SelectItem>
-          <SelectItem value="concluido">Concluído</SelectItem>
+          {QUADRIMESTRE_OPTIONS.map(opt => (
+            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

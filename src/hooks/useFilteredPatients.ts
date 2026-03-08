@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { parse, isValid, differenceInYears } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { FilterState } from "@/components/dashboard/PatientFilters";
+import { filterPatientsByQuadrimestre } from "./useQuadrimesterFilter";
 
 const parseConsultaDate = (consulta: string): Date | null => {
   if (!consulta || consulta === "-" || consulta.trim() === "") return null;
@@ -33,14 +34,10 @@ export const isConsultaPendente = (primeiraConsulta: string): boolean => {
 
 export const useFilteredPatients = (patients: Patient[], filters: FilterState) => {
   return useMemo(() => {
-    return patients.filter((patient) => {
-      // Equipe filter
+    let filtered = filterPatientsByQuadrimestre(patients, filters.quadrimestre);
+    return filtered.filter((patient) => {
       const matchesEquipe = filters.equipe === "all" || patient.equipe === filters.equipe;
-      
-      // Microarea filter
       const matchesMicroarea = filters.microarea === "all" || patient.microarea === filters.microarea;
-      
-      // Status filter
       const isPendente = isConsultaPendente(patient.primeiraConsulta);
       const matchesStatus = 
         filters.status === "all" || 
