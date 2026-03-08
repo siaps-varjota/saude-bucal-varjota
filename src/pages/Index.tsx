@@ -61,6 +61,7 @@ const Index = () => {
   const filteredPatientsNoQuad = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
   const filteredTratamento = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
+  const filteredTab4NoQuad = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
   const filteredTab3 = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4 = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab5 = useFilteredTab5(tab5Patients || [], filtersTab5);
@@ -124,7 +125,9 @@ const Index = () => {
   const totalTab3 = filteredTab3.length;
   const totalExodontiasTab3 = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
   const totalAtendimentosTab3 = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
-  const totalTab4 = filteredTab4.length;
+  const totalTab4 = filteredTab4NoQuad.length;
+<Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
+<Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
   const withConsultaTab4 = filteredTab4.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
   const totalTab5 = filteredTab5.length;
   const totalPreventivosTab5 = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
