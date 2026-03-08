@@ -158,6 +158,49 @@ function avgMonthlyPct(
   return monthAvgs.reduce((s, v) => s + v, 0) / monthAvgs.length;
 }
 
+// Calcula % B1: consultas no período / total cadastrado (igual aos cards das abas)
+function calcPctB1(
+  allPatients: Patient[],
+  filteredPatients: Patient[],
+  equipe?: string
+): number {
+  const total = equipe
+    ? allPatients.filter((p) => p.equipe === equipe).length
+    : allPatients.length;
+  const withConsulta = equipe
+    ? filteredPatients.filter((p) => p.equipe === equipe && !isConsultaPendente(p.primeiraConsulta)).length
+    : filteredPatients.filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
+  return total > 0 ? (withConsulta / total) * 100 : 0;
+}
+
+// Calcula % B2: tratamentos concluídos no período / 1ªs consultas no mesmo período
+function calcPctB2(
+  filteredTratamento: TratamentoPatient[],
+  equipe?: string
+): number {
+  const filtered = equipe
+    ? filteredTratamento.filter((p) => p.equipe === equipe)
+    : filteredTratamento;
+  const total = filtered.filter((p) => !isTratamentoPendente(p.primeiraConsulta)).length;
+  const withTrat = filtered.filter((p) => !isTratamentoPendente(p.tratamentoConcluido)).length;
+  return total > 0 ? (withTrat / total) * 100 : 0;
+}
+
+// Calcula % B5: escovações no período / total cadastrado (igual aos cards das abas)
+function calcPctB5(
+  allTab4: Tab4Patient[],
+  filteredTab4: Tab4Patient[],
+  equipe?: string
+): number {
+  const total = equipe
+    ? allTab4.filter((p) => p.equipe === equipe).length
+    : allTab4.length;
+  const withEscovacao = equipe
+    ? filteredTab4.filter((p) => p.equipe === equipe && !isConsultaPendenteTab4(p.primeiraConsulta)).length
+    : filteredTab4.filter((p) => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
+  return total > 0 ? (withEscovacao / total) * 100 : 0;
+}
+
 export function useResultadoFinal(
   patients: Patient[],
   tratamento: TratamentoPatient[],
@@ -168,7 +211,7 @@ export function useResultadoFinal(
   quad: Quadrimestre = "todos"
 ) {
   return useMemo(() => {
-    // Dados filtrados pelo período (numerador)
+    // Dados filtrados pelo período
     const fPatients   = filterPatientsByQuadrimestre(patients, quad);
     const fTratamento = filterTratamentoByQuadrimestre(tratamento, quad);
     const fTab3       = filterByQuadrimestre(tab3, quad);
@@ -180,27 +223,12 @@ export function useResultadoFinal(
 
     // Por equipe
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-      const eqPatientsTotal    = patients.filter((p) => p.equipe === equipe);
-      const eqPatientsFiltered = fPatients.filter((p) => p.equipe === equipe);
-      const totalB1 = eqPatientsTotal.length;
-      const withB1  = eqPatientsFiltered.filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
-      const pctB1   = totalB1 > 0 ? (withB1 / totalB1) * 100 : 0;
-
-      const eqTratTotal    = tratamento.filter((p) => p.equipe === equipe);
-      const eqTratFiltered = fTratamento.filter((p) => p.equipe === equipe);
-      const totalB2 = eqTratTotal.length;
-      const withTrat = eqTratFiltered.filter((p) => !isTratamentoPendente(p.tratamentoConcluido)).length;
-      const pctB2   = totalB2 > 0 ? (withTrat / totalB2) * 100 : 0;
-
+      const pctB1 = calcPctB1(patients, fPatients, equipe);
+      const pctB2 = calcPctB2(fTratamento, equipe);
       const pctB3 = avgMonthlyPct(fTab3, equipe);
       const pctB4 = avgMonthlyPct(fTab5, equipe);
+      const pctB5 = calcPctB5(tab4, fTab4, equipe);
       const pctB6 = avgMonthlyPct(fTab6, equipe);
-
-      const eqTab4Total    = tab4.filter((p) => p.equipe === equipe);
-      const eqTab4Filtered = fTab4.filter((p) => p.equipe === equipe);
-      const totalB5 = eqTab4Total.length;
-      const withB5  = eqTab4Filtered.filter((p) => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
-      const pctB5   = totalB5 > 0 ? (withB5 / totalB5) * 100 : 0;
 
       const indicadores = [
         buildIndicador("B1", pctB1),
@@ -214,22 +242,13 @@ export function useResultadoFinal(
       return { equipe, indicadores, notaFinal };
     });
 
-    // Geral — denominador fixo (total cadastrado), numerador filtrado pelo período
-    const totalPatients = patients.length;
-    const withConsulta  = fPatients.filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
-    const pctB1 = totalPatients > 0 ? (withConsulta / totalPatients) * 100 : 0;
-
-    const totalTrat = tratamento.length;
-    const withTrat  = fTratamento.filter((p) => !isTratamentoPendente(p.tratamentoConcluido)).length;
-    const pctB2 = totalTrat > 0 ? (withTrat / totalTrat) * 100 : 0;
-
+    // Geral
+    const pctB1 = calcPctB1(patients, fPatients);
+    const pctB2 = calcPctB2(fTratamento);
     const pctB3 = avgMonthlyPct(fTab3);
     const pctB4 = avgMonthlyPct(fTab5);
+    const pctB5 = calcPctB5(tab4, fTab4);
     const pctB6 = avgMonthlyPct(fTab6);
-
-    const totalTab4 = tab4.length;
-    const withTab4  = fTab4.filter((p) => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
-    const pctB5 = totalTab4 > 0 ? (withTab4 / totalTab4) * 100 : 0;
 
     const geralIndicadores = [
       buildIndicador("B1", pctB1),
