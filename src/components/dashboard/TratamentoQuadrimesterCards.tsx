@@ -16,9 +16,7 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
     try {
       const parsed = parse(tratamento.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
-    } catch {
-      continue;
-    }
+    } catch { continue; }
   }
   return null;
 };
@@ -32,16 +30,11 @@ const getScoreCategory = (percentage: number): string => {
 
 const getScoreStyles = (category: string) => {
   switch (category) {
-    case "regular":
-      return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500", icon: "text-red-600", label: "text-red-700", count: "text-red-700" };
-    case "suficiente":
-      return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
-    case "bom":
-      return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
-    case "otimo":
-      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
-    default:
-      return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
+    case "regular": return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500", icon: "text-red-600", label: "text-red-700", count: "text-red-700" };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
+    case "bom": return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo": return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
+    default: return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
@@ -57,7 +50,7 @@ export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: Trat
   const quadrimesterData = useMemo(() => {
     const now = new Date();
     const currentQuad = getQuadrimesterInfo(now);
-    const quadrimesters: { label: string; average: number; total: number; months: number; percentage: number }[] = [];
+    const quadrimesters: { label: string; total: number; average: number; months: number; percentage: number }[] = [];
 
     for (let i = 2; i >= 0; i--) {
       let targetYear = currentQuad.year;
@@ -71,11 +64,11 @@ export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: Trat
       let startMonth: number, endMonth: number, label: string;
 
       if (targetQuad === 1) {
-        startMonth = 0; endMonth = 3; label = `1º Quad ${targetYear}`;
+        startMonth = 0; endMonth = 3; label = `1º Quad/${targetYear}`;
       } else if (targetQuad === 2) {
-        startMonth = 4; endMonth = 7; label = `2º Quad ${targetYear}`;
+        startMonth = 4; endMonth = 7; label = `2º Quad/${targetYear}`;
       } else {
-        startMonth = 8; endMonth = 11; label = `3º Quad ${targetYear}`;
+        startMonth = 8; endMonth = 11; label = `3º Quad/${targetYear}`;
       }
 
       const isCurrentQuadrimester = i === 0;
@@ -90,24 +83,43 @@ export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: Trat
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
+      // Tratamentos concluídos no período
       const tratamentoCount = patients.filter(p => {
         const tratamentoDate = parseTratamentoDate(p.tratamentoConcluido);
         if (!tratamentoDate) return false;
         return isWithinInterval(tratamentoDate, { start: startDate, end: endDate });
       }).length;
 
-      const average = monthsCount > 0 ? Math.round(tratamentoCount / monthsCount) : 0;
-      // Denominador fixo: totalComConsulta passado pelo Index.tsx (respeita equipe, ignora quadrimestre)
-     // Denominador: pacientes com 1ª consulta no mesmo quadrimestre do card
-const consultaCount = patients.filter(p => {
-  const consultaDate = parseTratamentoDate(p.primeiraConsulta);
-  if (!consultaDate) return false;
-  return isWithinInterval(consultaDate, { start: startDate, end: endDate });
-}).length;
+      // 1ªs consultas no mesmo período (denominador)
+      const consultaCount = patients.filter(p => {
+        const consultaDate = parseTratamentoDate(p.primeiraConsulta);
+        if (!consultaDate) return false;
+        return isWithinInterval(consultaDate, { start: startDate, end: endDate });
+      }).length;
 
-const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 : 0;
+      // Média mensal percentual: média dos meses do quadrimestre
+      const monthlyPcts: number[] = [];
+      for (let m = startMonth; m <= actualEndMonth; m++) {
+        const mStart = startOfMonth(new Date(targetYear, m, 1));
+        const mEnd = endOfMonth(new Date(targetYear, m, 1));
+        const mTratamento = patients.filter(p => {
+          const d = parseTratamentoDate(p.tratamentoConcluido);
+          return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
+        }).length;
+        const mConsulta = patients.filter(p => {
+          const d = parseTratamentoDate(p.primeiraConsulta);
+          return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
+        }).length;
+        monthlyPcts.push(mConsulta > 0 ? (mTratamento / mConsulta) * 100 : 0);
+      }
 
-      quadrimesters.push({ label, average, total: tratamentoCount, months: monthsCount, percentage });
+      const percentage = monthlyPcts.length > 0
+        ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length
+        : 0;
+
+      const average = monthsCount > 0 ? tratamentoCount / monthsCount : 0;
+
+      quadrimesters.push({ label, total: tratamentoCount, average, months: monthsCount, percentage });
     }
 
     return quadrimesters;
@@ -115,7 +127,7 @@ const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 :
 
   return (
     <>
-      {quadrimesterData.map(({ label, average, total, months, percentage }) => {
+      {quadrimesterData.map(({ label, total, average, percentage }) => {
         const category = getScoreCategory(percentage);
         const styles = getScoreStyles(category);
         return (
@@ -126,8 +138,8 @@ const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 :
                   <Calendar className={`w-3.5 h-3.5 ${styles.icon}`} />
                   <span className={`text-xs font-medium ${styles.label}`}>{label}</span>
                 </div>
-                <span className={`text-3xl font-bold ${styles.count}`}>{average.toFixed(1)}</span>
-                <span className="text-sm text-muted-foreground mt-1">Média/mês ({total} total)</span>
+                <span className={`text-3xl font-bold ${styles.count}`}>{total}</span>
+                <span className="text-sm text-muted-foreground mt-1">Média/mês: {average.toFixed(1)}</span>
                 <span className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</span>
               </div>
             </CardContent>
