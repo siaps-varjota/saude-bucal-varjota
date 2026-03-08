@@ -1,4 +1,3 @@
-```tsx
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { parse, isValid, format, subMonths } from "date-fns";
@@ -103,4 +102,3 @@ export const TratamentoMonthlyCards = ({ patients, allPatients }: TratamentoMont
     </div>
   );
 };
-```
