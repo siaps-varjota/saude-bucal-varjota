@@ -98,7 +98,14 @@ export const TratamentoQuadrimesterCards = ({ patients, totalComConsulta }: Trat
 
       const average = monthsCount > 0 ? Math.round(tratamentoCount / monthsCount) : 0;
       // Denominador fixo: totalComConsulta passado pelo Index.tsx (respeita equipe, ignora quadrimestre)
-      const percentage = totalComConsulta > 0 ? (tratamentoCount / totalComConsulta) * 100 : 0;
+     // Denominador: pacientes com 1ª consulta no mesmo quadrimestre do card
+const consultaCount = patients.filter(p => {
+  const consultaDate = parseTratamentoDate(p.primeiraConsulta);
+  if (!consultaDate) return false;
+  return isWithinInterval(consultaDate, { start: startDate, end: endDate });
+}).length;
+
+const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 : 0;
 
       quadrimesters.push({ label, average, total: tratamentoCount, months: monthsCount, percentage });
     }
