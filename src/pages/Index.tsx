@@ -193,14 +193,14 @@ const Index = () => {
               {isLoadingPatients ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <QuadrimesterCards patients={patientsByEquipe} totalPatients={patientsByEquipe.length} />
+                <QuadrimesterCards patients={patientsByEquipe} totalPatients={patientsByEquipe.length} quadFiltered={filtersConsulta.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
               {isLoadingPatients
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <MonthlyCards patients={patientsByEquipe} totalPatients={patientsByEquipe.length} />}
+                :<MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />
             </div>
             {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
           </div>
