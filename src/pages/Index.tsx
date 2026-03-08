@@ -61,13 +61,12 @@ const Index = () => {
   const filteredPatientsNoQuad = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
   const filteredTratamento = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-  const filteredTab4NoQuad = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
   const filteredTab3 = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4 = useFilteredTab4(tab4Patients || [], filtersTab4);
+  const filteredTab4NoQuad = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
   const filteredTab5 = useFilteredTab5(tab5Patients || [], filtersTab5);
   const filteredTab6 = useFilteredTab6(tab6Patients || [], filtersTab6);
 
-  // Dados brutos filtrados apenas por equipe (sem quadrimestre) — para cards fixos
   const patientsByEquipe = useMemo(() =>
     (patients || []).filter(p => filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe),
     [patients, filtersConsulta.equipe]
@@ -126,9 +125,7 @@ const Index = () => {
   const totalExodontiasTab3 = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
   const totalAtendimentosTab3 = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
   const totalTab4 = filteredTab4NoQuad.length;
-<Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
-<Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
-  const withConsultaTab4 = filteredTab4.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
+  const withConsultaTab4 = filteredTab4NoQuad.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
   const totalTab5 = filteredTab5.length;
   const totalPreventivosTab5 = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
   const totalIndividuaisTab5 = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
@@ -244,11 +241,11 @@ const Index = () => {
               {isLoadingTratamento ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-               <TratamentoQuadrimesterCards
-  patients={filteredTratamento}
-  allPatients={filteredTratamentoNoQuad}
-  totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
-/>
+                <TratamentoQuadrimesterCards
+                  patients={filteredTratamento}
+                  allPatients={filteredTratamentoNoQuad}
+                  totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                />
               </>}
             </div>
             <div className="mb-8">
@@ -335,14 +332,14 @@ const Index = () => {
               {isLoadingTab4 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab4QuadrimesterCards patients={filteredTab4} />
+                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
               {isLoadingTab4
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab4MonthlyCards patients={filteredTab4} />}
+                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />}
             </div>
             {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
           </div>
