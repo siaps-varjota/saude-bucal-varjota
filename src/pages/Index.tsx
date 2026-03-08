@@ -119,8 +119,8 @@ const Index = () => {
   // Stats calculations
   const totalPatients = patientsByEquipe.length;
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-  const totalTratamento = filteredTratamentoNoQuad.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
-  const withTratamento = filteredTratamentoNoQuad.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+  const totalTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
+  const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
   const totalTab3 = filteredTab3.length;
   const totalExodontiasTab3 = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
   const totalAtendimentosTab3 = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
