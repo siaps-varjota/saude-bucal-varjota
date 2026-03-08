@@ -193,7 +193,7 @@ const Index = () => {
               {isLoadingPatients ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <QuadrimesterCards patients={patientsByEquipe} totalPatients={patientsByEquipe.length} quadFiltered={filtersConsulta.quadrimestre} />
+                <QuadrimesterCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />
               </>}
             </div>
             <div className="mb-8">
