@@ -2,12 +2,16 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Award } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trophy, Award, Filter } from "lucide-react";
 import { EquipeResult, Conceito } from "@/hooks/useResultadoFinal";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
 
 interface ResultadoFinalTabProps {
   geral: EquipeResult;
   porEquipe: EquipeResult[];
+  quadrimestre: Quadrimestre;
+  onQuadrimestreChange: (q: Quadrimestre) => void;
 }
 
 const CONCEITO_LABELS: Record<Conceito, string> = {
@@ -101,7 +105,7 @@ const ResultTable = ({ result, title }: { result: EquipeResult; title: string })
   </Card>
 );
 
-export const ResultadoFinalTab = ({ geral, porEquipe }: ResultadoFinalTabProps) => {
+export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimestreChange }: ResultadoFinalTabProps) => {
   const sortedEquipes = useMemo(
     () => [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal),
     [porEquipe]
@@ -109,6 +113,23 @@ export const ResultadoFinalTab = ({ geral, porEquipe }: ResultadoFinalTabProps) 
 
   return (
     <div className="space-y-8">
+      {/* Quadrimester Filter */}
+      <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Período:</span>
+        </div>
+        <Select value={quadrimestre} onValueChange={(v) => onQuadrimestreChange(v as Quadrimestre)}>
+          <SelectTrigger className="w-[260px] h-9">
+            <SelectValue placeholder="Selecione o quadrimestre" />
+          </SelectTrigger>
+          <SelectContent>
+            {QUADRIMESTRE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       {/* Ranking Cards */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
