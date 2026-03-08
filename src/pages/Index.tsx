@@ -302,7 +302,7 @@ const Index = () => {
               </div>
               <div className="mb-8">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
-                {isLoadingPatients ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div> : <MonthlyCards patients={filteredPatients} />}
+                {isLoadingPatients ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div> : <MonthlyCards    patients={filteredPatients}   totalPatients={(patients || []).filter(p =>     filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe   ).length} />}
               </div>
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
             </div>
