@@ -5,6 +5,7 @@ import { format, parse, subMonths, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 interface MonthlyCardsProps {
   patients: Patient[];
+  totalPatients: number;
 }
 const parseConsultaDate = (consulta: string): Date | null => {
   if (!consulta || consulta === "-" || consulta.trim() === "") return null;
@@ -76,10 +77,7 @@ const getScoreStyles = (category: ScoreCategory) => {
       };
   }
 };
-export const MonthlyCards = ({
-  patients
-}: MonthlyCardsProps) => {
-  const totalPatients = patients.length;
+export const MonthlyCards = ({ patients, totalPatients }: MonthlyCardsProps) => {
 
   // Generate last 12 months
   const now = new Date();
