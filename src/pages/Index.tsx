@@ -204,7 +204,9 @@ const Index = () => {
   }
 
   // Stats calculations
-  const totalPatients = (patients || []).length; // fixo, total cadastrado
+  const totalPatients = (patients || []).filter(p => 
+  filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe
+).length;
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
   const totalTratamento = filteredTratamento.length;
   const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
