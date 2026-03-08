@@ -3,9 +3,12 @@ import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Calendar } from "lucide-react";
 import { format, parse, subMonths, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 interface Tab4MonthlyCardsProps {
   patients: Tab4Patient[];
+  totalPatients: number;
 }
+
 const parseConsultaDate = (consulta: string): Date | null => {
   if (!consulta || consulta === "-" || consulta.trim() === "") return null;
   const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
@@ -13,124 +16,75 @@ const parseConsultaDate = (consulta: string): Date | null => {
     try {
       const parsed = parse(consulta.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
-    } catch {
-      continue;
-    }
+    } catch { continue; }
   }
   return null;
 };
-const getMonthYearKey = (date: Date): string => {
-  return format(date, "MM/yyyy");
-};
-const getMonthYearLabel = (date: Date): string => {
-  return format(date, "MMM/yyyy", {
-    locale: ptBR
-  });
-};
+
+const getMonthYearKey = (date: Date): string => format(date, "MM/yyyy");
+const getMonthYearLabel = (date: Date): string => format(date, "MMM/yyyy", { locale: ptBR });
+
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
-// Tab4 specific thresholds:
-// Vermelho (≤0,25%), Amarelo (>0,25% e ≤0,5%), Verde (>0,5% e ≤1%), Azul (>1%)
-const getScoreCategory = (percentage: number): ScoreCategory => {
-  if (percentage <= 0) return "none";
+const getScoreCategory = (percentage: number, count: number): ScoreCategory => {
+  if (count === 0) return "none";
   if (percentage <= 0.25) return "regular";
   if (percentage <= 0.5) return "suficiente";
   if (percentage <= 1) return "bom";
   return "otimo";
 };
+
 const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
-    case "regular":
-      return {
-        bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
-        icon: "text-red-600",
-        label: "text-red-700",
-        count: "text-red-700"
-      };
-    case "suficiente":
-      return {
-        bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
-        icon: "text-amber-600",
-        label: "text-amber-700",
-        count: "text-amber-700"
-      };
-    case "bom":
-      return {
-        bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
-        icon: "text-emerald-600",
-        label: "text-emerald-700",
-        count: "text-emerald-700"
-      };
-    case "otimo":
-      return {
-        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
-        icon: "text-blue-600",
-        label: "text-blue-700",
-        count: "text-blue-700"
-      };
-    default:
-      return {
-        bg: "bg-muted/30",
-        icon: "text-muted-foreground",
-        label: "text-muted-foreground",
-        count: "text-muted-foreground"
-      };
+    case "regular": return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500", icon: "text-red-600", label: "text-red-700", count: "text-red-700" };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
+    case "bom": return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo": return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
+    case "none":
+    default: return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
-export const Tab4MonthlyCards = ({
-  patients
-}: Tab4MonthlyCardsProps) => {
-  const totalPatients = patients.length;
 
-  // Generate last 12 months
+export const Tab4MonthlyCards = ({ patients, totalPatients }: Tab4MonthlyCardsProps) => {
   const now = new Date();
-  const last12Months = Array.from({
-    length: 12
-  }, (_, i) => {
+  const last12Months = Array.from({ length: 12 }, (_, i) => {
     const date = subMonths(now, i);
-    return {
-      key: getMonthYearKey(date),
-      label: getMonthYearLabel(date),
-      date
-    };
+    return { key: getMonthYearKey(date), label: getMonthYearLabel(date), date };
   }).reverse();
 
-  // Count patients per month based on "primeiraConsulta" field
   const monthCounts = new Map<string, number>();
-  patients.forEach((patient) => {
+  patients.forEach(patient => {
     const consultaDate = parseConsultaDate(patient.primeiraConsulta);
     if (consultaDate) {
       const key = getMonthYearKey(consultaDate);
       monthCounts.set(key, (monthCounts.get(key) || 0) + 1);
     }
   });
-  return <div className="space-y-4">
+
+  return (
+    <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {last12Months.map((month) => {
-        const count = monthCounts.get(month.key) || 0;
-        const percentage = totalPatients > 0 ? count / totalPatients * 100 : 0;
-        const category = getScoreCategory(percentage);
-        const styles = getScoreStyles(category);
-        return <Card key={month.key} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
+        {last12Months.map(month => {
+          const count = monthCounts.get(month.key) || 0;
+          // Percentual = count do mês / total de pacientes (sem filtro quadrimestre)
+          const percentage = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
+          const category = getScoreCategory(percentage, count);
+          const styles = getScoreStyles(category);
+          return (
+            <Card key={month.key} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Calendar className={`h-3 w-3 ${styles.icon}`} />
-                  <span className={`text-xs font-medium uppercase ${styles.label}`}>
-                    {month.label}
-                  </span>
+                  <span className={`text-xs font-medium uppercase ${styles.label}`}>{month.label}</span>
                 </div>
-                <p className={`text-2xl font-bold ${styles.count}`}>
-                  {count}
-                </p>
-                <p className="text-muted-foreground text-sm font-medium">
-                  {percentage.toFixed(2)}%
-                </p>
+                <p className={`text-2xl font-bold ${styles.count}`}>{count}</p>
+                <p className="text-muted-foreground text-sm font-medium">{percentage.toFixed(2)}%</p>
               </CardContent>
-            </Card>;
-      })}
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Score Legend - Tab4 specific thresholds */}
       <div className="gap-2 text-sm flex-wrap flex items-center justify-center">
         <span className="font-medium text-muted-foreground">Pontuação</span>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
@@ -150,5 +104,6 @@ export const Tab4MonthlyCards = ({
           <span className="text-blue-600 text-xs">&gt; 1%</span>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
