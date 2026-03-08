@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { parse, isValid, differenceInYears } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Tab3Record } from "@/hooks/useTab3Data";
@@ -13,14 +14,41 @@ import {
   filterTab4ByQuadrimestre,
 } from "@/hooks/useQuadrimesterFilter";
 
-const isConsultaPendente = (val: string): boolean =>
-  !val || val === "-" || val.trim() === "";
+// ── helpers idênticos aos hooks de filtro ─────────────────────────────────────
 
-const isTratamentoPendente = (val: string): boolean =>
-  !val || val === "-" || val.trim() === "";
+const parseDate = (val: string): Date | null => {
+  if (!val || val === "-" || val.trim() === "") return null;
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(val.trim(), fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    } catch { continue; }
+  }
+  return null;
+};
 
+// Igual ao useFilteredPatients — consulta vazia OU com mais de 1 ano = pendente
+const isConsultaPendente = (val: string): boolean => {
+  if (!val || val === "-" || val.trim() === "") return true;
+  const d = parseDate(val);
+  if (!d) return true;
+  return differenceInYears(new Date(), d) >= 1;
+};
+
+// Igual ao useFilteredTratamento
+const isTratamentoPendente = (val: string): boolean => {
+  if (!val || val === "-" || val.trim() === "") return true;
+  const d = parseDate(val);
+  if (!d) return true;
+  return differenceInYears(new Date(), d) >= 1;
+};
+
+// Igual ao useFilteredTab4
 const isConsultaPendenteTab4 = (val: string): boolean =>
   !val || val === "-" || val.trim() === "";
+
+// ── tipos e constantes ────────────────────────────────────────────────────────
 
 export type Conceito = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
@@ -40,11 +68,7 @@ export interface EquipeResult {
 }
 
 const CONCEITO_SCORES: Record<Conceito, number> = {
-  regular: 0.25,
-  suficiente: 0.50,
-  bom: 0.75,
-  otimo: 1.00,
-  none: 0,
+  regular: 0.25, suficiente: 0.50, bom: 0.75, otimo: 1.00, none: 0,
 };
 
 const getConceitoB1 = (pct: number): Conceito => {
@@ -96,35 +120,24 @@ const getConceitoB6 = (pct: number): Conceito => {
 };
 
 const INDICADORES = [
-  { key: "B1", label: "1ª Consulta Odontológica", peso: 2, getConceito: getConceitoB1 },
-  { key: "B2", label: "Tratamento Concluído", peso: 2, getConceito: getConceitoB2 },
-  { key: "B3", label: "Taxa de Exodontias", peso: 2, getConceito: getConceitoB3 },
-  { key: "B4", label: "Proced. Odont. Preventivos", peso: 2, getConceito: getConceitoB4 },
-  { key: "B5", label: "Escovação Supervisionada", peso: 1, getConceito: getConceitoB5 },
-  { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
+  { key: "B1", label: "1ª Consulta Odontológica",      peso: 2, getConceito: getConceitoB1 },
+  { key: "B2", label: "Tratamento Concluído",           peso: 2, getConceito: getConceitoB2 },
+  { key: "B3", label: "Taxa de Exodontias",             peso: 2, getConceito: getConceitoB3 },
+  { key: "B4", label: "Proced. Odont. Preventivos",     peso: 2, getConceito: getConceitoB4 },
+  { key: "B5", label: "Escovação Supervisionada",       peso: 1, getConceito: getConceitoB5 },
+  { key: "B6", label: "Trat. Restaurador Atraumático",  peso: 1, getConceito: getConceitoB6 },
 ];
 
 function buildIndicador(key: string, porcentagem: number): IndicadorResult {
   const config = INDICADORES.find((i) => i.key === key)!;
   const conceito = config.getConceito(porcentagem);
   const nota = CONCEITO_SCORES[conceito];
-  return {
-    indicador: config.label,
-    peso: config.peso,
-    porcentagem,
-    conceito,
-    nota,
-    notaFinal: nota * config.peso,
-  };
+  return { indicador: config.label, peso: config.peso, porcentagem, conceito, nota, notaFinal: nota * config.peso };
 }
 
 function getAllEquipes(
-  patients: Patient[],
-  tratamento: TratamentoPatient[],
-  tab3: Tab3Record[],
-  tab4: Tab4Patient[],
-  tab5: Tab5Record[],
-  tab6: Tab6Record[]
+  patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
+  tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[]
 ): string[] {
   const set = new Set<string>();
   patients.forEach((p) => p.equipe && set.add(p.equipe));
@@ -136,82 +149,51 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-function avgMonthlyPct(
-  records: { porcentagem: number; mesAno: string }[],
-  equipe?: string
-): number {
-  const filtered = equipe
-    ? records.filter((r) => (r as any).equipe === equipe)
-    : records;
+function avgMonthlyPct(records: { porcentagem: number; mesAno: string }[], equipe?: string): number {
+  const filtered = equipe ? records.filter((r) => (r as any).equipe === equipe) : records;
   if (filtered.length === 0) return 0;
-
   const byMonth = new Map<string, number[]>();
   filtered.forEach((r) => {
     const arr = byMonth.get(r.mesAno) || [];
     arr.push(r.porcentagem);
     byMonth.set(r.mesAno, arr);
   });
-
-  const monthAvgs = Array.from(byMonth.values()).map(
-    (arr) => arr.reduce((s, v) => s + v, 0) / arr.length
-  );
+  const monthAvgs = Array.from(byMonth.values()).map((arr) => arr.reduce((s, v) => s + v, 0) / arr.length);
   return monthAvgs.reduce((s, v) => s + v, 0) / monthAvgs.length;
 }
 
-// Calcula % B1: consultas no período / total cadastrado (igual aos cards das abas)
-function calcPctB1(
-  allPatients: Patient[],
-  filteredPatients: Patient[],
-  equipe?: string
-): number {
-  const total = equipe
-    ? allPatients.filter((p) => p.equipe === equipe).length
-    : allPatients.length;
-  const withConsulta = equipe
-    ? filteredPatients.filter((p) => p.equipe === equipe && !isConsultaPendente(p.primeiraConsulta)).length
-    : filteredPatients.filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
+// B1: consultas no período / total cadastrado (denominador fixo = todos os pacientes)
+function calcPctB1(allPatients: Patient[], fPatients: Patient[], equipe?: string): number {
+  const total = equipe ? allPatients.filter((p) => p.equipe === equipe).length : allPatients.length;
+  const withConsulta = (equipe ? fPatients.filter((p) => p.equipe === equipe) : fPatients)
+    .filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
   return total > 0 ? (withConsulta / total) * 100 : 0;
 }
 
-// Calcula % B2: tratamentos concluídos no período / 1ªs consultas no mesmo período
-function calcPctB2(
-  filteredTratamento: TratamentoPatient[],
-  equipe?: string
-): number {
-  const filtered = equipe
-    ? filteredTratamento.filter((p) => p.equipe === equipe)
-    : filteredTratamento;
+// B2: tratamentos concluídos no período / 1ªs consultas no mesmo período
+function calcPctB2(fTratamento: TratamentoPatient[], equipe?: string): number {
+  const filtered = equipe ? fTratamento.filter((p) => p.equipe === equipe) : fTratamento;
   const total = filtered.filter((p) => !isTratamentoPendente(p.primeiraConsulta)).length;
   const withTrat = filtered.filter((p) => !isTratamentoPendente(p.tratamentoConcluido)).length;
   return total > 0 ? (withTrat / total) * 100 : 0;
 }
 
-// Calcula % B5: escovações no período / total cadastrado (igual aos cards das abas)
-function calcPctB5(
-  allTab4: Tab4Patient[],
-  filteredTab4: Tab4Patient[],
-  equipe?: string
-): number {
-  const total = equipe
-    ? allTab4.filter((p) => p.equipe === equipe).length
-    : allTab4.length;
-  const withEscovacao = equipe
-    ? filteredTab4.filter((p) => p.equipe === equipe && !isConsultaPendenteTab4(p.primeiraConsulta)).length
-    : filteredTab4.filter((p) => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
+// B5: escovações no período / total cadastrado Tab4 (denominador fixo)
+function calcPctB5(allTab4: Tab4Patient[], fTab4: Tab4Patient[], equipe?: string): number {
+  const total = equipe ? allTab4.filter((p) => p.equipe === equipe).length : allTab4.length;
+  const withEscovacao = (equipe ? fTab4.filter((p) => p.equipe === equipe) : fTab4)
+    .filter((p) => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
   return total > 0 ? (withEscovacao / total) * 100 : 0;
 }
 
+// ── hook principal ────────────────────────────────────────────────────────────
+
 export function useResultadoFinal(
-  patients: Patient[],
-  tratamento: TratamentoPatient[],
-  tab3: Tab3Record[],
-  tab4: Tab4Patient[],
-  tab5: Tab5Record[],
-  tab6: Tab6Record[],
+  patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
+  tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[],
   quad: Quadrimestre = "todos"
 ) {
   return useMemo(() => {
-    // Dados filtrados pelo período
     const fPatients   = filterPatientsByQuadrimestre(patients, quad);
     const fTratamento = filterTratamentoByQuadrimestre(tratamento, quad);
     const fTab3       = filterByQuadrimestre(tab3, quad);
@@ -223,47 +205,31 @@ export function useResultadoFinal(
 
     // Por equipe
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-      const pctB1 = calcPctB1(patients, fPatients, equipe);
-      const pctB2 = calcPctB2(fTratamento, equipe);
-      const pctB3 = avgMonthlyPct(fTab3, equipe);
-      const pctB4 = avgMonthlyPct(fTab5, equipe);
-      const pctB5 = calcPctB5(tab4, fTab4, equipe);
-      const pctB6 = avgMonthlyPct(fTab6, equipe);
-
       const indicadores = [
-        buildIndicador("B1", pctB1),
-        buildIndicador("B2", pctB2),
-        buildIndicador("B3", pctB3),
-        buildIndicador("B4", pctB4),
-        buildIndicador("B5", pctB5),
-        buildIndicador("B6", pctB6),
+        buildIndicador("B1", calcPctB1(patients, fPatients, equipe)),
+        buildIndicador("B2", calcPctB2(fTratamento, equipe)),
+        buildIndicador("B3", avgMonthlyPct(fTab3, equipe)),
+        buildIndicador("B4", avgMonthlyPct(fTab5, equipe)),
+        buildIndicador("B5", calcPctB5(tab4, fTab4, equipe)),
+        buildIndicador("B6", avgMonthlyPct(fTab6, equipe)),
       ];
-      const notaFinal = indicadores.reduce((s, i) => s + i.notaFinal, 0);
-      return { equipe, indicadores, notaFinal };
+      return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
     });
 
     // Geral
-    const pctB1 = calcPctB1(patients, fPatients);
-    const pctB2 = calcPctB2(fTratamento);
-    const pctB3 = avgMonthlyPct(fTab3);
-    const pctB4 = avgMonthlyPct(fTab5);
-    const pctB5 = calcPctB5(tab4, fTab4);
-    const pctB6 = avgMonthlyPct(fTab6);
-
     const geralIndicadores = [
-      buildIndicador("B1", pctB1),
-      buildIndicador("B2", pctB2),
-      buildIndicador("B3", pctB3),
-      buildIndicador("B4", pctB4),
-      buildIndicador("B5", pctB5),
-      buildIndicador("B6", pctB6),
+      buildIndicador("B1", calcPctB1(patients, fPatients)),
+      buildIndicador("B2", calcPctB2(fTratamento)),
+      buildIndicador("B3", avgMonthlyPct(fTab3)),
+      buildIndicador("B4", avgMonthlyPct(fTab5)),
+      buildIndicador("B5", calcPctB5(tab4, fTab4)),
+      buildIndicador("B6", avgMonthlyPct(fTab6)),
     ];
-    const geralNotaFinal = geralIndicadores.reduce((s, i) => s + i.notaFinal, 0);
 
     const geral: EquipeResult = {
       equipe: "Geral",
       indicadores: geralIndicadores,
-      notaFinal: geralNotaFinal,
+      notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
     };
 
     return { geral, porEquipe };
