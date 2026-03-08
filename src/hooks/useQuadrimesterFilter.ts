@@ -75,10 +75,14 @@ export function filterTab4ByQuadrimestre(
   });
 }
 const ANO_ATUAL = new Date().getFullYear();
+const ANO_PASSADO = ANO_ATUAL - 1;
 
 export const QUADRIMESTRE_OPTIONS = [
   { value: "todos" as Quadrimestre, label: "Todos os Quadrimestres" },
   { value: "Q1" as Quadrimestre, label: `1º Quadrimestre (Jan–Abr/${ANO_ATUAL})` },
   { value: "Q2" as Quadrimestre, label: `2º Quadrimestre (Mai–Ago/${ANO_ATUAL})` },
   { value: "Q3" as Quadrimestre, label: `3º Quadrimestre (Set–Dez/${ANO_ATUAL})` },
+  { value: "Q1" as Quadrimestre, label: `1º Quadrimestre (Jan–Abr/${ANO_PASSADO})` },
+  { value: "Q2" as Quadrimestre, label: `2º Quadrimestre (Mai–Ago/${ANO_PASSADO})` },
+  { value: "Q3" as Quadrimestre, label: `3º Quadrimestre (Set–Dez/${ANO_PASSADO})` },
 ];
