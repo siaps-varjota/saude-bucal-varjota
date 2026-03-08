@@ -22,7 +22,8 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
   return null;
 };
 
-const getScoreCategory = (percentage: number): string => {
+const getScoreCategory = (percentage: number, total: number): string => {
+  if (total === 0) return "none";
   if (percentage <= 25) return "regular";
   if (percentage <= 50) return "suficiente";
   if (percentage <= 75) return "bom";
@@ -35,6 +36,7 @@ const getScoreStyles = (category: string) => {
     case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
     case "bom": return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
     case "otimo": return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
+    case "none":
     default: return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
@@ -81,7 +83,6 @@ export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComCon
         monthsCount = actualEndMonth - startMonth + 1;
       }
 
-      // Tratamentos concluídos no período (usa patients — respeita filtro quadrimestre)
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
@@ -90,7 +91,6 @@ export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComCon
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
-      // Média mensal percentual usando allPatients como denominador (sem filtro quadrimestre)
       const monthlyPcts: number[] = [];
       for (let m = startMonth; m <= actualEndMonth; m++) {
         const mStart = startOfMonth(new Date(targetYear, m, 1));
@@ -101,7 +101,6 @@ export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComCon
           return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
         }).length;
 
-        // Denominador: 1ªs consultas do mês sem filtro quadrimestre
         const mConsulta = allPatients.filter(p => {
           const d = parseTratamentoDate(p.primeiraConsulta);
           return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
@@ -125,7 +124,7 @@ export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComCon
   return (
     <>
       {quadrimesterData.map(({ label, total, average, percentage }) => {
-        const category = getScoreCategory(percentage);
+        const category = getScoreCategory(percentage, total);
         const styles = getScoreStyles(category);
         return (
           <Card key={label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
