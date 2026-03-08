@@ -211,6 +211,17 @@ const Index = () => {
     isFetching,
     refetch
   } = getTabState();
+
+  // Resultado Final (must be before early return for hooks rules)
+  const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
+  const rfPatients = useMemo(() => filterPatientsByQuadrimestre(patients || [], quadrimestre), [patients, quadrimestre]);
+  const rfTratamento = useMemo(() => filterTratamentoByQuadrimestre(tratamentoPatients || [], quadrimestre), [tratamentoPatients, quadrimestre]);
+  const rfTab3 = useMemo(() => filterByQuadrimestre(tab3Patients || [], quadrimestre), [tab3Patients, quadrimestre]);
+  const rfTab4 = useMemo(() => filterTab4ByQuadrimestre(tab4Patients || [], quadrimestre), [tab4Patients, quadrimestre]);
+  const rfTab5 = useMemo(() => filterByQuadrimestre(tab5Patients || [], quadrimestre), [tab5Patients, quadrimestre]);
+  const rfTab6 = useMemo(() => filterByQuadrimestre(tab6Patients || [], quadrimestre), [tab6Patients, quadrimestre]);
+  const resultadoFinal = useResultadoFinal(rfPatients, rfTratamento, rfTab3, rfTab4, rfTab5, rfTab6);
+
   if (error) {
     return <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -244,15 +255,6 @@ const Index = () => {
   const totalExodontiasTab6 = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
-  // Resultado Final
-  const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
-  const rfPatients = useMemo(() => filterPatientsByQuadrimestre(patients || [], quadrimestre), [patients, quadrimestre]);
-  const rfTratamento = useMemo(() => filterTratamentoByQuadrimestre(tratamentoPatients || [], quadrimestre), [tratamentoPatients, quadrimestre]);
-  const rfTab3 = useMemo(() => filterByQuadrimestre(tab3Patients || [], quadrimestre), [tab3Patients, quadrimestre]);
-  const rfTab4 = useMemo(() => filterTab4ByQuadrimestre(tab4Patients || [], quadrimestre), [tab4Patients, quadrimestre]);
-  const rfTab5 = useMemo(() => filterByQuadrimestre(tab5Patients || [], quadrimestre), [tab5Patients, quadrimestre]);
-  const rfTab6 = useMemo(() => filterByQuadrimestre(tab6Patients || [], quadrimestre), [tab6Patients, quadrimestre]);
-  const resultadoFinal = useResultadoFinal(rfPatients, rfTratamento, rfTab3, rfTab4, rfTab5, rfTab6);
   return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card shadow-sm">
