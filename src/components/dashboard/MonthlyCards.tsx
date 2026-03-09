@@ -147,8 +147,9 @@ export const MonthlyCards = ({ patients, totalPatients, quadrimestre = "todos" }
                 <p className={`text-2xl font-bold ${styles.count}`}>
                   {count}
                 </p>
-                <p className="text-muted-foreground font-medium text-xs text-center">
-                  de {totalPatients} | {percentage.toFixed(1)}%
+                <p className="text-xs text-center">
+                  <span className="text-muted-foreground font-medium">de {totalPatients}</span>
+                  <span className={`font-medium ${styles.label}`}> | {percentage.toFixed(1)}%</span>
                 </p>
               </CardContent>
             </Card>;

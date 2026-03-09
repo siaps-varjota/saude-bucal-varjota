@@ -154,7 +154,7 @@ export const TratamentoMonthlyCards = ({ patients, allPatients, quadrimestre = "
                 <span className="text-xs font-medium text-muted-foreground">{label}</span>
               </div>
               <div className={`text-2xl font-bold ${styles.count}`}>{tratamentoCount}</div>
-              <p className="text-muted-foreground font-medium text-xs">de {consultaCount} | {percentage.toFixed(1)}%</p>
+              <p className="text-xs"><span className="text-muted-foreground font-medium">de {consultaCount}</span><span className={`font-medium ${styles.label}`}> | {percentage.toFixed(1)}%</span></p>
             </Card>
           );
         })}
