@@ -103,7 +103,7 @@ const Index = () => {
   const resultadoFinal = useResultadoFinal(
     patients || [], tratamentoPatients || [], tab3Patients || [],
     tab4Patients || [], tab5Patients || [], tab6Patients || [],
-    quadrimestre
+    quadrimestreResultado
   );
 
   if (error) {
