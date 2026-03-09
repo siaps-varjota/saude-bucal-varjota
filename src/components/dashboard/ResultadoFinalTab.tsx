@@ -12,6 +12,9 @@ interface ResultadoFinalTabProps {
   porEquipe: EquipeResult[];
   quadrimestre: Quadrimestre;
   onQuadrimestreChange: (q: Quadrimestre) => void;
+  equipe: string;
+  onEquipeChange: (e: string) => void;
+  equipeOptions: string[];
 }
 
 const CONCEITO_LABELS: Record<Conceito, string> = {
@@ -105,7 +108,7 @@ const ResultTable = ({ result, title }: { result: EquipeResult; title: string })
   </Card>
 );
 
-export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimestreChange }: ResultadoFinalTabProps) => {
+export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimestreChange, equipe, onEquipeChange, equipeOptions }: ResultadoFinalTabProps) => {
   const sortedEquipes = useMemo(
     () => [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal),
     [porEquipe]
@@ -113,12 +116,23 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
 
   return (
     <div className="space-y-8">
-      {/* Quadrimester Filter */}
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Período:</span>
+          <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
         </div>
+        <Select value={equipe} onValueChange={onEquipeChange}>
+          <SelectTrigger className="w-[200px] h-9">
+            <SelectValue placeholder="Selecione a equipe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Equipes</SelectItem>
+            {equipeOptions.map((eq) => (
+              <SelectItem key={eq} value={eq}>{eq}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={quadrimestre} onValueChange={(v) => onQuadrimestreChange(v as Quadrimestre)}>
           <SelectTrigger className="w-[260px] h-9">
             <SelectValue placeholder="Selecione o quadrimestre" />

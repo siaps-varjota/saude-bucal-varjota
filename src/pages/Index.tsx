@@ -42,6 +42,7 @@ import { Button } from "@/components/ui/button";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
   const [quadrimestreResultado, setQuadrimestreResultado] = useState<Quadrimestre>(QUADRIMESTRE_ATUAL);
+  const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
   const { data: patients, isLoading: isLoadingPatients, error: errorPatients, refetch: refetchPatients, isFetching: isFetchingPatients } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
@@ -100,10 +101,21 @@ const Index = () => {
 
   const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
 
+  const allEquipes = useMemo(() => {
+    const set = new Set<string>();
+    (patients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tratamentoPatients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tab3Patients || []).forEach(r => set.add(r.equipe));
+    (tab4Patients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tab5Patients || []).forEach(r => set.add(r.equipe));
+    (tab6Patients || []).forEach(r => set.add(r.equipe));
+    return Array.from(set).sort();
+  }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
+
   const resultadoFinal = useResultadoFinal(
     patients || [], tratamentoPatients || [], tab3Patients || [],
     tab4Patients || [], tab5Patients || [], tab6Patients || [],
-    quadrimestreResultado
+    quadrimestreResultado, equipeResultado
   );
 
   if (error) {
@@ -439,6 +451,9 @@ const Index = () => {
               porEquipe={resultadoFinal.porEquipe}
               quadrimestre={quadrimestreResultado}
               onQuadrimestreChange={setQuadrimestreResultado}
+              equipe={equipeResultado}
+              onEquipeChange={setEquipeResultado}
+              equipeOptions={allEquipes}
             />
           )}
         </TabsContent>
