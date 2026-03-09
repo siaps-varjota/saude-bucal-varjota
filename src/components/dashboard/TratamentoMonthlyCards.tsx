@@ -153,8 +153,8 @@ export const TratamentoMonthlyCards = ({ patients, allPatients, quadrimestre = "
                 <Calendar className="w-3 h-3 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground">{label}</span>
               </div>
-              <div className="text-xl font-bold text-foreground">{tratamentoCount}</div>
-              <div className={`text-xs font-medium ${styles.text}`}>{percentage.toFixed(1)}%</div>
+              <div className="text-2xl font-bold text-foreground">{tratamentoCount}</div>
+              <p className="text-muted-foreground font-medium text-xs text-center">de {consultaCount} | {percentage.toFixed(1)}%</p>
             </Card>
           );
         })}
