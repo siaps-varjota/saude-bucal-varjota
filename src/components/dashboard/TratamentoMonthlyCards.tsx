@@ -22,7 +22,9 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
   return null;
 };
 
-const getScoreCategory = (percentage: number, total: number): string => {
+type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
+
+const getScoreCategory = (percentage: number, total: number): ScoreCategory => {
   if (total === 0) return "none";
   if (percentage <= 25) return "regular";
   if (percentage <= 50) return "suficiente";
@@ -35,6 +37,8 @@ const getScoreStyles = (category: ScoreCategory) => {
     case "regular":
       return {
         bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
+        border: "border-l-red-500",
+        text: "text-red-700",
         icon: "text-red-600",
         label: "text-red-700",
         count: "text-red-700"
@@ -42,6 +46,8 @@ const getScoreStyles = (category: ScoreCategory) => {
     case "suficiente":
       return {
         bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
+        border: "border-l-amber-500",
+        text: "text-amber-700",
         icon: "text-amber-600",
         label: "text-amber-700",
         count: "text-amber-700"
@@ -49,6 +55,8 @@ const getScoreStyles = (category: ScoreCategory) => {
     case "bom":
       return {
         bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
+        border: "border-l-emerald-500",
+        text: "text-emerald-700",
         icon: "text-emerald-600",
         label: "text-emerald-700",
         count: "text-emerald-700"
@@ -56,6 +64,8 @@ const getScoreStyles = (category: ScoreCategory) => {
     case "otimo":
       return {
         bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
+        border: "border-l-blue-500",
+        text: "text-blue-700",
         icon: "text-blue-600",
         label: "text-blue-700",
         count: "text-blue-700"
@@ -63,6 +73,8 @@ const getScoreStyles = (category: ScoreCategory) => {
     default:
       return {
         bg: "bg-muted/30",
+        border: "border-l-muted",
+        text: "text-muted-foreground",
         icon: "text-muted-foreground",
         label: "text-muted-foreground",
         count: "text-muted-foreground"

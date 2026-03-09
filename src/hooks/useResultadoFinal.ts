@@ -28,27 +28,15 @@ const parseDate = (val: string): Date | null => {
   return null;
 };
 
-const isConsultaPendente = (val: string): boolean => {
-  if (!val || val === "-" || val.trim() === "") return true;
-  const d = parseDate(val);
-  if (!d) return true;
-  return differenceInYears(new Date(), d) >= 1;
-};
-
-const isTratamentoPendente = (val: string): boolean => {
-  if (!val || val === "-" || val.trim() === "") return true;
-  const d = parseDate(val);
-  if (!d) return true;
-  return differenceInYears(new Date(), d) >= 1;
-};
-
-const isConsultaPendenteTab4 = (val: string): boolean =>
-  !val || val === "-" || val.trim() === "";
-
 const QUAD_MONTHS: Record<string, number[]> = {
   Q1: [0, 1, 2, 3],
   Q2: [4, 5, 6, 7],
   Q3: [8, 9, 10, 11],
+};
+
+const MONTH_NAME_TO_NUM: Record<string, number> = {
+  janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
+  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
 };
 
 // ── tipos e constantes ────────────────────────────────────────────────────────
@@ -116,10 +104,10 @@ const getConceitoB5 = (pct: number): Conceito => {
 
 const getConceitoB6 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
-  if (pct <= 3) return "regular";
-  if (pct <= 6) return "suficiente";
-  if (pct <= 8) return "bom";
-  return "otimo";
+  if (pct > 8) return "otimo";
+  if (pct > 6) return "bom";
+  if (pct > 3) return "suficiente";
+  return "regular";
 };
 
 const INDICADORES = [
@@ -152,22 +140,409 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-function avgMonthlyPct(
-  records: { porcentagem: number; mesAno: string }[],
+// B1: média mensal do período / total cadastrado (igual ao QuadrimesterCards)
+function calcPctB1(
+  allPatients: Patient[],
+  quad: Quadrimestre,
   equipe?: string
 ): number {
-  const filtered = equipe ? records.filter((r) => (r as any).equipe === equipe) : records;
-  if (filtered.length === 0) return 0;
-  const byMonth = new Map<string, number[]>();
-  filtered.forEach((r) => {
-    const arr = byMonth.get(r.mesAno) || [];
-    arr.push(r.porcentagem);
-    byMonth.set(r.mesAno, arr);
+  const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
+  const totalPatients = source.length;
+  if (totalPatients === 0) return 0;
+
+  if (quad === "todos") {
+    // Calcula média de todos os quadrimestres disponíveis
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // Agrupa por mês/ano
+    const byMonth = new Map<string, number>();
+    source.forEach(p => {
+      const d = parseDate(p.primeiraConsulta);
+      if (d) {
+        const key = `${getMonth(d)}-${getYear(d)}`;
+        byMonth.set(key, (byMonth.get(key) || 0) + 1);
+      }
+    });
+    
+    if (byMonth.size === 0) return 0;
+    
+    // Calcula percentual médio de cada mês
+    let totalPct = 0;
+    byMonth.forEach(count => {
+      totalPct += (count / totalPatients) * 100;
+    });
+    
+    return totalPct / byMonth.size;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+  const now = new Date();
+
+  let monthsWithData = 0;
+  const monthlyPcts: number[] = [];
+
+  months.forEach((m) => {
+    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    if (!isCurrentOrPast) return;
+    monthsWithData++;
+    
+    const count = source.filter((p) => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+    
+    // Não calcula percentual por mês, soma total e divide no final
   });
-  const monthAvgs = Array.from(byMonth.values()).map(
-    (arr) => arr.reduce((s, v) => s + v, 0) / arr.length
-  );
-  return monthAvgs.reduce((s, v) => s + v, 0) / monthAvgs.length;
+
+  if (monthsWithData === 0) return 0;
+
+  // Total de consultas no período dividido por meses com dados dividido por total de pacientes
+  let totalConsultas = 0;
+  months.forEach((m) => {
+    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    if (!isCurrentOrPast) return;
+    
+    totalConsultas += source.filter((p) => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+  });
+
+  return (totalConsultas / monthsWithData / totalPatients) * 100;
+}
+
+// B2: média dos percentuais mensais (tratamento/consulta por mês)
+function calcPctB2(
+  tratamento: TratamentoPatient[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? tratamento.filter((p) => p.equipe === equipe) : tratamento;
+  
+  if (quad === "todos") {
+    // Agrupa por mês e calcula média dos percentuais mensais
+    const byMonth = new Map<string, { tratamento: number; consulta: number }>();
+    
+    source.forEach(p => {
+      const dTrat = parseDate(p.tratamentoConcluido);
+      const dCons = parseDate(p.primeiraConsulta);
+      
+      if (dCons) {
+        const key = `${getMonth(dCons)}-${getYear(dCons)}`;
+        const existing = byMonth.get(key) || { tratamento: 0, consulta: 0 };
+        existing.consulta++;
+        byMonth.set(key, existing);
+      }
+      
+      if (dTrat) {
+        const key = `${getMonth(dTrat)}-${getYear(dTrat)}`;
+        const existing = byMonth.get(key) || { tratamento: 0, consulta: 0 };
+        existing.tratamento++;
+        byMonth.set(key, existing);
+      }
+    });
+    
+    const monthlyPcts: number[] = [];
+    byMonth.forEach(({ tratamento, consulta }) => {
+      if (consulta > 0) {
+        monthlyPcts.push((tratamento / consulta) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+  const now = new Date();
+
+  const monthlyPcts: number[] = [];
+  
+  months.forEach((m) => {
+    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    if (!isCurrentOrPast) return;
+    
+    const mTratamento = source.filter(p => {
+      const d = parseDate(p.tratamentoConcluido);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+    
+    const mConsulta = source.filter(p => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+    
+    if (mConsulta > 0) {
+      monthlyPcts.push((mTratamento / mConsulta) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
+}
+
+// B3: média dos percentuais mensais (exodontias/total por mês)
+function calcPctB3(
+  tab3: Tab3Record[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? tab3.filter((r) => r.equipe === equipe) : tab3;
+  
+  if (quad === "todos") {
+    const byMonth = new Map<string, { exodontias: number; total: number }>();
+    
+    source.forEach(r => {
+      const parts = r.mesAno.split("/");
+      const mesName = parts[0]?.toLowerCase().trim();
+      const ano = parseInt(parts[1]);
+      const mesIdx = MONTH_NAME_TO_NUM[mesName];
+      if (mesIdx === undefined) return;
+      
+      const key = `${mesIdx}-${ano}`;
+      const existing = byMonth.get(key) || { exodontias: 0, total: 0 };
+      existing.exodontias += r.exodontias;
+      existing.total += r.totalAtendimentos;
+      byMonth.set(key, existing);
+    });
+    
+    const monthlyPcts: number[] = [];
+    byMonth.forEach(({ exodontias, total }) => {
+      if (total > 0) {
+        monthlyPcts.push((exodontias / total) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  const byMonth = new Map<number, { exodontias: number; total: number }>();
+  
+  source.forEach(r => {
+    const parts = r.mesAno.split("/");
+    const mesName = parts[0]?.toLowerCase().trim();
+    const ano = parseInt(parts[1]);
+    const mesIdx = MONTH_NAME_TO_NUM[mesName];
+    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
+    
+    const existing = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
+    existing.exodontias += r.exodontias;
+    existing.total += r.totalAtendimentos;
+    byMonth.set(mesIdx, existing);
+  });
+
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ exodontias, total }) => {
+    if (total > 0) {
+      monthlyPcts.push((exodontias / total) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
+}
+
+// B4 (Tab5): média dos percentuais mensais (preventivos/total individuais por mês)
+function calcPctB4(
+  tab5: Tab5Record[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? tab5.filter((r) => r.equipe === equipe) : tab5;
+  
+  if (quad === "todos") {
+    const byMonth = new Map<string, { preventivos: number; total: number }>();
+    
+    source.forEach(r => {
+      const parts = r.mesAno.split("/");
+      const mesName = parts[0]?.toLowerCase().trim();
+      const ano = parseInt(parts[1]);
+      const mesIdx = MONTH_NAME_TO_NUM[mesName];
+      if (mesIdx === undefined) return;
+      
+      const key = `${mesIdx}-${ano}`;
+      const existing = byMonth.get(key) || { preventivos: 0, total: 0 };
+      existing.preventivos += r.preventivos;
+      existing.total += r.totalIndividuais;
+      byMonth.set(key, existing);
+    });
+    
+    const monthlyPcts: number[] = [];
+    byMonth.forEach(({ preventivos, total }) => {
+      if (total > 0) {
+        monthlyPcts.push((preventivos / total) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  const byMonth = new Map<number, { preventivos: number; total: number }>();
+  
+  source.forEach(r => {
+    const parts = r.mesAno.split("/");
+    const mesName = parts[0]?.toLowerCase().trim();
+    const ano = parseInt(parts[1]);
+    const mesIdx = MONTH_NAME_TO_NUM[mesName];
+    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
+    
+    const existing = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
+    existing.preventivos += r.preventivos;
+    existing.total += r.totalIndividuais;
+    byMonth.set(mesIdx, existing);
+  });
+
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ preventivos, total }) => {
+    if (total > 0) {
+      monthlyPcts.push((preventivos / total) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
+}
+
+// B5 (Tab4): média mensal do período / total cadastrado
+function calcPctB5(
+  allTab4: Tab4Patient[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? allTab4.filter((p) => p.equipe === equipe) : allTab4;
+  const totalPatients = source.length;
+  if (totalPatients === 0) return 0;
+
+  if (quad === "todos") {
+    const byMonth = new Map<string, number>();
+    source.forEach(p => {
+      const d = parseDate(p.primeiraConsulta);
+      if (d) {
+        const key = `${getMonth(d)}-${getYear(d)}`;
+        byMonth.set(key, (byMonth.get(key) || 0) + 1);
+      }
+    });
+    
+    if (byMonth.size === 0) return 0;
+    
+    let totalPct = 0;
+    byMonth.forEach(count => {
+      totalPct += (count / totalPatients) * 100;
+    });
+    
+    return totalPct / byMonth.size;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+  const now = new Date();
+
+  let monthsWithData = 0;
+  let totalConsultas = 0;
+
+  months.forEach((m) => {
+    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    if (!isCurrentOrPast) return;
+    monthsWithData++;
+    
+    totalConsultas += source.filter((p) => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+  });
+
+  return monthsWithData > 0 ? (totalConsultas / monthsWithData / totalPatients) * 100 : 0;
+}
+
+// B6 (Tab6): média dos percentuais mensais (ART/total procedimentos por mês)
+function calcPctB6(
+  tab6: Tab6Record[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? tab6.filter((r) => r.equipe === equipe) : tab6;
+  
+  if (quad === "todos") {
+    const byMonth = new Map<string, { exodontias: number; total: number }>();
+    
+    source.forEach(r => {
+      const parts = r.mesAno.split("/");
+      const mesName = parts[0]?.toLowerCase().trim();
+      const ano = parseInt(parts[1]);
+      const mesIdx = MONTH_NAME_TO_NUM[mesName];
+      if (mesIdx === undefined) return;
+      
+      const key = `${mesIdx}-${ano}`;
+      const existing = byMonth.get(key) || { exodontias: 0, total: 0 };
+      existing.exodontias += r.exodontias;
+      existing.total += r.totalProcedimentos;
+      byMonth.set(key, existing);
+    });
+    
+    const monthlyPcts: number[] = [];
+    byMonth.forEach(({ exodontias, total }) => {
+      if (total > 0) {
+        monthlyPcts.push((exodontias / total) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  const byMonth = new Map<number, { exodontias: number; total: number }>();
+  
+  source.forEach(r => {
+    const parts = r.mesAno.split("/");
+    const mesName = parts[0]?.toLowerCase().trim();
+    const ano = parseInt(parts[1]);
+    const mesIdx = MONTH_NAME_TO_NUM[mesName];
+    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
+    
+    const existing = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
+    existing.exodontias += r.exodontias;
+    existing.total += r.totalProcedimentos;
+    byMonth.set(mesIdx, existing);
+  });
+
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ exodontias, total }) => {
+    if (total > 0) {
+      monthlyPcts.push((exodontias / total) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
 }
 
 // B1: média mensal do período / total cadastrado (igual ao QuadrimesterCards)
