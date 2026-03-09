@@ -41,7 +41,7 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
-  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>("todos");
+  const [quadrimestreResultado, setQuadrimestreResultado] = useState<Quadrimestre>(QUADRIMESTRE_ATUAL);
 
   const { data: patients, isLoading: isLoadingPatients, error: errorPatients, refetch: refetchPatients, isFetching: isFetchingPatients } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
