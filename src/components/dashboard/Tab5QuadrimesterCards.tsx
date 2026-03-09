@@ -61,18 +61,18 @@ const getQuadrimesterForMonth = (month: number): number => {
 
 const getQuadrimesterLabel = (quadNum: number, year: number): string => `${quadNum}º Quad/${year}`;
 
-export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) => {
+export const Tab5QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab5QuadrimesterCardsProps) => {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
   const currentQuad = getQuadrimesterForMonth(currentMonth);
 
   const quadCounts = useMemo(() => {
-    const quadrimesters: {label: string;quadNum: number;year: number;}[] = [];
+    const quadrimesters: {label: string;quadNum: number;year: number;quadKey: string;}[] = [];
     let quad = currentQuad;
     let year = currentYear;
     for (let i = 0; i < 3; i++) {
-      quadrimesters.push({ label: getQuadrimesterLabel(quad, year), quadNum: quad, year });
+      quadrimesters.push({ label: getQuadrimesterLabel(quad, year), quadNum: quad, year, quadKey: `Q${quad}-${year}` });
       quad--;
       if (quad < 1) {quad = 3;year--;}
     }
@@ -81,7 +81,6 @@ export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) =
     return quadrimesters.map((q) => {
       const quadMonths = q.quadNum === 1 ? [0, 1, 2, 3] : q.quadNum === 2 ? [4, 5, 6, 7] : [8, 9, 10, 11];
 
-      // Group records by month within this quadrimester
       const monthlyData: {preventivos: number;total: number;}[] = [];
       const byMonth = new Map<number, {preventivos: number;total: number;}>();
 
@@ -120,9 +119,14 @@ export const Tab5QuadrimesterCards = ({ records }: Tab5QuadrimesterCardsProps) =
     });
   }, [records, currentQuad, currentYear]);
 
+  // Filter by selected quadrimester
+  const visibleCards = quadrimestre !== "todos"
+    ? quadCounts.filter(q => q.quadKey === quadrimestre)
+    : quadCounts;
+
   return (
     <>
-      {quadCounts.map((quad) => {
+      {visibleCards.map((quad) => {
         const category = getScoreCategory(quad.percentage);
         const styles = getScoreStyles(category);
         return (

@@ -102,10 +102,13 @@ const getScoreStyles = (category: ScoreCategory) => {
   }
 };
 
-export const TratamentoMonthlyCards = ({ patients, allPatients }: TratamentoMonthlyCardsProps) => {
+export const TratamentoMonthlyCards = ({ patients, allPatients, quadrimestre = "todos" }: TratamentoMonthlyCardsProps) => {
+  const quadMonths = getQuadrimesterMonths(quadrimestre);
+  const quadYear = getQuadrimesterYear(quadrimestre);
+
   const monthlyData = useMemo(() => {
     const now = new Date();
-    const months: { label: string; tratamentoCount: number; consultaCount: number }[] = [];
+    const months: { label: string; tratamentoCount: number; consultaCount: number; date: Date }[] = [];
 
     for (let i = 11; i >= 0; i--) {
       const month = subMonths(now, i);
@@ -125,16 +128,22 @@ export const TratamentoMonthlyCards = ({ patients, allPatients }: TratamentoMont
       months.push({
         label: label.charAt(0).toUpperCase() + label.slice(1),
         tratamentoCount,
-        consultaCount
+        consultaCount,
+        date: month
       });
     }
     return months;
   }, [patients, allPatients]);
 
+  // Filter months by quadrimestre if selected
+  const filteredMonthlyData = quadMonths && quadYear
+    ? monthlyData.filter(m => m.date.getFullYear() === quadYear && quadMonths.includes(m.date.getMonth()))
+    : monthlyData;
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {monthlyData.map(({ label, tratamentoCount, consultaCount }) => {
+      <div className={`grid gap-3 ${filteredMonthlyData.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12'}`}>
+        {filteredMonthlyData.map(({ label, tratamentoCount, consultaCount }) => {
           const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 : 0;
           const category = getScoreCategory(percentage, tratamentoCount);
           const styles = getScoreStyles(category);

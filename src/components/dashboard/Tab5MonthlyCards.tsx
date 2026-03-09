@@ -77,7 +77,10 @@ const MONTH_ORDER = [
 "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
 
-export const Tab5MonthlyCards = ({ records }: Tab5MonthlyCardsProps) => {
+export const Tab5MonthlyCards = ({ records, quadrimestre = "todos" }: Tab5MonthlyCardsProps) => {
+  const quadMonths = getQuadrimesterMonths(quadrimestre);
+  const quadYear = getQuadrimesterYear(quadrimestre);
+
   const monthlyData = useMemo(() => {
     const byMonth = new Map<string, {preventivos: number;total: number;}>();
 
@@ -88,7 +91,6 @@ export const Tab5MonthlyCards = ({ records }: Tab5MonthlyCardsProps) => {
       byMonth.set(r.mesAno, existing);
     });
 
-    // Sort by year then month
     return Array.from(byMonth.entries()).
     map(([mesAno, data]) => {
       const percentage = data.total > 0 ? data.preventivos / data.total * 100 : 0;
@@ -103,10 +105,19 @@ export const Tab5MonthlyCards = ({ records }: Tab5MonthlyCardsProps) => {
     });
   }, [records]);
 
+  // Filter months by quadrimestre if selected
+  const filteredMonthlyData = quadMonths && quadYear
+    ? monthlyData.filter(m => {
+        const [mesName, ano] = m.mesAno.split("/");
+        const mesIdx = MONTH_MAP[mesName.toLowerCase().trim()];
+        return parseInt(ano) === quadYear && mesIdx !== undefined && quadMonths.includes(mesIdx);
+      })
+    : monthlyData;
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {monthlyData.map((month) => {
+      <div className={`grid gap-3 ${filteredMonthlyData.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12'}`}>
+        {filteredMonthlyData.map((month) => {
           const category = getScoreCategory(month.percentage);
           const styles = getScoreStyles(category);
 
