@@ -97,7 +97,7 @@ const getScoreStyles = (category: ScoreCategory) => {
       };
   }
 };
-export const MonthlyCards = ({ patients, totalPatients }: MonthlyCardsProps) => {
+export const MonthlyCards = ({ patients, totalPatients, quadrimestre = "todos" }: MonthlyCardsProps) => {
 
   // Generate last 12 months
   const now = new Date();
@@ -111,6 +111,14 @@ export const MonthlyCards = ({ patients, totalPatients }: MonthlyCardsProps) => 
       date
     };
   }).reverse();
+
+  // Filter months by quadrimestre if selected
+  const quadMonths = getQuadrimesterMonths(quadrimestre);
+  const quadYear = getQuadrimesterYear(quadrimestre);
+  
+  const filteredMonths = quadMonths && quadYear
+    ? last12Months.filter(m => m.date.getFullYear() === quadYear && quadMonths.includes(m.date.getMonth()))
+    : last12Months;
 
   // Count patients per month based on "1ª Consulta" date (primeiraConsulta field)
   const monthCounts = new Map<string, number>();
