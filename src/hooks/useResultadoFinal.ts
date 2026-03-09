@@ -543,8 +543,8 @@ export function useResultadoFinal(
         buildIndicador("B1", calcPctB1(patients, quad, equipe)),
         buildIndicador("B2", calcPctB2(tratamento, quad, equipe)),
         buildIndicador("B3", calcPctB3(tab3, quad, equipe)),
-        buildIndicador("B4", calcPctB4(tab5, quad, equipe)),
         buildIndicador("B5", calcPctB5(tab4, quad, equipe)),
+        buildIndicador("B4", calcPctB4(tab5, quad, equipe)),
         buildIndicador("B6", calcPctB6(tab6, quad, equipe)),
       ];
       return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
