@@ -429,14 +429,14 @@ const Index = () => {
               {isLoadingTab6 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab6QuadrimesterCards records={filteredTab6} />
+                <Tab6QuadrimesterCards records={filteredTab6} quadrimestre={filtersTab6.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
               {isLoadingTab6
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab6MonthlyCards records={filteredTab6} />}
+                : <Tab6MonthlyCards records={filteredTab6} quadrimestre={filtersTab6.quadrimestre} />}
             </div>
             {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
           </div>
