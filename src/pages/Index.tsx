@@ -13,7 +13,7 @@ import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
-import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS, QUADRIMESTRE_ATUAL } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
