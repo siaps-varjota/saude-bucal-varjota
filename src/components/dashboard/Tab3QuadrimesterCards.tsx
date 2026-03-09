@@ -122,7 +122,7 @@ export const Tab3QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab3Q
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.totalExodontias}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalAtendimentos} atendimentos</p>
               <p className="text-xs text-muted-foreground">Média/mês: {quad.avgMonthlyExodontias.toFixed(1)}</p>
-              <p className="text-muted-foreground text-sm font-medium">{quad.percentage.toFixed(1)}%</p>
+              <p className={`text-xs mt-0.5 ${styles.label}`}>{quad.percentage.toFixed(1)}%</p>
             </CardContent>
           </Card>);
 

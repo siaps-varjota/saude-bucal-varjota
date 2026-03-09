@@ -139,7 +139,7 @@ export const Tab5QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab5Q
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.totalPreventivos}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalIndividuais} individuais</p>
               <p className="text-xs text-muted-foreground">Média mensal: {quad.avgMonthlyPreventivos.toFixed(1)}</p>
-              <p className="text-muted-foreground text-sm font-medium">{quad.percentage.toFixed(1)}%</p>
+              <p className={`text-xs mt-0.5 ${styles.label}`}>{quad.percentage.toFixed(1)}%</p>
             </CardContent>
           </Card>);
 

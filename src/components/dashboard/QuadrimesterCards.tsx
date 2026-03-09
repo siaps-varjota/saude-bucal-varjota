@@ -128,7 +128,7 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
             <p className={`text-3xl font-bold ${styles.count}`}>{quad.total}</p>
             <p className="text-xs text-muted-foreground mt-1">de {totalPatients}</p>
             <p className="text-xs text-muted-foreground">Média/mês: {quad.average.toFixed(1)}</p>
-            <p className="text-muted-foreground text-base">{percentage.toFixed(1)}%</p>
+            <p className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</p>
           </CardContent>
         </Card>
       );
