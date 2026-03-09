@@ -12,6 +12,9 @@ interface ResultadoFinalTabProps {
   porEquipe: EquipeResult[];
   quadrimestre: Quadrimestre;
   onQuadrimestreChange: (q: Quadrimestre) => void;
+  equipe: string;
+  onEquipeChange: (e: string) => void;
+  equipeOptions: string[];
 }
 
 const CONCEITO_LABELS: Record<Conceito, string> = {
