@@ -207,14 +207,14 @@ const Index = () => {
               {isLoadingPatients ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <QuadrimesterCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />
+                <QuadrimesterCards patients={filteredPatients} totalPatients={patientsByEquipe.length} quadFiltered={filtersConsulta.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
               {isLoadingPatients
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />}
+                : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} quadrimestre={filtersConsulta.quadrimestre} />}
             </div>
             {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
           </div>
@@ -257,6 +257,7 @@ const Index = () => {
                   patients={filteredTratamento}
                   allPatients={filteredTratamentoNoQuad}
                   totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                  quadrimestre={filtersTratamento.quadrimestre}
                 />
               </>}
             </div>
@@ -264,7 +265,7 @@ const Index = () => {
               <h2 className="mb-4 text-lg font-semibold text-foreground">Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)</h2>
               {isLoadingTratamento
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <TratamentoMonthlyCards patients={filteredTratamento} allPatients={filteredTratamentoNoQuad} />}
+                : <TratamentoMonthlyCards patients={filteredTratamento} allPatients={filteredTratamentoNoQuad} quadrimestre={filtersTratamento.quadrimestre} />}
             </div>
             {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
           </div>
@@ -299,14 +300,14 @@ const Index = () => {
               {isLoadingTab3 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab3QuadrimesterCards records={filteredTab3} />
+                <Tab3QuadrimesterCards records={filteredTab3} quadrimestre={filtersTab3.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
               {isLoadingTab3
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab3MonthlyCards records={filteredTab3} />}
+                : <Tab3MonthlyCards records={filteredTab3} quadrimestre={filtersTab3.quadrimestre} />}
             </div>
             {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
           </div>
@@ -344,14 +345,14 @@ const Index = () => {
               {isLoadingTab4 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
+                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} quadrimestre={filtersTab4.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
               {isLoadingTab4
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />}
+                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} quadrimestre={filtersTab4.quadrimestre} />}
             </div>
             {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
           </div>
@@ -386,14 +387,14 @@ const Index = () => {
               {isLoadingTab5 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab5QuadrimesterCards records={filteredTab5} />
+                <Tab5QuadrimesterCards records={filteredTab5} quadrimestre={filtersTab5.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
               {isLoadingTab5
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab5MonthlyCards records={filteredTab5} />}
+                : <Tab5MonthlyCards records={filteredTab5} quadrimestre={filtersTab5.quadrimestre} />}
             </div>
             {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
           </div>
@@ -428,14 +429,14 @@ const Index = () => {
               {isLoadingTab6 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab6QuadrimesterCards records={filteredTab6} />
+                <Tab6QuadrimesterCards records={filteredTab6} quadrimestre={filtersTab6.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
               {isLoadingTab6
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab6MonthlyCards records={filteredTab6} />}
+                : <Tab6MonthlyCards records={filteredTab6} quadrimestre={filtersTab6.quadrimestre} />}
             </div>
             {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
           </div>

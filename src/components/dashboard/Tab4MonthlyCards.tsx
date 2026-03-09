@@ -7,7 +7,27 @@ import { ptBR } from "date-fns/locale";
 interface Tab4MonthlyCardsProps {
   patients: Tab4Patient[];
   totalPatients: number;
+  quadrimestre?: string;
 }
+
+const getQuadrimesterMonths = (quadKey: string): number[] | null => {
+  if (!quadKey || quadKey === "todos") return null;
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  if (!match) return null;
+  const quadNum = parseInt(match[1]);
+  switch (quadNum) {
+    case 1: return [0, 1, 2, 3];
+    case 2: return [4, 5, 6, 7];
+    case 3: return [8, 9, 10, 11];
+    default: return null;
+  }
+};
+
+const getQuadrimesterYear = (quadKey: string): number | null => {
+  if (!quadKey || quadKey === "todos") return null;
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  return match ? parseInt(match[2]) : null;
+};
 
 const parseConsultaDate = (consulta: string): Date | null => {
   if (!consulta || consulta === "-" || consulta.trim() === "") return null;
@@ -45,12 +65,20 @@ const getScoreStyles = (category: ScoreCategory) => {
   }
 };
 
-export const Tab4MonthlyCards = ({ patients, totalPatients }: Tab4MonthlyCardsProps) => {
+export const Tab4MonthlyCards = ({ patients, totalPatients, quadrimestre = "todos" }: Tab4MonthlyCardsProps) => {
   const now = new Date();
   const last12Months = Array.from({ length: 12 }, (_, i) => {
     const date = subMonths(now, i);
     return { key: getMonthYearKey(date), label: getMonthYearLabel(date), date };
   }).reverse();
+
+  // Filter months by quadrimestre if selected
+  const quadMonths = getQuadrimesterMonths(quadrimestre);
+  const quadYear = getQuadrimesterYear(quadrimestre);
+  
+  const filteredMonths = quadMonths && quadYear
+    ? last12Months.filter(m => m.date.getFullYear() === quadYear && quadMonths.includes(m.date.getMonth()))
+    : last12Months;
 
   const monthCounts = new Map<string, number>();
   patients.forEach(patient => {
@@ -63,10 +91,9 @@ export const Tab4MonthlyCards = ({ patients, totalPatients }: Tab4MonthlyCardsPr
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {last12Months.map(month => {
+      <div className={`grid gap-3 ${filteredMonths.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12'}`}>
+        {filteredMonths.map(month => {
           const count = monthCounts.get(month.key) || 0;
-          // Percentual = count do mês / total de pacientes (sem filtro quadrimestre)
           const percentage = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
           const category = getScoreCategory(percentage, count);
           const styles = getScoreStyles(category);

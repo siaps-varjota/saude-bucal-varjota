@@ -8,6 +8,7 @@ interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
   allPatients: TratamentoPatient[];
   totalComConsulta: number;
+  quadrimestre?: string;
 }
 
 const parseTratamentoDate = (tratamento: string): Date | null => {
@@ -49,11 +50,11 @@ const getQuadrimesterInfo = (date: Date) => {
   return { quad: 3, year };
 };
 
-export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComConsulta }: TratamentoQuadrimesterCardsProps) => {
+export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComConsulta, quadrimestre = "todos" }: TratamentoQuadrimesterCardsProps) => {
   const quadrimesterData = useMemo(() => {
     const now = new Date();
     const currentQuad = getQuadrimesterInfo(now);
-    const quadrimesters: { label: string; total: number; average: number; months: number; percentage: number }[] = [];
+    const quadrimesters: { label: string; total: number; average: number; months: number; percentage: number; quadKey: string }[] = [];
 
     for (let i = 2; i >= 0; i--) {
       let targetYear = currentQuad.year;
@@ -115,15 +116,20 @@ export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComCon
 
       const average = monthsCount > 0 ? tratamentoCount / monthsCount : 0;
 
-      quadrimesters.push({ label, total: tratamentoCount, average, months: monthsCount, percentage });
+      quadrimesters.push({ label, total: tratamentoCount, average, months: monthsCount, percentage, quadKey: `Q${targetQuad}-${targetYear}` });
     }
 
     return quadrimesters;
   }, [patients, allPatients, totalComConsulta]);
 
+  // Filter by selected quadrimester
+  const visibleCards = quadrimestre !== "todos"
+    ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
+    : quadrimesterData;
+
   return (
     <>
-      {quadrimesterData.map(({ label, total, average, percentage }) => {
+      {visibleCards.map(({ label, total, average, percentage }) => {
         const category = getScoreCategory(percentage, total);
         const styles = getScoreStyles(category);
         return (
