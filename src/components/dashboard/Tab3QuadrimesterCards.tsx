@@ -85,6 +85,8 @@ export const Tab3QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab3Q
 
       const totalExodontias = monthlyData.reduce((s, m) => s + m.exodontias, 0);
       const totalAtendimentos = monthlyData.reduce((s, m) => s + m.total, 0);
+      const monthsWithData = monthlyData.length;
+      const avgMonthlyExodontias = monthsWithData > 0 ? totalExodontias / monthsWithData : 0;
       const monthlyPercentages = monthlyData.map((m) => m.exodontias / m.total * 100);
       const avgPercentage = monthlyPercentages.length > 0 ?
       monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length :
@@ -94,6 +96,7 @@ export const Tab3QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab3Q
         ...q,
         totalExodontias,
         totalAtendimentos,
+        avgMonthlyExodontias,
         percentage: avgPercentage
       };
     });
