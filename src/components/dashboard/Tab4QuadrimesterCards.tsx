@@ -125,7 +125,7 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
                 <span className={`text-sm font-medium ${styles.label}`}>{quad.label}</span>
               </div>
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.total}</p>
-              <p className="text-xs text-muted-foreground mt-1">{quad.total} de {totalPatients}</p>
+              <p className="text-xs text-muted-foreground mt-1">de {totalPatients}</p>
               <p className="text-xs text-muted-foreground mt-1">Média/mês: {quad.average.toFixed(1)}</p>
               <p className="text-muted-foreground text-sm font-medium">{percentage.toFixed(2)}%</p>
             </CardContent>
