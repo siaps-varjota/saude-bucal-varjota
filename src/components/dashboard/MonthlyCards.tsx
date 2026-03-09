@@ -6,7 +6,27 @@ import { ptBR } from "date-fns/locale";
 interface MonthlyCardsProps {
   patients: Patient[];
   totalPatients: number;
+  quadrimestre?: string;
 }
+
+const getQuadrimesterMonths = (quadKey: string): number[] | null => {
+  if (!quadKey || quadKey === "todos") return null;
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  if (!match) return null;
+  const quadNum = parseInt(match[1]);
+  switch (quadNum) {
+    case 1: return [0, 1, 2, 3];
+    case 2: return [4, 5, 6, 7];
+    case 3: return [8, 9, 10, 11];
+    default: return null;
+  }
+};
+
+const getQuadrimesterYear = (quadKey: string): number | null => {
+  if (!quadKey || quadKey === "todos") return null;
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  return match ? parseInt(match[2]) : null;
+};
 const parseConsultaDate = (consulta: string): Date | null => {
   if (!consulta || consulta === "-" || consulta.trim() === "") return null;
 
