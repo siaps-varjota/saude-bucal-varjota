@@ -108,8 +108,8 @@ const INDICADORES = [
    { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
    { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
    { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-   { key: "B4", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB4 },
-   { key: "B5", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB5 },
+   { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
+   { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
    { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
 ];
 
@@ -543,8 +543,8 @@ export function useResultadoFinal(
         buildIndicador("B1", calcPctB1(patients, quad, equipe)),
         buildIndicador("B2", calcPctB2(tratamento, quad, equipe)),
         buildIndicador("B3", calcPctB3(tab3, quad, equipe)),
-        buildIndicador("B4", calcPctB4(tab5, quad, equipe)),
         buildIndicador("B5", calcPctB5(tab4, quad, equipe)),
+        buildIndicador("B4", calcPctB4(tab5, quad, equipe)),
         buildIndicador("B6", calcPctB6(tab6, quad, equipe)),
       ];
       return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
@@ -555,15 +555,15 @@ export function useResultadoFinal(
       buildIndicador("B1", calcPctB1(patients, quad)),
       buildIndicador("B2", calcPctB2(tratamento, quad)),
       buildIndicador("B3", calcPctB3(tab3, quad)),
-      buildIndicador("B4", calcPctB4(tab5, quad)),
       buildIndicador("B5", calcPctB5(tab4, quad)),
+      buildIndicador("B4", calcPctB4(tab5, quad)),
       buildIndicador("B6", calcPctB6(tab6, quad)),
     ] : [
       buildIndicador("B1", calcPctB1(patients, quad, equipeFilter)),
       buildIndicador("B2", calcPctB2(tratamento, quad, equipeFilter)),
       buildIndicador("B3", calcPctB3(tab3, quad, equipeFilter)),
-      buildIndicador("B4", calcPctB4(tab5, quad, equipeFilter)),
       buildIndicador("B5", calcPctB5(tab4, quad, equipeFilter)),
+      buildIndicador("B4", calcPctB4(tab5, quad, equipeFilter)),
       buildIndicador("B6", calcPctB6(tab6, quad, equipeFilter)),
     ];
 
