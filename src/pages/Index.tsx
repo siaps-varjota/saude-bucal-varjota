@@ -101,10 +101,21 @@ const Index = () => {
 
   const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
 
+  const allEquipes = useMemo(() => {
+    const set = new Set<string>();
+    (patients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tratamentoPatients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tab3Patients || []).forEach(r => set.add(r.equipe));
+    (tab4Patients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tab5Patients || []).forEach(r => set.add(r.equipe));
+    (tab6Patients || []).forEach(r => set.add(r.equipe));
+    return Array.from(set).sort();
+  }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
+
   const resultadoFinal = useResultadoFinal(
     patients || [], tratamentoPatients || [], tab3Patients || [],
     tab4Patients || [], tab5Patients || [], tab6Patients || [],
-    quadrimestreResultado
+    quadrimestreResultado, equipeResultado
   );
 
   if (error) {
