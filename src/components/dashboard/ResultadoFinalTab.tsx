@@ -124,7 +124,7 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
             <SelectValue placeholder="Selecione o quadrimestre" />
           </SelectTrigger>
           <SelectContent>
-            {QUADRIMESTRE_OPTIONS.map((opt) => (
+            {QUADRIMESTRE_OPTIONS_SEM_TODOS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
           </SelectContent>

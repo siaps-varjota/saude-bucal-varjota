@@ -97,6 +97,15 @@ export function filterTab4ByQuadrimestre(
 const ANO_ATUAL = new Date().getFullYear();
 const ANO_PASSADO = ANO_ATUAL - 1;
 
+export function getCurrentQuadrimestre(): Quadrimestre {
+  const month = new Date().getMonth() + 1;
+  if (month >= 1 && month <= 4) return `Q1-${ANO_ATUAL}`;
+  if (month >= 5 && month <= 8) return `Q2-${ANO_ATUAL}`;
+  return `Q3-${ANO_ATUAL}`;
+}
+
+export const QUADRIMESTRE_ATUAL = getCurrentQuadrimestre();
+
 export const QUADRIMESTRE_OPTIONS = [
   { value: "todos" as Quadrimestre, label: "Todos os Quadrimestres" },
   { value: `Q1-${ANO_ATUAL}` as Quadrimestre, label: `1º Quadrimestre (Jan–Abr/${ANO_ATUAL})` },
@@ -106,3 +115,5 @@ export const QUADRIMESTRE_OPTIONS = [
   { value: `Q2-${ANO_PASSADO}` as Quadrimestre, label: `2º Quadrimestre (Mai–Ago/${ANO_PASSADO})` },
   { value: `Q3-${ANO_PASSADO}` as Quadrimestre, label: `3º Quadrimestre (Set–Dez/${ANO_PASSADO})` },
 ];
+
+export const QUADRIMESTRE_OPTIONS_SEM_TODOS = QUADRIMESTRE_OPTIONS.filter(opt => opt.value !== "todos");

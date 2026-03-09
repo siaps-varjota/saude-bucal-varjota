@@ -437,8 +437,8 @@ const Index = () => {
             <ResultadoFinalTab
               geral={resultadoFinal.geral}
               porEquipe={resultadoFinal.porEquipe}
-              quadrimestre={quadrimestre}
-              onQuadrimestreChange={setQuadrimestre}
+              quadrimestre={quadrimestreResultado}
+              onQuadrimestreChange={setQuadrimestreResultado}
             />
           )}
         </TabsContent>
