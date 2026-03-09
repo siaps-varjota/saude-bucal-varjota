@@ -555,15 +555,15 @@ export function useResultadoFinal(
       buildIndicador("B1", calcPctB1(patients, quad)),
       buildIndicador("B2", calcPctB2(tratamento, quad)),
       buildIndicador("B3", calcPctB3(tab3, quad)),
-      buildIndicador("B4", calcPctB4(tab5, quad)),
       buildIndicador("B5", calcPctB5(tab4, quad)),
+      buildIndicador("B4", calcPctB4(tab5, quad)),
       buildIndicador("B6", calcPctB6(tab6, quad)),
     ] : [
       buildIndicador("B1", calcPctB1(patients, quad, equipeFilter)),
       buildIndicador("B2", calcPctB2(tratamento, quad, equipeFilter)),
       buildIndicador("B3", calcPctB3(tab3, quad, equipeFilter)),
-      buildIndicador("B4", calcPctB4(tab5, quad, equipeFilter)),
       buildIndicador("B5", calcPctB5(tab4, quad, equipeFilter)),
+      buildIndicador("B4", calcPctB4(tab5, quad, equipeFilter)),
       buildIndicador("B6", calcPctB6(tab6, quad, equipeFilter)),
     ];
 
