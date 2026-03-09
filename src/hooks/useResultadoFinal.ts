@@ -1,18 +1,12 @@
 import { useMemo } from "react";
-import { parse, isValid, differenceInYears, getMonth, getYear } from "date-fns";
+import { parse, isValid, getMonth, getYear } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
-import {
-  Quadrimestre,
-  filterPatientsByQuadrimestre,
-  filterTratamentoByQuadrimestre,
-  filterByQuadrimestre,
-  filterTab4ByQuadrimestre,
-} from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -140,7 +134,10 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-// B1: média mensal do período / total cadastrado (igual ao QuadrimesterCards)
+// ── Cálculos de percentual por indicador ──────────────────────────────────────
+
+// B1: (total consultas no quad / meses com dados / total pacientes) * 100
+// Igual ao QuadrimesterCards.tsx
 function calcPctB1(
   allPatients: Patient[],
   quad: Quadrimestre,
@@ -150,13 +147,12 @@ function calcPctB1(
   const totalPatients = source.length;
   if (totalPatients === 0) return 0;
 
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
   if (quad === "todos") {
-    // Calcula média de todos os quadrimestres disponíveis
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    
-    // Agrupa por mês/ano
+    // Agrupa por mês/ano e calcula média
     const byMonth = new Map<string, number>();
     source.forEach(p => {
       const d = parseDate(p.primeiraConsulta);
@@ -167,44 +163,21 @@ function calcPctB1(
     });
     
     if (byMonth.size === 0) return 0;
-    
-    // Calcula percentual médio de cada mês
-    let totalPct = 0;
-    byMonth.forEach(count => {
-      totalPct += (count / totalPatients) * 100;
-    });
-    
-    return totalPct / byMonth.size;
+    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
+    return (totalConsultas / byMonth.size / totalPatients) * 100;
   }
 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  const now = new Date();
 
+  let totalConsultas = 0;
   let monthsWithData = 0;
-  const monthlyPcts: number[] = [];
 
   months.forEach((m) => {
-    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
     monthsWithData++;
-    
-    const count = source.filter((p) => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year;
-    }).length;
-    
-    // Não calcula percentual por mês, soma total e divide no final
-  });
-
-  if (monthsWithData === 0) return 0;
-
-  // Total de consultas no período dividido por meses com dados dividido por total de pacientes
-  let totalConsultas = 0;
-  months.forEach((m) => {
-    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
-    if (!isCurrentOrPast) return;
     
     totalConsultas += source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
@@ -212,44 +185,46 @@ function calcPctB1(
     }).length;
   });
 
-  return (totalConsultas / monthsWithData / totalPatients) * 100;
+  return monthsWithData > 0 ? (totalConsultas / monthsWithData / totalPatients) * 100 : 0;
 }
 
-// B2: média dos percentuais mensais (tratamento/consulta por mês)
+// B2: média dos percentuais mensais (tratamento concluído / 1ª consulta por mês)
+// Igual ao TratamentoQuadrimesterCards.tsx
 function calcPctB2(
   tratamento: TratamentoPatient[],
   quad: Quadrimestre,
   equipe?: string
 ): number {
   const source = equipe ? tratamento.filter((p) => p.equipe === equipe) : tratamento;
-  
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
   if (quad === "todos") {
-    // Agrupa por mês e calcula média dos percentuais mensais
-    const byMonth = new Map<string, { tratamento: number; consulta: number }>();
+    // Agrupa consultas e tratamentos por mês
+    const consultaByMonth = new Map<string, number>();
+    const tratamentoByMonth = new Map<string, number>();
     
     source.forEach(p => {
-      const dTrat = parseDate(p.tratamentoConcluido);
       const dCons = parseDate(p.primeiraConsulta);
+      const dTrat = parseDate(p.tratamentoConcluido);
       
       if (dCons) {
         const key = `${getMonth(dCons)}-${getYear(dCons)}`;
-        const existing = byMonth.get(key) || { tratamento: 0, consulta: 0 };
-        existing.consulta++;
-        byMonth.set(key, existing);
+        consultaByMonth.set(key, (consultaByMonth.get(key) || 0) + 1);
       }
       
       if (dTrat) {
         const key = `${getMonth(dTrat)}-${getYear(dTrat)}`;
-        const existing = byMonth.get(key) || { tratamento: 0, consulta: 0 };
-        existing.tratamento++;
-        byMonth.set(key, existing);
+        tratamentoByMonth.set(key, (tratamentoByMonth.get(key) || 0) + 1);
       }
     });
     
     const monthlyPcts: number[] = [];
-    byMonth.forEach(({ tratamento, consulta }) => {
-      if (consulta > 0) {
-        monthlyPcts.push((tratamento / consulta) * 100);
+    consultaByMonth.forEach((consultas, key) => {
+      const tratamentos = tratamentoByMonth.get(key) || 0;
+      if (consultas > 0) {
+        monthlyPcts.push((tratamentos / consultas) * 100);
       }
     });
     
@@ -261,12 +236,11 @@ function calcPctB2(
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  const now = new Date();
 
   const monthlyPcts: number[] = [];
   
   months.forEach((m) => {
-    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
     
     const mTratamento = source.filter(p => {
@@ -289,7 +263,8 @@ function calcPctB2(
     : 0;
 }
 
-// B3: média dos percentuais mensais (exodontias/total por mês)
+// B3: média dos percentuais mensais (exodontias/total atendimentos por mês)
+// Igual ao Tab3QuadrimesterCards.tsx
 function calcPctB3(
   tab3: Tab3Record[],
   quad: Quadrimestre,
@@ -358,6 +333,7 @@ function calcPctB3(
 }
 
 // B4 (Tab5): média dos percentuais mensais (preventivos/total individuais por mês)
+// Igual ao Tab5QuadrimesterCards.tsx
 function calcPctB4(
   tab5: Tab5Record[],
   quad: Quadrimestre,
@@ -425,7 +401,8 @@ function calcPctB4(
     : 0;
 }
 
-// B5 (Tab4): média mensal do período / total cadastrado
+// B5 (Tab4): (total escovações no quad / meses com dados / total pacientes) * 100
+// Igual ao Tab4QuadrimesterCards.tsx
 function calcPctB5(
   allTab4: Tab4Patient[],
   quad: Quadrimestre,
@@ -434,6 +411,10 @@ function calcPctB5(
   const source = equipe ? allTab4.filter((p) => p.equipe === equipe) : allTab4;
   const totalPatients = source.length;
   if (totalPatients === 0) return 0;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
 
   if (quad === "todos") {
     const byMonth = new Map<string, number>();
@@ -446,25 +427,19 @@ function calcPctB5(
     });
     
     if (byMonth.size === 0) return 0;
-    
-    let totalPct = 0;
-    byMonth.forEach(count => {
-      totalPct += (count / totalPatients) * 100;
-    });
-    
-    return totalPct / byMonth.size;
+    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
+    return (totalConsultas / byMonth.size / totalPatients) * 100;
   }
 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  const now = new Date();
 
-  let monthsWithData = 0;
   let totalConsultas = 0;
+  let monthsWithData = 0;
 
   months.forEach((m) => {
-    const isCurrentOrPast = year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
     monthsWithData++;
     
@@ -478,6 +453,7 @@ function calcPctB5(
 }
 
 // B6 (Tab6): média dos percentuais mensais (ART/total procedimentos por mês)
+// Igual ao Tab6QuadrimesterCards.tsx
 function calcPctB6(
   tab6: Tab6Record[],
   quad: Quadrimestre,
@@ -545,96 +521,6 @@ function calcPctB6(
     : 0;
 }
 
-// B1: média mensal do período / total cadastrado (igual ao QuadrimesterCards)
-function calcPctB1(
-  allPatients: Patient[],
-  fPatients: Patient[],
-  quad: Quadrimestre,
-  equipe?: string
-): number {
-  const total = equipe
-    ? allPatients.filter((p) => p.equipe === equipe).length
-    : allPatients.length;
-  if (total === 0) return 0;
-
-  const source = equipe ? fPatients.filter((p) => p.equipe === equipe) : fPatients;
-
-  if (quad === "todos") {
-    const withConsulta = source.filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
-    return (withConsulta / total) * 100;
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  const now = new Date();
-
-  let count = 0;
-  let monthsWithData = 0;
-
-  months.forEach((m) => {
-    const isCurrentOrPast =
-      year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
-    if (!isCurrentOrPast) return;
-    monthsWithData++;
-    count += source.filter((p) => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year;
-    }).length;
-  });
-
-  return monthsWithData > 0 ? (count / monthsWithData / total) * 100 : 0;
-}
-
-// B2: tratamentos concluídos no período / 1ªs consultas no mesmo período
-function calcPctB2(fTratamento: TratamentoPatient[], equipe?: string): number {
-  const filtered = equipe ? fTratamento.filter((p) => p.equipe === equipe) : fTratamento;
-  const total = filtered.filter((p) => !isTratamentoPendente(p.primeiraConsulta)).length;
-  const withTrat = filtered.filter((p) => !isTratamentoPendente(p.tratamentoConcluido)).length;
-  return total > 0 ? (withTrat / total) * 100 : 0;
-}
-
-// B5: média mensal do período / total cadastrado Tab4 (igual ao Tab4QuadrimesterCards)
-function calcPctB5(
-  allTab4: Tab4Patient[],
-  fTab4: Tab4Patient[],
-  quad: Quadrimestre,
-  equipe?: string
-): number {
-  const total = equipe
-    ? allTab4.filter((p) => p.equipe === equipe).length
-    : allTab4.length;
-  if (total === 0) return 0;
-
-  const source = equipe ? fTab4.filter((p) => p.equipe === equipe) : fTab4;
-
-  if (quad === "todos") {
-    const withEscovacao = source.filter((p) => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
-    return (withEscovacao / total) * 100;
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  const now = new Date();
-
-  let count = 0;
-  let monthsWithData = 0;
-
-  months.forEach((m) => {
-    const isCurrentOrPast =
-      year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
-    if (!isCurrentOrPast) return;
-    monthsWithData++;
-    count += source.filter((p) => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year && !isConsultaPendenteTab4(p.primeiraConsulta);
-    }).length;
-  });
-
-  return monthsWithData > 0 ? (count / monthsWithData / total) * 100 : 0;
-}
-
 // ── hook principal ────────────────────────────────────────────────────────────
 
 export function useResultadoFinal(
@@ -647,36 +533,29 @@ export function useResultadoFinal(
   quad: Quadrimestre = "todos"
 ) {
   return useMemo(() => {
-    const fPatients   = filterPatientsByQuadrimestre(patients, quad);
-    const fTratamento = filterTratamentoByQuadrimestre(tratamento, quad);
-    const fTab3       = filterByQuadrimestre(tab3, quad);
-    const fTab4       = filterTab4ByQuadrimestre(tab4, quad);
-    const fTab5       = filterByQuadrimestre(tab5, quad);
-    const fTab6       = filterByQuadrimestre(tab6, quad);
-
     const equipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
 
     // Por equipe
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
       const indicadores = [
-        buildIndicador("B1", calcPctB1(patients, fPatients, quad, equipe)),
-        buildIndicador("B2", calcPctB2(fTratamento, equipe)),
-        buildIndicador("B3", avgMonthlyPct(fTab3, equipe)),
-        buildIndicador("B4", avgMonthlyPct(fTab5, equipe)),
-        buildIndicador("B5", calcPctB5(tab4, fTab4, quad, equipe)),
-        buildIndicador("B6", avgMonthlyPct(fTab6, equipe)),
+        buildIndicador("B1", calcPctB1(patients, quad, equipe)),
+        buildIndicador("B2", calcPctB2(tratamento, quad, equipe)),
+        buildIndicador("B3", calcPctB3(tab3, quad, equipe)),
+        buildIndicador("B4", calcPctB4(tab5, quad, equipe)),
+        buildIndicador("B5", calcPctB5(tab4, quad, equipe)),
+        buildIndicador("B6", calcPctB6(tab6, quad, equipe)),
       ];
       return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
     });
 
     // Geral
     const geralIndicadores = [
-      buildIndicador("B1", calcPctB1(patients, fPatients, quad)),
-      buildIndicador("B2", calcPctB2(fTratamento)),
-      buildIndicador("B3", avgMonthlyPct(fTab3)),
-      buildIndicador("B4", avgMonthlyPct(fTab5)),
-      buildIndicador("B5", calcPctB5(tab4, fTab4, quad)),
-      buildIndicador("B6", avgMonthlyPct(fTab6)),
+      buildIndicador("B1", calcPctB1(patients, quad)),
+      buildIndicador("B2", calcPctB2(tratamento, quad)),
+      buildIndicador("B3", calcPctB3(tab3, quad)),
+      buildIndicador("B4", calcPctB4(tab5, quad)),
+      buildIndicador("B5", calcPctB5(tab4, quad)),
+      buildIndicador("B6", calcPctB6(tab6, quad)),
     ];
 
     const geral: EquipeResult = {
