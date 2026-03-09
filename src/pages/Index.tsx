@@ -345,14 +345,14 @@ const Index = () => {
               {isLoadingTab4 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
+                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} quadrimestre={filtersTab4.quadrimestre} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
               {isLoadingTab4
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />}
+                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} quadrimestre={filtersTab4.quadrimestre} />}
             </div>
             {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
           </div>
