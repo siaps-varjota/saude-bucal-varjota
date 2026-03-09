@@ -13,7 +13,7 @@ import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
-import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS, QUADRIMESTRE_ATUAL } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
@@ -41,7 +41,7 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
-  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>("todos");
+  const [quadrimestreResultado, setQuadrimestreResultado] = useState<Quadrimestre>(QUADRIMESTRE_ATUAL);
 
   const { data: patients, isLoading: isLoadingPatients, error: errorPatients, refetch: refetchPatients, isFetching: isFetchingPatients } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
@@ -103,7 +103,7 @@ const Index = () => {
   const resultadoFinal = useResultadoFinal(
     patients || [], tratamentoPatients || [], tab3Patients || [],
     tab4Patients || [], tab5Patients || [], tab6Patients || [],
-    quadrimestre
+    quadrimestreResultado
   );
 
   if (error) {
@@ -437,8 +437,8 @@ const Index = () => {
             <ResultadoFinalTab
               geral={resultadoFinal.geral}
               porEquipe={resultadoFinal.porEquipe}
-              quadrimestre={quadrimestre}
-              onQuadrimestreChange={setQuadrimestre}
+              quadrimestre={quadrimestreResultado}
+              onQuadrimestreChange={setQuadrimestreResultado}
             />
           )}
         </TabsContent>
