@@ -5,6 +5,7 @@ import { CalendarDays } from "lucide-react";
 
 interface Tab5QuadrimesterCardsProps {
   records: Tab5Record[];
+  quadrimestre?: string;
 }
 
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";

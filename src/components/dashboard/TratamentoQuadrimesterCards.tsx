@@ -8,6 +8,7 @@ interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
   allPatients: TratamentoPatient[];
   totalComConsulta: number;
+  quadrimestre?: string;
 }
 
 const parseTratamentoDate = (tratamento: string): Date | null => {

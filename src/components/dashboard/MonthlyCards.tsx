@@ -130,8 +130,8 @@ export const MonthlyCards = ({ patients, totalPatients, quadrimestre = "todos" }
     }
   });
   return <div className="space-y-4">
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
-        {last12Months.map((month) => {
+      <div className={`grid gap-3 ${filteredMonths.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12'}`}>
+        {filteredMonths.map((month) => {
         const count = monthCounts.get(month.key) || 0;
         const percentage = totalPatients > 0 ? count / totalPatients * 100 : 0;
         const category = getScoreCategory(percentage);

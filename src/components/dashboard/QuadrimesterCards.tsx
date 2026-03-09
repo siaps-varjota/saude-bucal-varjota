@@ -106,8 +106,10 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
     return { ...q, total: count, average, monthsWithData };
   });
 
-  // Se filtro ativo, mostra só o card do quadrimestre selecionado; senão mostra todos
- const visibleCards = quadCounts;
+  // Filter by selected quadrimester
+  const visibleCards = quadFiltered !== "todos"
+    ? quadCounts.filter(q => q.quadKey === quadFiltered)
+    : quadCounts;
 
   return <>
     {visibleCards.map(quad => {

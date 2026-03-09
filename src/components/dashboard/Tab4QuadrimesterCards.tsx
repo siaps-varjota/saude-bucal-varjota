@@ -65,18 +65,18 @@ const getQuadrimesterMonths = (quadNum: number): number[] => {
   }
 };
 
-export const Tab4QuadrimesterCards = ({ patients, totalPatients }: Tab4QuadrimesterCardsProps) => {
+export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = "todos" }: Tab4QuadrimesterCardsProps) => {
   const now = new Date();
   const currentMonth = getMonth(now);
   const currentYear = getYear(now);
   const currentQuad = getQuadrimesterForMonth(currentMonth);
 
-  const quadrimesters: Quadrimester[] = [];
+  const quadrimesters: (Quadrimester & { quadKey: string })[] = [];
   let quad = currentQuad;
   let year = currentYear;
 
   for (let i = 0; i < 3; i++) {
-    quadrimesters.push({ label: getQuadrimesterLabel(quad, year), months: getQuadrimesterMonths(quad), year });
+    quadrimesters.push({ label: getQuadrimesterLabel(quad, year), months: getQuadrimesterMonths(quad), year, quadKey: `Q${quad}-${year}` });
     quad--;
     if (quad < 1) { quad = 3; year--; }
   }
@@ -103,10 +103,14 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients }: Tab4Quadrimes
     return { ...q, total: count, average, monthsWithData };
   });
 
+  // Filter by selected quadrimester
+  const visibleCards = quadrimestre !== "todos"
+    ? quadCounts.filter(q => q.quadKey === quadrimestre)
+    : quadCounts;
+
   return (
     <>
-      {quadCounts.map(quad => {
-        // Percentual = média mensal do quadrimestre / total de pacientes (sem filtro quadrimestre)
+      {visibleCards.map(quad => {
         const percentage = quad.monthsWithData > 0
           ? (quad.total / quad.monthsWithData / totalPatients) * 100
           : 0;

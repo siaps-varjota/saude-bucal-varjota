@@ -5,7 +5,32 @@ import { Calendar } from "lucide-react";
 
 interface Tab6MonthlyCardsProps {
   records: Tab6Record[];
+  quadrimestre?: string;
 }
+
+const getQuadrimesterMonths = (quadKey: string): number[] | null => {
+  if (!quadKey || quadKey === "todos") return null;
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  if (!match) return null;
+  const quadNum = parseInt(match[1]);
+  switch (quadNum) {
+    case 1: return [0, 1, 2, 3];
+    case 2: return [4, 5, 6, 7];
+    case 3: return [8, 9, 10, 11];
+    default: return null;
+  }
+};
+
+const getQuadrimesterYear = (quadKey: string): number | null => {
+  if (!quadKey || quadKey === "todos") return null;
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  return match ? parseInt(match[2]) : null;
+};
+
+const MONTH_MAP: Record<string, number> = {
+  janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
+  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11
+};
 
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
