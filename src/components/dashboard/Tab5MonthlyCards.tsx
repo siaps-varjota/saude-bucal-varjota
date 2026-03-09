@@ -131,7 +131,7 @@ export const Tab5MonthlyCards = ({ records, quadrimestre = "todos" }: Tab5Monthl
                   </span>
                 </div>
                 <p className={`text-2xl font-bold ${styles.count}`}>{month.preventivos}</p>
-                <p className="text-muted-foreground font-medium text-xs">de {month.total} | {month.percentage.toFixed(1)}%</p>
+                <p className="text-xs"><span className="text-muted-foreground font-medium">de {month.total}</span><span className={`font-medium ${styles.label}`}> | {month.percentage.toFixed(1)}%</span></p>
               </CardContent>
             </Card>);
 
