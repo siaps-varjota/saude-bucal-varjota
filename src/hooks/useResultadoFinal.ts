@@ -530,10 +530,12 @@ export function useResultadoFinal(
   tab4: Tab4Patient[],
   tab5: Tab5Record[],
   tab6: Tab6Record[],
-  quad: Quadrimestre = "todos"
+  quad: Quadrimestre = "todos",
+  equipeFilter: string = "all"
 ) {
   return useMemo(() => {
-    const equipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+    const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+    const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
     // Por equipe
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
@@ -548,22 +550,29 @@ export function useResultadoFinal(
       return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
     });
 
-    // Geral
-    const geralIndicadores = [
+    // Geral (sempre considera todas as equipes para o cálculo geral, ou apenas a filtrada)
+    const geralIndicadores = equipeFilter === "all" ? [
       buildIndicador("B1", calcPctB1(patients, quad)),
       buildIndicador("B2", calcPctB2(tratamento, quad)),
       buildIndicador("B3", calcPctB3(tab3, quad)),
       buildIndicador("B4", calcPctB4(tab5, quad)),
       buildIndicador("B5", calcPctB5(tab4, quad)),
       buildIndicador("B6", calcPctB6(tab6, quad)),
+    ] : [
+      buildIndicador("B1", calcPctB1(patients, quad, equipeFilter)),
+      buildIndicador("B2", calcPctB2(tratamento, quad, equipeFilter)),
+      buildIndicador("B3", calcPctB3(tab3, quad, equipeFilter)),
+      buildIndicador("B4", calcPctB4(tab5, quad, equipeFilter)),
+      buildIndicador("B5", calcPctB5(tab4, quad, equipeFilter)),
+      buildIndicador("B6", calcPctB6(tab6, quad, equipeFilter)),
     ];
 
     const geral: EquipeResult = {
-      equipe: "Geral",
+      equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
       indicadores: geralIndicadores,
       notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
     };
 
     return { geral, porEquipe };
-  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad]);
+  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter]);
 }
