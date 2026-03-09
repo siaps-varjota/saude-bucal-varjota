@@ -141,7 +141,8 @@ export const TratamentoQuadrimesterCards = ({ patients, allPatients, totalComCon
                   <span className={`text-xs font-medium ${styles.label}`}>{label}</span>
                 </div>
                 <span className={`text-3xl font-bold ${styles.count}`}>{total}</span>
-                <span className="text-sm text-muted-foreground mt-1">Média/mês: {average.toFixed(1)}</span>
+                <span className="text-xs text-muted-foreground mt-1">de {totalComConsulta}</span>
+                <span className="text-xs text-muted-foreground">Média/mês: {average.toFixed(1)}</span>
                 <span className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</span>
               </div>
             </CardContent>
