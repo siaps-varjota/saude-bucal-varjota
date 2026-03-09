@@ -6,6 +6,7 @@ import { parse, isValid, getMonth, getYear } from "date-fns";
 interface Tab4QuadrimesterCardsProps {
   patients: Tab4Patient[];
   totalPatients: number;
+  quadrimestre?: string;
 }
 
 const parseConsultaDate = (consulta: string): Date | null => {
