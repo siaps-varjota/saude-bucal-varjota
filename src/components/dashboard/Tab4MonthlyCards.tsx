@@ -105,7 +105,7 @@ export const Tab4MonthlyCards = ({ patients, totalPatients, quadrimestre = "todo
                   <span className={`text-xs font-medium uppercase ${styles.label}`}>{month.label}</span>
                 </div>
                 <p className={`text-2xl font-bold ${styles.count}`}>{count}</p>
-                <p className="text-muted-foreground text-sm font-medium">{percentage.toFixed(2)}%</p>
+                <p className="text-muted-foreground font-medium text-xs text-center">de {totalPatients} | {percentage.toFixed(1)}%</p>
               </CardContent>
             </Card>
           );
