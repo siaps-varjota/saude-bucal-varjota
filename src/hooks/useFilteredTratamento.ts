@@ -23,26 +23,17 @@ export const isTratamentoPendente = (tratamentoConcluido: string): boolean => {
   return differenceInYears(new Date(), tratamentoDate) >= 1;
 };
 
-// Usa o campo real da planilha para determinar se está concluído
-export const isTratamentoConcluido = (comTratamentoConcluido: string): boolean => {
-  const val = (comTratamentoConcluido || "").trim().toUpperCase();
-  return val === "SIM" || val === "S" || val === "1" || val === "TRUE";
-};
-
 export const useFilteredTratamento = (patients: TratamentoPatient[], filters: FilterState) => {
   return useMemo(() => {
     let filtered = filterTratamentoByQuadrimestre(patients, filters.quadrimestre);
     return filtered.filter((patient) => {
       const matchesEquipe = filters.equipe === "all" || patient.equipe === filters.equipe;
       const matchesMicroarea = filters.microarea === "all" || patient.microarea === filters.microarea;
-
-      // Filtro de status usa o campo real da planilha
-      const concluido = isTratamentoConcluido(patient.comTratamentoConcluido);
+      const status = (patient.comTratamentoConcluido || "").toUpperCase().trim();
       const matchesStatus =
         filters.status === "all" ||
-        (filters.status === "concluido" && concluido) ||
-        (filters.status === "pendente" && !concluido);
-
+        (filters.status === "pendente" && status !== "SIM") ||
+        (filters.status === "concluido" && status === "SIM");
       return matchesEquipe && matchesMicroarea && matchesStatus;
     });
   }, [patients, filters]);
