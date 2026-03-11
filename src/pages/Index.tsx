@@ -404,6 +404,10 @@ const Index = () => {
         <TabsContent value="tab6" className="mt-6">
           {!isLoadingTab6 && tab6Patients && <div className="mb-6">
             <PatientFilters
+              statusOptions={[
+  { value: "SIM", label: "SIM" },
+  { value: "NÃO", label: "NÃO" },
+]}
               patients={tab6Patients as any}
               filters={filtersTab6}
               onFiltersChange={setFiltersTab6}
