@@ -29,11 +29,10 @@ export const useFilteredTratamento = (patients: TratamentoPatient[], filters: Fi
     return filtered.filter((patient) => {
       const matchesEquipe = filters.equipe === "all" || patient.equipe === filters.equipe;
       const matchesMicroarea = filters.microarea === "all" || patient.microarea === filters.microarea;
-      const status = (patient.comTratamentoConcluido || "").toUpperCase().trim();
-      const matchesStatus =
-        filters.status === "all" ||
-        (filters.status === "pendente" && status !== "SIM") ||
-        (filters.status === "concluido" && status === "SIM");
+     const status = (patient.comTratamentoConcluido || "").toUpperCase().trim();
+const matchesStatus =
+  filters.status === "all" ||
+  status === filters.status.toUpperCase().trim();
       return matchesEquipe && matchesMicroarea && matchesStatus;
     });
   }, [patients, filters]);
