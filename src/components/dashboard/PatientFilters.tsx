@@ -24,6 +24,11 @@ interface PDFColumn {
   header: string;
 }
 
+interface StatusOption {
+  value: string;
+  label: string;
+}
+
 interface PatientFiltersProps {
   patients: Patient[];
   filters: FilterState;
@@ -31,7 +36,7 @@ interface PatientFiltersProps {
   contentId?: string;
   hideMicroarea?: boolean;
   hideStatus?: boolean;
-  // PDF configuration
+  statusOptions?: StatusOption[];
   pdfTitle?: string;
   pdfSummaryCards?: PDFSummaryCard[];
   pdfColumns?: PDFColumn[];
@@ -46,13 +51,13 @@ export const PatientFilters = ({
   contentId = "dashboard-content",
   hideMicroarea = false,
   hideStatus = false,
+  statusOptions,
   pdfTitle = "Relatório",
   pdfSummaryCards = [],
   pdfColumns = [],
   pdfData = [],
   pdfFileName = "relatorio"
 }: PatientFiltersProps) => {
-  // Get unique values for filters
   const uniqueEquipes = useMemo(() => {
     const equipes = [...new Set(patients.map(p => p.equipe).filter(e => e && e.trim() !== ""))];
     return equipes.sort();
@@ -67,18 +72,23 @@ export const PatientFilters = ({
     });
   }, [patients]);
 
+  const defaultStatusOptions: StatusOption[] = [
+    { value: "pendente", label: "Pendente" },
+    { value: "concluido", label: "Concluído" },
+  ];
+
+  const resolvedStatusOptions = statusOptions ?? defaultStatusOptions;
+
   const clearFilters = () => {
-    onFiltersChange({
-      equipe: "all",
-      microarea: "all",
-      status: "all",
-      quadrimestre: "todos"
-    });
+    onFiltersChange({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   };
 
-  const hasActiveFilters = filters.equipe !== "all" || filters.microarea !== "all" || filters.status !== "all" || filters.quadrimestre !== "todos";
+  const hasActiveFilters =
+    filters.equipe !== "all" ||
+    filters.microarea !== "all" ||
+    filters.status !== "all" ||
+    filters.quadrimestre !== "todos";
 
-  // Build filter info string
   const filterInfo = useMemo(() => {
     const parts = [];
     if (filters.equipe !== "all") parts.push(`equipe: ${filters.equipe}`);
@@ -97,7 +107,7 @@ export const PatientFilters = ({
         <Filter className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
       </div>
-      
+
       <Select value={filters.equipe} onValueChange={value => onFiltersChange({ ...filters, equipe: value })}>
         <SelectTrigger className="w-[160px] h-9">
           <SelectValue placeholder="Equipe" />
@@ -131,8 +141,9 @@ export const PatientFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos Status</SelectItem>
-            <SelectItem value="pendente">Pendente</SelectItem>
-            <SelectItem value="concluido">Concluído</SelectItem>
+            {resolvedStatusOptions.map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}
