@@ -13,7 +13,7 @@ import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
-import { Quadrimestre, QUADRIMESTRE_OPTIONS, QUADRIMESTRE_ATUAL } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
@@ -41,8 +41,7 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
-  const [quadrimestreResultado, setQuadrimestreResultado] = useState<Quadrimestre>(QUADRIMESTRE_ATUAL);
-  const [equipeResultado, setEquipeResultado] = useState<string>("all");
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>("todos");
 
   const { data: patients, isLoading: isLoadingPatients, error: errorPatients, refetch: refetchPatients, isFetching: isFetchingPatients } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
@@ -101,21 +100,10 @@ const Index = () => {
 
   const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
 
-  const allEquipes = useMemo(() => {
-    const set = new Set<string>();
-    (patients || []).forEach(p => p.equipe && set.add(p.equipe));
-    (tratamentoPatients || []).forEach(p => p.equipe && set.add(p.equipe));
-    (tab3Patients || []).forEach(r => set.add(r.equipe));
-    (tab4Patients || []).forEach(p => p.equipe && set.add(p.equipe));
-    (tab5Patients || []).forEach(r => set.add(r.equipe));
-    (tab6Patients || []).forEach(r => set.add(r.equipe));
-    return Array.from(set).sort();
-  }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
-
   const resultadoFinal = useResultadoFinal(
     patients || [], tratamentoPatients || [], tab3Patients || [],
     tab4Patients || [], tab5Patients || [], tab6Patients || [],
-    quadrimestreResultado, equipeResultado
+    quadrimestre
   );
 
   if (error) {
@@ -207,14 +195,14 @@ const Index = () => {
               {isLoadingPatients ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <QuadrimesterCards patients={filteredPatients} totalPatients={patientsByEquipe.length} quadFiltered={filtersConsulta.quadrimestre} />
+                <QuadrimesterCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
               {isLoadingPatients
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} quadrimestre={filtersConsulta.quadrimestre} />}
+                : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />}
             </div>
             {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
           </div>
@@ -227,6 +215,10 @@ const Index = () => {
               patients={tratamentoPatients as any}
               filters={filtersTratamento}
               onFiltersChange={setFiltersTratamento}
+              statusOptions={[
+                { value: "SIM", label: "SIM" },
+                { value: "NÃO", label: "NÃO" },
+              ]}
               contentId="dashboard-content-tratamento"
               pdfTitle="Tratamento Concluído"
               pdfFileName="tratamento-concluido"
@@ -244,7 +236,7 @@ const Index = () => {
                 num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
                 cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Masculino" ? "M" : "F",
                 primeiraConsulta: p.primeiraConsulta, tratamentoConcluido: p.tratamentoConcluido,
-                status: isTratamentoPendente(p.tratamentoConcluido) ? "Pendente" : "Concluído",
+                status: p.comTratamentoConcluido || "-",
               }))}
             />
           </div>}
@@ -257,7 +249,6 @@ const Index = () => {
                   patients={filteredTratamento}
                   allPatients={filteredTratamentoNoQuad}
                   totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
-                  quadrimestre={filtersTratamento.quadrimestre}
                 />
               </>}
             </div>
@@ -265,7 +256,7 @@ const Index = () => {
               <h2 className="mb-4 text-lg font-semibold text-foreground">Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)</h2>
               {isLoadingTratamento
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <TratamentoMonthlyCards patients={filteredTratamento} allPatients={filteredTratamentoNoQuad} quadrimestre={filtersTratamento.quadrimestre} />}
+                : <TratamentoMonthlyCards patients={filteredTratamento} allPatients={filteredTratamentoNoQuad} />}
             </div>
             {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
           </div>
@@ -300,14 +291,14 @@ const Index = () => {
               {isLoadingTab3 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab3QuadrimesterCards records={filteredTab3} quadrimestre={filtersTab3.quadrimestre} />
+                <Tab3QuadrimesterCards records={filteredTab3} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
               {isLoadingTab3
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab3MonthlyCards records={filteredTab3} quadrimestre={filtersTab3.quadrimestre} />}
+                : <Tab3MonthlyCards records={filteredTab3} />}
             </div>
             {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
           </div>
@@ -345,14 +336,14 @@ const Index = () => {
               {isLoadingTab4 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} quadrimestre={filtersTab4.quadrimestre} />
+                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
               {isLoadingTab4
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} quadrimestre={filtersTab4.quadrimestre} />}
+                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />}
             </div>
             {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
           </div>
@@ -387,14 +378,14 @@ const Index = () => {
               {isLoadingTab5 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab5QuadrimesterCards records={filteredTab5} quadrimestre={filtersTab5.quadrimestre} />
+                <Tab5QuadrimesterCards records={filteredTab5} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
               {isLoadingTab5
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab5MonthlyCards records={filteredTab5} quadrimestre={filtersTab5.quadrimestre} />}
+                : <Tab5MonthlyCards records={filteredTab5} />}
             </div>
             {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
           </div>
@@ -404,10 +395,6 @@ const Index = () => {
         <TabsContent value="tab6" className="mt-6">
           {!isLoadingTab6 && tab6Patients && <div className="mb-6">
             <PatientFilters
-              statusOptions={[
-  { value: "SIM", label: "SIM" },
-  { value: "NÃO", label: "NÃO" },
-]}
               patients={tab6Patients as any}
               filters={filtersTab6}
               onFiltersChange={setFiltersTab6}
@@ -433,14 +420,14 @@ const Index = () => {
               {isLoadingTab6 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
                 <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                 <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab6QuadrimesterCards records={filteredTab6} quadrimestre={filtersTab6.quadrimestre} />
+                <Tab6QuadrimesterCards records={filteredTab6} />
               </>}
             </div>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
               {isLoadingTab6
                 ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab6MonthlyCards records={filteredTab6} quadrimestre={filtersTab6.quadrimestre} />}
+                : <Tab6MonthlyCards records={filteredTab6} />}
             </div>
             {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
           </div>
@@ -454,11 +441,8 @@ const Index = () => {
             <ResultadoFinalTab
               geral={resultadoFinal.geral}
               porEquipe={resultadoFinal.porEquipe}
-              quadrimestre={quadrimestreResultado}
-              onQuadrimestreChange={setQuadrimestreResultado}
-              equipe={equipeResultado}
-              onEquipeChange={setEquipeResultado}
-              equipeOptions={allEquipes}
+              quadrimestre={quadrimestre}
+              onQuadrimestreChange={setQuadrimestre}
             />
           )}
         </TabsContent>
