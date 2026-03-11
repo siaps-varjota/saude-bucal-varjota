@@ -216,9 +216,10 @@ const Index = () => {
               filters={filtersTratamento}
               onFiltersChange={setFiltersTratamento}
               statusOptions={[
-                { value: "SIM", label: "SIM" },
-                { value: "NÃO", label: "NÃO" },
-              ]}
+  { value: "PENDENTE", label: "PENDENTE" },
+  { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
+  { value: "CONCLUÍDO", label: "CONCLUÍDO" },
+]}
               contentId="dashboard-content-tratamento"
               pdfTitle="Tratamento Concluído"
               pdfFileName="tratamento-concluido"
