@@ -23,11 +23,8 @@ interface PDFGeneratorProps {
   fileName?: string;
 }
 
-const ROWS_PER_PAGE = 25;
-
 export const PDFGenerator = ({
   title,
-  subtitle,
   filterInfo,
   summaryCards,
   columns,
@@ -38,89 +35,108 @@ export const PDFGenerator = ({
     toast.info("Gerando PDF...");
 
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
+      const { default: jsPDF } = await import("jspdf");
+      await import("jspdf-autotable");
 
-      const pdfContent = document.createElement("div");
-      pdfContent.style.fontFamily = "Arial, sans-serif";
-      pdfContent.style.padding = "20px";
-      pdfContent.style.backgroundColor = "#fff";
-      pdfContent.style.color = "#333";
+      const doc = new (jsPDF as any)({ orientation: "landscape", unit: "mm", format: "a4" });
 
-      const headerCells = columns.map((col, idx) => {
-        const isNameCol = idx === 3;
-        return `<th style="
-          border: 1px solid #ddd;
-          padding: 6px 8px;
-          text-align: ${isNameCol ? "left" : "center"};
-          font-weight: 600;
-          white-space: nowrap;
-          background-color: #f5f5f5;
-        ">${col.header}</th>`;
-      }).join("");
+      const pageW = doc.internal.pageSize.getWidth();
+      let y = 15;
 
-      const bodyRows = data.map((row, index) => {
-        const isPageBreak = index > 0 && index % ROWS_PER_PAGE === 0;
-        const repeatHeader = isPageBreak
-          ? `<tr style="background-color: #f5f5f5;">${headerCells}</tr>`
-          : "";
+      // Título
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
+      y += 8;
 
-        const cells = columns.map((col, idx) => {
-          const isNameCol = idx === 3;
-          return `<td style="
-            border: 1px solid #ddd;
-            padding: 4px 8px;
-            white-space: nowrap;
-            text-align: ${isNameCol ? "left" : "center"};
-          ">${row[col.key] ?? "-"}</td>`;
-        }).join("");
+      doc.setFontSize(13);
+      doc.text(title, 14, y);
+      y += 6;
 
-        return `${repeatHeader}<tr style="background-color: ${index % 2 === 0 ? "#fff" : "#fafafa"};">${cells}</tr>`;
-      }).join("");
+      if (filterInfo) {
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Filtros aplicados: ${filterInfo}`, 14, y);
+        y += 6;
+      }
 
-      pdfContent.innerHTML = `
-        <div style="margin-bottom: 20px;">
-          <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 5px 0; color: #1a1a1a;">Indicadores de Saúde Bucal de Varjota</h1>
-          <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 10px 0; color: #333;">${title}</h2>
-          ${filterInfo ? `<p style="font-size: 12px; color: #666; margin: 0;">Filtros aplicados: ${filterInfo}</p>` : ""}
-        </div>
+      // Cards de resumo
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Resumo dos Indicadores", 14, y);
+      y += 5;
 
-        <div style="margin-bottom: 20px;">
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 10px 0; color: #333;">Resumo dos Indicadores</h3>
-          <table style="border-collapse: collapse; width: auto;">
-            <tr>
-              ${summaryCards.map(card => `
-                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; min-width: 120px;">
-                  <div style="font-size: 11px; font-weight: 600; color: #666; margin-bottom: 5px;">${card.label}</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #1a1a1a;">${card.value}</div>
-                  ${card.percentage ? `<div style="font-size: 12px; color: #666;">${card.percentage}</div>` : ""}
-                </td>
-              `).join("")}
-            </tr>
-          </table>
-        </div>
+      const cardW = 50;
+      const cardH = 16;
+      summaryCards.forEach((card, i) => {
+        const x = 14 + i * (cardW + 4);
+        doc.setDrawColor(200);
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        doc.text(card.label, x + cardW / 2, y + 5, { align: "center" });
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30);
+        doc.text(card.value, x + cardW / 2, y + 11, { align: "center" });
+        if (card.percentage) {
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100);
+          doc.text(card.percentage, x + cardW / 2, y + 15, { align: "center" });
+        }
+      });
+      y += cardH + 8;
 
-        <div>
-          <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 10px 0; color: #333;">Dados (${data.length} registros)</h3>
-          <table style="border-collapse: collapse; width: 100%; font-size: 10px;">
-            <thead>
-              <tr>${headerCells}</tr>
-            </thead>
-            <tbody>
-              ${bodyRows}
-            </tbody>
-          </table>
-        </div>
-      `;
+      // Tabela com cabeçalho repetido em cada página
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30);
+      doc.text(`Dados (${data.length} registros)`, 14, y);
+      y += 4;
 
-      const opt = {
-        margin: 10,
-        filename: `${fileName}-${new Date().toISOString().split("T")[0]}.pdf`,
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "landscape" as const },
-      };
+      const tableColumns = columns.map((col, idx) => ({
+        header: col.header,
+        dataKey: col.key,
+      }));
 
-      await html2pdf().set(opt).from(pdfContent).save();
+      const tableRows = data.map(row =>
+        columns.reduce((acc, col) => {
+          acc[col.key] = row[col.key] ?? "-";
+          return acc;
+        }, {} as Record<string, any>)
+      );
+
+      (doc as any).autoTable({
+        startY: y,
+        columns: tableColumns,
+        body: tableRows,
+        theme: "grid",
+        headStyles: {
+          fillColor: [245, 245, 245],
+          textColor: [30, 30, 30],
+          fontStyle: "bold",
+          fontSize: 8,
+          halign: "center",
+        },
+        bodyStyles: {
+          fontSize: 8,
+          halign: "center",
+        },
+        columnStyles: {
+          // Coluna Nome (índice 3) alinhada à esquerda
+          3: { halign: "left" },
+        },
+        // Repete o cabeçalho em cada página automaticamente
+        showHead: "everyPage",
+        margin: { left: 14, right: 14 },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        styles: { overflow: "linebreak", cellPadding: 2 },
+      });
+
+      doc.save(`${fileName}-${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
