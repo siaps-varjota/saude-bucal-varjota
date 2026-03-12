@@ -62,9 +62,9 @@ const parseMesAno = (mesAno: string): { mes: number; ano: number } | null => {
   return { mes, ano };
 };
 
-// ── funções exportadas de filtro por quadrimestre ─────────────────────────────
+// ── funções exportadas ────────────────────────────────────────────────────────
 
-// Para Tab1 - 1ª Consulta (filtra por primeiraConsulta)
+// Tab1 - filtra por primeiraConsulta (data)
 export function filterPatientsByQuadrimestre<T extends { primeiraConsulta: string }>(
   patients: T[],
   quad: Quadrimestre
@@ -80,7 +80,7 @@ export function filterPatientsByQuadrimestre<T extends { primeiraConsulta: strin
   });
 }
 
-// Para Tab2 - Tratamento Concluído (filtra por tratamentoConcluido)
+// Tab2 - filtra por tratamentoConcluido (data)
 export function filterTratamentoByQuadrimestre<T extends { tratamentoConcluido: string }>(
   patients: T[],
   quad: Quadrimestre
@@ -96,8 +96,8 @@ export function filterTratamentoByQuadrimestre<T extends { tratamentoConcluido: 
   });
 }
 
-// Para Tab3 e Tab6 - registros com mesAno (ex: "Janeiro/2025")
-export function filterRecordsByQuadrimestre<T extends { mesAno: string }>(
+// Tab3, Tab5, Tab6 - filtra por mesAno (ex: "Janeiro/2025")
+export function filterByQuadrimestre<T extends { mesAno: string }>(
   records: T[],
   quad: Quadrimestre
 ): T[] {
@@ -112,18 +112,10 @@ export function filterRecordsByQuadrimestre<T extends { mesAno: string }>(
   });
 }
 
-// Para Tab4 - Escovação Supervisionada (filtra por primeiraConsulta)
+// Tab4 - filtra por primeiraConsulta (reutiliza filterPatientsByQuadrimestre)
 export function filterTab4ByQuadrimestre<T extends { primeiraConsulta: string }>(
   patients: T[],
   quad: Quadrimestre
 ): T[] {
   return filterPatientsByQuadrimestre(patients, quad);
-}
-
-// Para Tab5 - Procedimentos Preventivos (filtra por mesAno)
-export function filterTab5ByQuadrimestre<T extends { mesAno: string }>(
-  records: T[],
-  quad: Quadrimestre
-): T[] {
-  return filterRecordsByQuadrimestre(records, quad);
 }
