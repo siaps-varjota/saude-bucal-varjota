@@ -1,18 +1,12 @@
 import { useMemo } from "react";
-import { parse, isValid, differenceInYears, getMonth, getYear } from "date-fns";
+import { parse, isValid, getMonth, getYear } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
-import {
-  Quadrimestre,
-  filterPatientsByQuadrimestre,
-  filterTratamentoByQuadrimestre,
-  filterByQuadrimestre,
-  filterTab4ByQuadrimestre,
-} from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -28,27 +22,15 @@ const parseDate = (val: string): Date | null => {
   return null;
 };
 
-const isConsultaPendente = (val: string): boolean => {
-  if (!val || val === "-" || val.trim() === "") return true;
-  const d = parseDate(val);
-  if (!d) return true;
-  return differenceInYears(new Date(), d) >= 1;
-};
-
-const isTratamentoPendente = (val: string): boolean => {
-  if (!val || val === "-" || val.trim() === "") return true;
-  const d = parseDate(val);
-  if (!d) return true;
-  return differenceInYears(new Date(), d) >= 1;
-};
-
-const isConsultaPendenteTab4 = (val: string): boolean =>
-  !val || val === "-" || val.trim() === "";
-
 const QUAD_MONTHS: Record<string, number[]> = {
   Q1: [0, 1, 2, 3],
   Q2: [4, 5, 6, 7],
   Q3: [8, 9, 10, 11],
+};
+
+const MONTH_NAME_TO_NUM: Record<string, number> = {
+  janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
+  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
 };
 
 // ── tipos e constantes ────────────────────────────────────────────────────────
@@ -116,19 +98,19 @@ const getConceitoB5 = (pct: number): Conceito => {
 
 const getConceitoB6 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
-  if (pct <= 3) return "regular";
-  if (pct <= 6) return "suficiente";
-  if (pct <= 8) return "bom";
-  return "otimo";
+  if (pct > 8) return "otimo";
+  if (pct > 6) return "bom";
+  if (pct > 3) return "suficiente";
+  return "regular";
 };
 
 const INDICADORES = [
-  { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
-  { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
-  { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-  { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
-  { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
-  { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
+   { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
+   { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
+   { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
+   { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
+   { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
+   { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
 ];
 
 function buildIndicador(key: string, porcentagem: number): IndicadorResult {
@@ -152,112 +134,391 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-function avgMonthlyPct(
-  records: { porcentagem: number; mesAno: string }[],
-  equipe?: string
-): number {
-  const filtered = equipe ? records.filter((r) => (r as any).equipe === equipe) : records;
-  if (filtered.length === 0) return 0;
-  const byMonth = new Map<string, number[]>();
-  filtered.forEach((r) => {
-    const arr = byMonth.get(r.mesAno) || [];
-    arr.push(r.porcentagem);
-    byMonth.set(r.mesAno, arr);
-  });
-  const monthAvgs = Array.from(byMonth.values()).map(
-    (arr) => arr.reduce((s, v) => s + v, 0) / arr.length
-  );
-  return monthAvgs.reduce((s, v) => s + v, 0) / monthAvgs.length;
-}
+// ── Cálculos de percentual por indicador ──────────────────────────────────────
 
-// B1: média mensal do período / total cadastrado (igual ao QuadrimesterCards)
+// B1: (total consultas no quad / meses com dados / total pacientes) * 100
+// Igual ao QuadrimesterCards.tsx
 function calcPctB1(
   allPatients: Patient[],
-  fPatients: Patient[],
   quad: Quadrimestre,
   equipe?: string
 ): number {
-  const total = equipe
-    ? allPatients.filter((p) => p.equipe === equipe).length
-    : allPatients.length;
-  if (total === 0) return 0;
+  const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
+  const totalPatients = source.length;
+  if (totalPatients === 0) return 0;
 
-  const source = equipe ? fPatients.filter((p) => p.equipe === equipe) : fPatients;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
 
   if (quad === "todos") {
-    const withConsulta = source.filter((p) => !isConsultaPendente(p.primeiraConsulta)).length;
-    return (withConsulta / total) * 100;
+    // Agrupa por mês/ano e calcula média
+    const byMonth = new Map<string, number>();
+    source.forEach(p => {
+      const d = parseDate(p.primeiraConsulta);
+      if (d) {
+        const key = `${getMonth(d)}-${getYear(d)}`;
+        byMonth.set(key, (byMonth.get(key) || 0) + 1);
+      }
+    });
+    
+    if (byMonth.size === 0) return 0;
+    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
+    return (totalConsultas / byMonth.size / totalPatients) * 100;
   }
 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  const now = new Date();
 
-  let count = 0;
+  let totalConsultas = 0;
   let monthsWithData = 0;
 
   months.forEach((m) => {
-    const isCurrentOrPast =
-      year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
     monthsWithData++;
-    count += source.filter((p) => {
+    
+    totalConsultas += source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
   });
 
-  return monthsWithData > 0 ? (count / monthsWithData / total) * 100 : 0;
+  return monthsWithData > 0 ? (totalConsultas / monthsWithData / totalPatients) * 100 : 0;
 }
 
-// B2: tratamentos concluídos no período / 1ªs consultas no mesmo período
-function calcPctB2(fTratamento: TratamentoPatient[], equipe?: string): number {
-  const filtered = equipe ? fTratamento.filter((p) => p.equipe === equipe) : fTratamento;
-  const total = filtered.filter((p) => !isTratamentoPendente(p.primeiraConsulta)).length;
-  const withTrat = filtered.filter((p) => !isTratamentoPendente(p.tratamentoConcluido)).length;
-  return total > 0 ? (withTrat / total) * 100 : 0;
-}
-
-// B5: média mensal do período / total cadastrado Tab4 (igual ao Tab4QuadrimesterCards)
-function calcPctB5(
-  allTab4: Tab4Patient[],
-  fTab4: Tab4Patient[],
+// B2: média dos percentuais mensais (tratamento concluído / 1ª consulta por mês)
+// Igual ao TratamentoQuadrimesterCards.tsx
+function calcPctB2(
+  tratamento: TratamentoPatient[],
   quad: Quadrimestre,
   equipe?: string
 ): number {
-  const total = equipe
-    ? allTab4.filter((p) => p.equipe === equipe).length
-    : allTab4.length;
-  if (total === 0) return 0;
-
-  const source = equipe ? fTab4.filter((p) => p.equipe === equipe) : fTab4;
+  const source = equipe ? tratamento.filter((p) => p.equipe === equipe) : tratamento;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
 
   if (quad === "todos") {
-    const withEscovacao = source.filter((p) => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
-    return (withEscovacao / total) * 100;
+    // Agrupa consultas e tratamentos por mês
+    const consultaByMonth = new Map<string, number>();
+    const tratamentoByMonth = new Map<string, number>();
+    
+    source.forEach(p => {
+      const dCons = parseDate(p.primeiraConsulta);
+      const dTrat = parseDate(p.tratamentoConcluido);
+      
+      if (dCons) {
+        const key = `${getMonth(dCons)}-${getYear(dCons)}`;
+        consultaByMonth.set(key, (consultaByMonth.get(key) || 0) + 1);
+      }
+      
+      if (dTrat) {
+        const key = `${getMonth(dTrat)}-${getYear(dTrat)}`;
+        tratamentoByMonth.set(key, (tratamentoByMonth.get(key) || 0) + 1);
+      }
+    });
+    
+    const monthlyPcts: number[] = [];
+    consultaByMonth.forEach((consultas, key) => {
+      const tratamentos = tratamentoByMonth.get(key) || 0;
+      if (consultas > 0) {
+        monthlyPcts.push((tratamentos / consultas) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
   }
 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  const now = new Date();
 
-  let count = 0;
+  const monthlyPcts: number[] = [];
+  
+  months.forEach((m) => {
+    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
+    if (!isCurrentOrPast) return;
+    
+    const mTratamento = source.filter(p => {
+      const d = parseDate(p.tratamentoConcluido);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+    
+    const mConsulta = source.filter(p => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+    
+    if (mConsulta > 0) {
+      monthlyPcts.push((mTratamento / mConsulta) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
+}
+
+// B3: média dos percentuais mensais (exodontias/total atendimentos por mês)
+// Igual ao Tab3QuadrimesterCards.tsx
+function calcPctB3(
+  tab3: Tab3Record[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? tab3.filter((r) => r.equipe === equipe) : tab3;
+  
+  if (quad === "todos") {
+    const byMonth = new Map<string, { exodontias: number; total: number }>();
+    
+    source.forEach(r => {
+      const parts = r.mesAno.split("/");
+      const mesName = parts[0]?.toLowerCase().trim();
+      const ano = parseInt(parts[1]);
+      const mesIdx = MONTH_NAME_TO_NUM[mesName];
+      if (mesIdx === undefined) return;
+      
+      const key = `${mesIdx}-${ano}`;
+      const existing = byMonth.get(key) || { exodontias: 0, total: 0 };
+      existing.exodontias += r.exodontias;
+      existing.total += r.totalAtendimentos;
+      byMonth.set(key, existing);
+    });
+    
+    const monthlyPcts: number[] = [];
+    byMonth.forEach(({ exodontias, total }) => {
+      if (total > 0) {
+        monthlyPcts.push((exodontias / total) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  const byMonth = new Map<number, { exodontias: number; total: number }>();
+  
+  source.forEach(r => {
+    const parts = r.mesAno.split("/");
+    const mesName = parts[0]?.toLowerCase().trim();
+    const ano = parseInt(parts[1]);
+    const mesIdx = MONTH_NAME_TO_NUM[mesName];
+    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
+    
+    const existing = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
+    existing.exodontias += r.exodontias;
+    existing.total += r.totalAtendimentos;
+    byMonth.set(mesIdx, existing);
+  });
+
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ exodontias, total }) => {
+    if (total > 0) {
+      monthlyPcts.push((exodontias / total) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
+}
+
+// B4 (Tab5): média dos percentuais mensais (preventivos/total individuais por mês)
+// Igual ao Tab5QuadrimesterCards.tsx
+function calcPctB4(
+  tab5: Tab5Record[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? tab5.filter((r) => r.equipe === equipe) : tab5;
+  
+  if (quad === "todos") {
+    const byMonth = new Map<string, { preventivos: number; total: number }>();
+    
+    source.forEach(r => {
+      const parts = r.mesAno.split("/");
+      const mesName = parts[0]?.toLowerCase().trim();
+      const ano = parseInt(parts[1]);
+      const mesIdx = MONTH_NAME_TO_NUM[mesName];
+      if (mesIdx === undefined) return;
+      
+      const key = `${mesIdx}-${ano}`;
+      const existing = byMonth.get(key) || { preventivos: 0, total: 0 };
+      existing.preventivos += r.preventivos;
+      existing.total += r.totalIndividuais;
+      byMonth.set(key, existing);
+    });
+    
+    const monthlyPcts: number[] = [];
+    byMonth.forEach(({ preventivos, total }) => {
+      if (total > 0) {
+        monthlyPcts.push((preventivos / total) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  const byMonth = new Map<number, { preventivos: number; total: number }>();
+  
+  source.forEach(r => {
+    const parts = r.mesAno.split("/");
+    const mesName = parts[0]?.toLowerCase().trim();
+    const ano = parseInt(parts[1]);
+    const mesIdx = MONTH_NAME_TO_NUM[mesName];
+    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
+    
+    const existing = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
+    existing.preventivos += r.preventivos;
+    existing.total += r.totalIndividuais;
+    byMonth.set(mesIdx, existing);
+  });
+
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ preventivos, total }) => {
+    if (total > 0) {
+      monthlyPcts.push((preventivos / total) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
+}
+
+// B5 (Tab4): (total escovações no quad / meses com dados / total pacientes) * 100
+// Igual ao Tab4QuadrimesterCards.tsx
+function calcPctB5(
+  allTab4: Tab4Patient[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? allTab4.filter((p) => p.equipe === equipe) : allTab4;
+  const totalPatients = source.length;
+  if (totalPatients === 0) return 0;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  if (quad === "todos") {
+    const byMonth = new Map<string, number>();
+    source.forEach(p => {
+      const d = parseDate(p.primeiraConsulta);
+      if (d) {
+        const key = `${getMonth(d)}-${getYear(d)}`;
+        byMonth.set(key, (byMonth.get(key) || 0) + 1);
+      }
+    });
+    
+    if (byMonth.size === 0) return 0;
+    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
+    return (totalConsultas / byMonth.size / totalPatients) * 100;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  let totalConsultas = 0;
   let monthsWithData = 0;
 
   months.forEach((m) => {
-    const isCurrentOrPast =
-      year < now.getFullYear() || (year === now.getFullYear() && m <= now.getMonth());
+    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
     monthsWithData++;
-    count += source.filter((p) => {
+    
+    totalConsultas += source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year && !isConsultaPendenteTab4(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
     }).length;
   });
 
-  return monthsWithData > 0 ? (count / monthsWithData / total) * 100 : 0;
+  return monthsWithData > 0 ? (totalConsultas / monthsWithData / totalPatients) * 100 : 0;
+}
+
+// B6 (Tab6): média dos percentuais mensais (ART/total procedimentos por mês)
+// Igual ao Tab6QuadrimesterCards.tsx
+function calcPctB6(
+  tab6: Tab6Record[],
+  quad: Quadrimestre,
+  equipe?: string
+): number {
+  const source = equipe ? tab6.filter((r) => r.equipe === equipe) : tab6;
+  
+  if (quad === "todos") {
+    const byMonth = new Map<string, { exodontias: number; total: number }>();
+    
+    source.forEach(r => {
+      const parts = r.mesAno.split("/");
+      const mesName = parts[0]?.toLowerCase().trim();
+      const ano = parseInt(parts[1]);
+      const mesIdx = MONTH_NAME_TO_NUM[mesName];
+      if (mesIdx === undefined) return;
+      
+      const key = `${mesIdx}-${ano}`;
+      const existing = byMonth.get(key) || { exodontias: 0, total: 0 };
+      existing.exodontias += r.exodontias;
+      existing.total += r.totalProcedimentos;
+      byMonth.set(key, existing);
+    });
+    
+    const monthlyPcts: number[] = [];
+    byMonth.forEach(({ exodontias, total }) => {
+      if (total > 0) {
+        monthlyPcts.push((exodontias / total) * 100);
+      }
+    });
+    
+    return monthlyPcts.length > 0 
+      ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+      : 0;
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  const byMonth = new Map<number, { exodontias: number; total: number }>();
+  
+  source.forEach(r => {
+    const parts = r.mesAno.split("/");
+    const mesName = parts[0]?.toLowerCase().trim();
+    const ano = parseInt(parts[1]);
+    const mesIdx = MONTH_NAME_TO_NUM[mesName];
+    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
+    
+    const existing = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
+    existing.exodontias += r.exodontias;
+    existing.total += r.totalProcedimentos;
+    byMonth.set(mesIdx, existing);
+  });
+
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ exodontias, total }) => {
+    if (total > 0) {
+      monthlyPcts.push((exodontias / total) * 100);
+    }
+  });
+
+  return monthlyPcts.length > 0 
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length 
+    : 0;
 }
 
 // ── hook principal ────────────────────────────────────────────────────────────
@@ -269,47 +530,50 @@ export function useResultadoFinal(
   tab4: Tab4Patient[],
   tab5: Tab5Record[],
   tab6: Tab6Record[],
-  quad: Quadrimestre = "todos"
+  quad: Quadrimestre = "todos",
+  equipeFilter: string = "all"
 ) {
   return useMemo(() => {
-    const fPatients   = filterPatientsByQuadrimestre(patients, quad);
-    const fTratamento = filterTratamentoByQuadrimestre(tratamento, quad);
-    const fTab3       = filterByQuadrimestre(tab3, quad);
-    const fTab4       = filterTab4ByQuadrimestre(tab4, quad);
-    const fTab5       = filterByQuadrimestre(tab5, quad);
-    const fTab6       = filterByQuadrimestre(tab6, quad);
-
-    const equipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+    const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+    const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
     // Por equipe
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
       const indicadores = [
-        buildIndicador("B1", calcPctB1(patients, fPatients, quad, equipe)),
-        buildIndicador("B2", calcPctB2(fTratamento, equipe)),
-        buildIndicador("B3", avgMonthlyPct(fTab3, equipe)),
-        buildIndicador("B4", avgMonthlyPct(fTab5, equipe)),
-        buildIndicador("B5", calcPctB5(tab4, fTab4, quad, equipe)),
-        buildIndicador("B6", avgMonthlyPct(fTab6, equipe)),
+        buildIndicador("B1", calcPctB1(patients, quad, equipe)),
+        buildIndicador("B2", calcPctB2(tratamento, quad, equipe)),
+        buildIndicador("B3", calcPctB3(tab3, quad, equipe)),
+        buildIndicador("B5", calcPctB5(tab4, quad, equipe)),
+        buildIndicador("B4", calcPctB4(tab5, quad, equipe)),
+        buildIndicador("B6", calcPctB6(tab6, quad, equipe)),
       ];
       return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
     });
 
-    // Geral
-    const geralIndicadores = [
-      buildIndicador("B1", calcPctB1(patients, fPatients, quad)),
-      buildIndicador("B2", calcPctB2(fTratamento)),
-      buildIndicador("B3", avgMonthlyPct(fTab3)),
-      buildIndicador("B4", avgMonthlyPct(fTab5)),
-      buildIndicador("B5", calcPctB5(tab4, fTab4, quad)),
-      buildIndicador("B6", avgMonthlyPct(fTab6)),
+    // Geral (sempre considera todas as equipes para o cálculo geral, ou apenas a filtrada)
+    const geralIndicadores = equipeFilter === "all" ? [
+      buildIndicador("B1", calcPctB1(patients, quad)),
+      buildIndicador("B2", calcPctB2(tratamento, quad)),
+      buildIndicador("B3", calcPctB3(tab3, quad)),
+      buildIndicador("B5", calcPctB5(tab4, quad)),
+      buildIndicador("B4", calcPctB4(tab5, quad)),
+      buildIndicador("B6", calcPctB6(tab6, quad)),
+    ] : [
+      buildIndicador("B1", calcPctB1(patients, quad, equipeFilter)),
+      buildIndicador("B2", calcPctB2(tratamento, quad, equipeFilter)),
+      buildIndicador("B3", calcPctB3(tab3, quad, equipeFilter)),
+      buildIndicador("B5", calcPctB5(tab4, quad, equipeFilter)),
+      buildIndicador("B4", calcPctB4(tab5, quad, equipeFilter)),
+      buildIndicador("B6", calcPctB6(tab6, quad, equipeFilter)),
     ];
 
     const geral: EquipeResult = {
-      equipe: "Geral",
+      equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
       indicadores: geralIndicadores,
       notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
     };
 
     return { geral, porEquipe };
-  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad]);
+  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter]);
 }
+
