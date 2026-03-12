@@ -41,7 +41,16 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
-  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>("todos");
+  const getCurrentQuadrimestre = (): Quadrimestre => {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const year = now.getFullYear();
+  if (month <= 3) return `Q1-${year}` as Quadrimestre;
+  if (month <= 7) return `Q2-${year}` as Quadrimestre;
+  return `Q3-${year}` as Quadrimestre;
+};
+
+const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
   // ✅ NOVO: estado de equipe para o Resultado Final
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
