@@ -1,16 +1,32 @@
 import { useState, useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  Search, ArrowUpDown, ArrowUp, ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -39,9 +55,7 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return <ArrowUpDown className="ml-1 h-4 w-4 text-muted-foreground/50" />;
-    return sortDirection === "asc"
-      ? <ArrowUp className="ml-1 h-4 w-4 text-primary" />
-      : <ArrowDown className="ml-1 h-4 w-4 text-primary" />;
+    return sortDirection === "asc" ? <ArrowUp className="ml-1 h-4 w-4 text-primary" /> : <ArrowDown className="ml-1 h-4 w-4 text-primary" />;
   };
 
   const filteredAndSortedPatients = useMemo(() => {
@@ -87,12 +101,7 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar paciente..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9 w-64"
-              />
+              <Input placeholder="Buscar paciente..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-9 w-64" />
             </div>
           </div>
         </div>
@@ -131,30 +140,32 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
             <TableBody>
               {paginatedPatients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                    Nenhum paciente encontrado
-                  </TableCell>
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum paciente encontrado</TableCell>
                 </TableRow>
               ) : (
-                paginatedPatients.map((patient, index) => (
-                  <TableRow key={patient.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
-                    <TableCell>{patient.equipe || "-"}</TableCell>
-                    <TableCell>{patient.microarea}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{patient.nome}</TableCell>
-                    <TableCell>{patient.cpfCns || "-"}</TableCell>
-                    <TableCell>{patient.idade} anos</TableCell>
-                    <TableCell>{patient.sexo === "Masculino" ? "M" : "F"}</TableCell>
-                    <TableCell>{patient.primeiraConsulta}</TableCell>
-                    <TableCell>{patient.tratamentoConcluido}</TableCell>
-                    <TableCell>{patient.comTratamentoConcluido || "-"}</TableCell>
-                  </TableRow>
-                ))
+                paginatedPatients.map((patient, index) => {
+                  const isPendente = isTratamentoPendente(patient.tratamentoConcluido);
+                  return (
+                    <TableRow key={patient.id} className="hover:bg-muted/30 transition-colors">
+                      <TableCell className="font-medium">{(page - 1) * perPage + index + 1}</TableCell>
+                      <TableCell>{patient.equipe || "-"}</TableCell>
+                      <TableCell>{patient.microarea}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{patient.nome}</TableCell>
+                      <TableCell>{patient.cpfCns || "-"}</TableCell>
+                      <TableCell>{patient.idade} anos</TableCell>
+                      <TableCell>{patient.sexo === "Masculino" ? "M" : "F"}</TableCell>
+                      <TableCell>{patient.primeiraConsulta}</TableCell>
+                      <TableCell>{patient.tratamentoConcluido}</TableCell>
+                      <TableCell>{isPendente ? "Pendente" : "Concluído"}</TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </div>
 
+        {/* Pagination */}
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Exibindo</span>
@@ -171,19 +182,11 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
             <span>de {filteredAndSortedPatients.length} pacientes</span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(1)} disabled={page === 1}>
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(1)} disabled={page === 1}><ChevronsLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}><ChevronLeft className="h-4 w-4" /></Button>
             <span className="px-4 text-sm">Página {page} de {totalPages || 1}</span>
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(totalPages)} disabled={page === totalPages}>
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(totalPages)} disabled={page === totalPages}><ChevronsRight className="h-4 w-4" /></Button>
           </div>
         </div>
       </CardContent>
