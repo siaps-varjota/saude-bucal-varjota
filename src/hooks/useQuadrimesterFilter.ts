@@ -28,10 +28,17 @@ export const QUADRIMESTRE_OPTIONS_SEM_TODOS: QuadrimestreOption[] = QUADRIMESTRE
   (opt) => opt.value !== "todos"
 );
 
+// ── helpers internos ──────────────────────────────────────────────────────────
+
 const QUAD_MONTHS: Record<string, number[]> = {
   Q1: [0, 1, 2, 3],
   Q2: [4, 5, 6, 7],
   Q3: [8, 9, 10, 11],
+};
+
+const MONTH_NAME_TO_NUM: Record<string, number> = {
+  janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
+  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
 };
 
 const parseDate = (val: string): Date | null => {
@@ -46,19 +53,77 @@ const parseDate = (val: string): Date | null => {
   return null;
 };
 
+const parseMesAno = (mesAno: string): { mes: number; ano: number } | null => {
+  const parts = mesAno.split("/");
+  const mesName = parts[0]?.toLowerCase().trim();
+  const ano = parseInt(parts[1]);
+  const mes = MONTH_NAME_TO_NUM[mesName];
+  if (mes === undefined || isNaN(ano)) return null;
+  return { mes, ano };
+};
+
+// ── funções exportadas de filtro por quadrimestre ─────────────────────────────
+
+// Para Tab1 - 1ª Consulta (filtra por primeiraConsulta)
 export function filterPatientsByQuadrimestre<T extends { primeiraConsulta: string }>(
   patients: T[],
   quad: Quadrimestre
 ): T[] {
   if (quad === "todos") return patients;
-
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-
   return patients.filter((p) => {
     const d = parseDate(p.primeiraConsulta);
-    if (!d) return true; // sem data: inclui (pendente)
+    if (!d) return true;
     return getYear(d) === year && months.includes(getMonth(d));
   });
+}
+
+// Para Tab2 - Tratamento Concluído (filtra por tratamentoConcluido)
+export function filterTratamentoByQuadrimestre<T extends { tratamentoConcluido: string }>(
+  patients: T[],
+  quad: Quadrimestre
+): T[] {
+  if (quad === "todos") return patients;
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+  return patients.filter((p) => {
+    const d = parseDate(p.tratamentoConcluido);
+    if (!d) return true;
+    return getYear(d) === year && months.includes(getMonth(d));
+  });
+}
+
+// Para Tab3 e Tab6 - registros com mesAno (ex: "Janeiro/2025")
+export function filterRecordsByQuadrimestre<T extends { mesAno: string }>(
+  records: T[],
+  quad: Quadrimestre
+): T[] {
+  if (quad === "todos") return records;
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+  return records.filter((r) => {
+    const parsed = parseMesAno(r.mesAno);
+    if (!parsed) return true;
+    return parsed.ano === year && months.includes(parsed.mes);
+  });
+}
+
+// Para Tab4 - Escovação Supervisionada (filtra por primeiraConsulta)
+export function filterTab4ByQuadrimestre<T extends { primeiraConsulta: string }>(
+  patients: T[],
+  quad: Quadrimestre
+): T[] {
+  return filterPatientsByQuadrimestre(patients, quad);
+}
+
+// Para Tab5 - Procedimentos Preventivos (filtra por mesAno)
+export function filterTab5ByQuadrimestre<T extends { mesAno: string }>(
+  records: T[],
+  quad: Quadrimestre
+): T[] {
+  return filterRecordsByQuadrimestre(records, quad);
 }
