@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -24,6 +23,8 @@ interface PDFGeneratorProps {
   fileName?: string;
 }
 
+const ROWS_PER_PAGE = 25;
+
 export const PDFGenerator = ({
   title,
   subtitle,
@@ -45,8 +46,6 @@ export const PDFGenerator = ({
       pdfContent.style.backgroundColor = "#fff";
       pdfContent.style.color = "#333";
 
-      // Identifica a coluna de nome (índice 3, base 0 = 4ª coluna)
-      // e centraliza todas exceto ela
       const headerCells = columns.map((col, idx) => {
         const isNameCol = idx === 3;
         return `<th style="
@@ -60,6 +59,11 @@ export const PDFGenerator = ({
       }).join("");
 
       const bodyRows = data.map((row, index) => {
+        const isPageBreak = index > 0 && index % ROWS_PER_PAGE === 0;
+        const repeatHeader = isPageBreak
+          ? `<tr style="background-color: #f5f5f5;">${headerCells}</tr>`
+          : "";
+
         const cells = columns.map((col, idx) => {
           const isNameCol = idx === 3;
           return `<td style="
@@ -69,7 +73,8 @@ export const PDFGenerator = ({
             text-align: ${isNameCol ? "left" : "center"};
           ">${row[col.key] ?? "-"}</td>`;
         }).join("");
-        return `<tr style="background-color: ${index % 2 === 0 ? "#fff" : "#fafafa"};">${cells}</tr>`;
+
+        return `${repeatHeader}<tr style="background-color: ${index % 2 === 0 ? "#fff" : "#fafafa"};">${cells}</tr>`;
       }).join("");
 
       pdfContent.innerHTML = `
@@ -113,11 +118,6 @@ export const PDFGenerator = ({
         image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "landscape" as const },
-        pagebreak: {
-          mode: ["css", "legacy"],
-          before: ".page-break",
-          avoid: "tr",
-        },
       };
 
       await html2pdf().set(opt).from(pdfContent).save();
