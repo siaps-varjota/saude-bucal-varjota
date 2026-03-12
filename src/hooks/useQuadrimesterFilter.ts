@@ -22,7 +22,7 @@ export const QUADRIMESTRE_OPTIONS: QuadrimestreOption[] = [
   { value: "Q3-2026", label: "3º Quadrimestre 2026 (Set–Dez)" },
 ];
 
-// Sem a opção "todos" — usado no ResultadoFinalTab
+// ✅ Necessário para o ResultadoFinalTab — sem a opção "todos"
 export const QUADRIMESTRE_OPTIONS_SEM_TODOS: QuadrimestreOption[] = QUADRIMESTRE_OPTIONS.filter(
   (opt) => opt.value !== "todos"
 );
