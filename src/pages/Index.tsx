@@ -42,6 +42,8 @@ import { Button } from "@/components/ui/button";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>("todos");
+  // ✅ NOVO: estado de equipe para o Resultado Final
+  const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
   const { data: patients, isLoading: isLoadingPatients, error: errorPatients, refetch: refetchPatients, isFetching: isFetchingPatients } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
@@ -76,6 +78,18 @@ const Index = () => {
     [tratamentoPatients, filtersTratamento.equipe]
   );
 
+  // ✅ NOVO: opções de equipe para o seletor do Resultado Final
+  const equipeOptions = useMemo(() => {
+    const set = new Set<string>();
+    (patients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tratamentoPatients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tab4Patients || []).forEach(p => p.equipe && set.add(p.equipe));
+    (tab3Patients || []).forEach(r => r.equipe && set.add(r.equipe));
+    (tab5Patients || []).forEach(r => r.equipe && set.add(r.equipe));
+    (tab6Patients || []).forEach(r => r.equipe && set.add(r.equipe));
+    return Array.from(set).sort();
+  }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
+
   const refetchAll = () => { refetchPatients(); refetchTratamento(); refetchTab3(); refetchTab4(); refetchTab5(); refetchTab6(); };
 
   const getTabState = () => {
@@ -100,20 +114,24 @@ const Index = () => {
 
   const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
 
+  // ✅ CORRIGIDO: passa equipeResultado como argumento
   const resultadoFinal = useResultadoFinal(
     patients || [], tratamentoPatients || [], tab3Patients || [],
     tab4Patients || [], tab5Patients || [], tab6Patients || [],
-    quadrimestre
+    quadrimestre,
+    equipeResultado
   );
 
   if (error) {
-    return <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-2xl font-bold text-destructive">Erro ao carregar dados</h1>
-        <p className="text-muted-foreground">Não foi possível carregar os dados da planilha.</p>
-        <Button onClick={() => refetch()} className="mt-4">Tentar novamente</Button>
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="mb-4 text-2xl font-bold text-destructive">Erro ao carregar dados</h1>
+          <p className="text-muted-foreground">Não foi possível carregar os dados da planilha.</p>
+          <Button onClick={() => refetch()} className="mt-4">Tentar novamente</Button>
+        </div>
       </div>
-    </div>;
+    );
   }
 
   // Stats calculations
@@ -133,329 +151,371 @@ const Index = () => {
   const totalExodontiasTab6 = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
-  return <div className="min-h-screen bg-background">
-    <header className="border-b border-border/50 bg-card shadow-sm">
-      <div className="container mx-auto px-[14px] py-[20px]">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl ml-0 mt-0 mr-0">
-              Indicadores de Saúde Bucal de Varjota
-            </h1>
-            <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 bg-card shadow-sm">
+        <div className="container mx-auto px-[14px] py-[20px]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl ml-0 mt-0 mr-0">
+                Indicadores de Saúde Bucal de Varjota
+              </h1>
+              <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
+            </div>
+            <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar dados
+            </Button>
           </div>
-          <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar dados
-          </Button>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <main className="container mx-auto px-4 rounded-none py-[26px]">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="flex w-full flex-wrap gap-1 h-auto p-1 mx-auto justify-center">
-          <TabsTrigger value="consulta" className="text-xs px-2 py-1.5 flex-1 min-w-fit">1ª Consulta Odontológica</TabsTrigger>
-          <TabsTrigger value="tratamento" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Tratamento Concluído</TabsTrigger>
-          <TabsTrigger value="tab3" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Taxa Exodontias</TabsTrigger>
-          <TabsTrigger value="tab4" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Escovação Supervisionada</TabsTrigger>
-          <TabsTrigger value="tab5" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
-          <TabsTrigger value="tab6" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
-          <TabsTrigger value="resultado" className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
-        </TabsList>
+      <main className="container mx-auto px-4 rounded-none py-[26px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="flex w-full flex-wrap gap-1 h-auto p-1 mx-auto justify-center">
+            <TabsTrigger value="consulta" className="text-xs px-2 py-1.5 flex-1 min-w-fit">1ª Consulta Odontológica</TabsTrigger>
+            <TabsTrigger value="tratamento" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Tratamento Concluído</TabsTrigger>
+            <TabsTrigger value="tab3" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Taxa Exodontias</TabsTrigger>
+            <TabsTrigger value="tab4" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Escovação Supervisionada</TabsTrigger>
+            <TabsTrigger value="tab5" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
+            <TabsTrigger value="tab6" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
+            <TabsTrigger value="resultado" className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
+          </TabsList>
 
-        {/* Tab 1 - 1ª Consulta */}
-        <TabsContent value="consulta" className="mt-6">
-          {!isLoadingPatients && patients && <div className="mb-6">
-            <PatientFilters
-              patients={patients}
-              filters={filtersConsulta}
-              onFiltersChange={setFiltersConsulta}
-              contentId="dashboard-content-consulta"
-              pdfTitle="1ª Consulta Odontológica"
-              pdfFileName="1a-consulta-odontologica"
-              pdfSummaryCards={[
-                { label: "Total de Pacientes", value: totalPatients.toLocaleString("pt-BR") },
-                { label: "Com 1ª Consulta", value: withConsultation.toLocaleString("pt-BR"), percentage: `${totalPatients > 0 ? ((withConsultation / totalPatients) * 100).toFixed(1) : 0}%` },
-              ]}
-              pdfColumns={[
-                { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
-                { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
-                { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" }, { key: "status", header: "Status" },
-              ]}
-              pdfData={filteredPatientsNoQuad.map((p, i) => ({
-                num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
-                cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Feminino" ? "F" : "M",
-                primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
-                status: isConsultaPendente(p.primeiraConsulta) ? "Pendente" : "Concluído",
-              }))}
-            />
-          </div>}
-          <div id="dashboard-content-consulta">
-            <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-              {isLoadingPatients ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
-                <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <QuadrimesterCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />
-              </>}
-            </div>
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
-              {isLoadingPatients
-                ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />}
-            </div>
-            {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
-          </div>
-        </TabsContent>
-
-        {/* Tab 2 - Tratamento Concluído */}
-        <TabsContent value="tratamento" className="mt-6">
-          {!isLoadingTratamento && tratamentoPatients && <div className="mb-6">
-            <PatientFilters
-              patients={tratamentoPatients as any}
-              filters={filtersTratamento}
-              onFiltersChange={setFiltersTratamento}
-              statusOptions={[
-  { value: "PENDENTE", label: "PENDENTE" },
-  { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
-  { value: "CONCLUÍDO", label: "CONCLUÍDO" },
-]}
-              contentId="dashboard-content-tratamento"
-              pdfTitle="Tratamento Concluído"
-              pdfFileName="tratamento-concluido"
-              pdfSummaryCards={[
-                { label: "Total de Pacientes", value: totalTratamento.toLocaleString("pt-BR") },
-                { label: "Com Tratamento", value: withTratamento.toLocaleString("pt-BR"), percentage: `${totalTratamento > 0 ? ((withTratamento / totalTratamento) * 100).toFixed(1) : 0}%` },
-              ]}
-              pdfColumns={[
-                { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
-                { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
-                { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" },
-                { key: "tratamentoConcluido", header: "Tratamento Concluído" }, { key: "status", header: "Status" },
-              ]}
-              pdfData={filteredTratamentoNoQuad.map((p, i) => ({
-                num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
-                cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Masculino" ? "M" : "F",
-                primeiraConsulta: p.primeiraConsulta, tratamentoConcluido: p.tratamentoConcluido,
-                status: p.comTratamentoConcluido || "-",
-              }))}
-            />
-          </div>}
-          <div id="dashboard-content-tratamento">
-            <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-              {isLoadingTratamento ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
-                <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <TratamentoQuadrimesterCards
-                  patients={filteredTratamento}
-                  allPatients={filteredTratamentoNoQuad}
-                  totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+          {/* Tab 1 - 1ª Consulta */}
+          <TabsContent value="consulta" className="mt-6">
+            {!isLoadingPatients && patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={patients}
+                  filters={filtersConsulta}
+                  onFiltersChange={setFiltersConsulta}
+                  contentId="dashboard-content-consulta"
+                  pdfTitle="1ª Consulta Odontológica"
+                  pdfFileName="1a-consulta-odontologica"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalPatients.toLocaleString("pt-BR") },
+                    { label: "Com 1ª Consulta", value: withConsultation.toLocaleString("pt-BR"), percentage: `${totalPatients > 0 ? ((withConsultation / totalPatients) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" }, { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredPatientsNoQuad.map((p, i) => ({
+                    num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
+                    cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendente(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
                 />
-              </>}
+              </div>
+            )}
+            <div id="dashboard-content-consulta">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingPatients ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <QuadrimesterCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
+                {isLoadingPatients
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <MonthlyCards patients={filteredPatients} totalPatients={patientsByEquipe.length} />}
+              </div>
+              {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
             </div>
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)</h2>
-              {isLoadingTratamento
-                ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <TratamentoMonthlyCards patients={filteredTratamento} allPatients={filteredTratamentoNoQuad} />}
-            </div>
-            {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        {/* Tab 3 - Taxa Exodontias */}
-        <TabsContent value="tab3" className="mt-6">
-          {!isLoadingTab3 && tab3Patients && <div className="mb-6">
-            <PatientFilters
-              patients={tab3Patients as any}
-              filters={filtersTab3}
-              onFiltersChange={setFiltersTab3}
-              contentId="dashboard-content-tab3"
-              pdfTitle="Taxa de Exodontias"
-              pdfFileName="taxa-exodontias"
-              pdfSummaryCards={[
-                { label: "Total de Registros", value: totalAtendimentosTab3.toLocaleString("pt-BR") },
-                { label: "Exodontias", value: totalExodontiasTab3.toLocaleString("pt-BR"), percentage: `${totalAtendimentosTab3 > 0 ? ((totalExodontiasTab3 / totalAtendimentosTab3) * 100).toFixed(1) : 0}%` },
-              ]}
-              pdfColumns={[
-                { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
-                { key: "exodontias", header: "Exodontias" }, { key: "totalAtendimentos", header: "Total Atendimentos" }, { key: "porcentagem", header: "Pontuação" },
-              ]}
-              pdfData={filteredTab3.map((r, i) => ({
-                num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
-                exodontias: r.exodontias, totalAtendimentos: r.totalAtendimentos, porcentagem: `${r.porcentagem.toFixed(2)}%`,
-              }))}
-            />
-          </div>}
-          <div id="dashboard-content-tab3">
-            <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-              {isLoadingTab3 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
-                <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab3QuadrimesterCards records={filteredTab3} />
-              </>}
+          {/* Tab 2 - Tratamento Concluído */}
+          <TabsContent value="tratamento" className="mt-6">
+            {!isLoadingTratamento && tratamentoPatients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tratamentoPatients as any}
+                  filters={filtersTratamento}
+                  onFiltersChange={setFiltersTratamento}
+                  statusOptions={[
+                    { value: "PENDENTE", label: "PENDENTE" },
+                    { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
+                    { value: "CONCLUÍDO", label: "CONCLUÍDO" },
+                  ]}
+                  contentId="dashboard-content-tratamento"
+                  pdfTitle="Tratamento Concluído"
+                  pdfFileName="tratamento-concluido"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTratamento.toLocaleString("pt-BR") },
+                    { label: "Com Tratamento", value: withTratamento.toLocaleString("pt-BR"), percentage: `${totalTratamento > 0 ? ((withTratamento / totalTratamento) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" },
+                    { key: "tratamentoConcluido", header: "Tratamento Concluído" }, { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTratamentoNoQuad.map((p, i) => ({
+                    num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
+                    cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Masculino" ? "M" : "F",
+                    primeiraConsulta: p.primeiraConsulta, tratamentoConcluido: p.tratamentoConcluido,
+                    status: p.comTratamentoConcluido || "-",
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tratamento">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTratamento ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <TratamentoQuadrimesterCards
+                      patients={filteredTratamento}
+                      allPatients={filteredTratamentoNoQuad}
+                      totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)</h2>
+                {isLoadingTratamento
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <TratamentoMonthlyCards patients={filteredTratamento} allPatients={filteredTratamentoNoQuad} />}
+              </div>
+              {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
             </div>
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
-              {isLoadingTab3
-                ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab3MonthlyCards records={filteredTab3} />}
-            </div>
-            {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        {/* Tab 4 - Escovação Supervisionada */}
-        <TabsContent value="tab4" className="mt-6">
-          {!isLoadingTab4 && tab4Patients && <div className="mb-6">
-            <PatientFilters
-              patients={tab4Patients as any}
-              filters={filtersTab4}
-              onFiltersChange={setFiltersTab4}
-              contentId="dashboard-content-tab4"
-              pdfTitle="Escovação Supervisionada"
-              pdfFileName="escovacao-supervisionada"
-              pdfSummaryCards={[
-                { label: "Total de Pacientes", value: totalTab4.toLocaleString("pt-BR") },
-                { label: "Com Escovação", value: withConsultaTab4.toLocaleString("pt-BR"), percentage: `${totalTab4 > 0 ? ((withConsultaTab4 / totalTab4) * 100).toFixed(1) : 0}%` },
-              ]}
-              pdfColumns={[
-                { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
-                { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
-                { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "Escovação Supervisionada" }, { key: "status", header: "Status" },
-              ]}
-              pdfData={filteredTab4.map((p, i) => ({
-                num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
-                cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Feminino" ? "F" : "M",
-                primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
-                status: isConsultaPendenteTab4(p.primeiraConsulta) ? "Pendente" : "Concluído",
-              }))}
-            />
-          </div>}
-          <div id="dashboard-content-tab4">
-            <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-              {isLoadingTab4 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
-                <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
-              </>}
+          {/* Tab 3 - Taxa Exodontias */}
+          <TabsContent value="tab3" className="mt-6">
+            {!isLoadingTab3 && tab3Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab3Patients as any}
+                  filters={filtersTab3}
+                  onFiltersChange={setFiltersTab3}
+                  contentId="dashboard-content-tab3"
+                  pdfTitle="Taxa de Exodontias"
+                  pdfFileName="taxa-exodontias"
+                  pdfSummaryCards={[
+                    { label: "Total de Registros", value: totalAtendimentosTab3.toLocaleString("pt-BR") },
+                    { label: "Exodontias", value: totalExodontiasTab3.toLocaleString("pt-BR"), percentage: `${totalAtendimentosTab3 > 0 ? ((totalExodontiasTab3 / totalAtendimentosTab3) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
+                    { key: "exodontias", header: "Exodontias" }, { key: "totalAtendimentos", header: "Total Atendimentos" }, { key: "porcentagem", header: "Pontuação" },
+                  ]}
+                  pdfData={filteredTab3.map((r, i) => ({
+                    num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
+                    exodontias: r.exodontias, totalAtendimentos: r.totalAtendimentos, porcentagem: `${r.porcentagem.toFixed(2)}%`,
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab3">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTab3 ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab3QuadrimesterCards records={filteredTab3} />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
+                {isLoadingTab3
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab3MonthlyCards records={filteredTab3} />}
+              </div>
+              {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
-              {isLoadingTab4
-                ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />}
-            </div>
-            {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        {/* Tab 5 - Proced. Odont. Preventivos */}
-        <TabsContent value="tab5" className="mt-6">
-          {!isLoadingTab5 && tab5Patients && <div className="mb-6">
-            <PatientFilters
-              patients={tab5Patients as any}
-              filters={filtersTab5}
-              onFiltersChange={setFiltersTab5}
-              contentId="dashboard-content-tab5"
-              pdfTitle="Procedimentos Odontológicos Preventivos"
-              pdfFileName="procedimentos-preventivos"
-              pdfSummaryCards={[
-                { label: "Total de Registros", value: totalTab5.toLocaleString("pt-BR") },
-                { label: "Preventivos", value: totalPreventivosTab5.toLocaleString("pt-BR"), percentage: `${totalIndividuaisTab5 > 0 ? ((totalPreventivosTab5 / totalIndividuaisTab5) * 100).toFixed(1) : 0}%` },
-              ]}
-              pdfColumns={[
-                { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
-                { key: "preventivos", header: "Preventivos" }, { key: "totalIndividuais", header: "Total Individuais" }, { key: "porcentagem", header: "Pontuação" },
-              ]}
-              pdfData={filteredTab5.map((r, i) => ({
-                num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
-                preventivos: r.preventivos, totalIndividuais: r.totalIndividuais, porcentagem: `${r.porcentagem.toFixed(2)}%`,
-              }))}
-            />
-          </div>}
-          <div id="dashboard-content-tab5">
-            <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-              {isLoadingTab5 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
-                <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab5QuadrimesterCards records={filteredTab5} />
-              </>}
+          {/* Tab 4 - Escovação Supervisionada */}
+          <TabsContent value="tab4" className="mt-6">
+            {!isLoadingTab4 && tab4Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab4Patients as any}
+                  filters={filtersTab4}
+                  onFiltersChange={setFiltersTab4}
+                  contentId="dashboard-content-tab4"
+                  pdfTitle="Escovação Supervisionada"
+                  pdfFileName="escovacao-supervisionada"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTab4.toLocaleString("pt-BR") },
+                    { label: "Com Escovação", value: withConsultaTab4.toLocaleString("pt-BR"), percentage: `${totalTab4 > 0 ? ((withConsultaTab4 / totalTab4) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "Escovação Supervisionada" }, { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTab4.map((p, i) => ({
+                    num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
+                    cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendenteTab4(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab4">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTab4 ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
+                {isLoadingTab4
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />}
+              </div>
+              {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
-              {isLoadingTab5
-                ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab5MonthlyCards records={filteredTab5} />}
-            </div>
-            {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        {/* Tab 6 - Trat. Restaurador Atraumático */}
-        <TabsContent value="tab6" className="mt-6">
-          {!isLoadingTab6 && tab6Patients && <div className="mb-6">
-            <PatientFilters
-              patients={tab6Patients as any}
-              filters={filtersTab6}
-              onFiltersChange={setFiltersTab6}
-              contentId="dashboard-content-tab6"
-              pdfTitle="Tratamento Restaurador Atraumático"
-              pdfFileName="tratamento-restaurador"
-              pdfSummaryCards={[
-                { label: "Total de Registros", value: totalTab6.toLocaleString("pt-BR") },
-                { label: "Exodontias", value: totalExodontiasTab6.toLocaleString("pt-BR"), percentage: `${totalProcedimentosTab6 > 0 ? ((totalExodontiasTab6 / totalProcedimentosTab6) * 100).toFixed(1) : 0}%` },
-              ]}
-              pdfColumns={[
-                { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
-                { key: "exodontias", header: "Exodontias" }, { key: "totalProcedimentos", header: "Total Procedimentos" }, { key: "porcentagem", header: "Pontuação" },
-              ]}
-              pdfData={filteredTab6.map((r, i) => ({
-                num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
-                exodontias: r.exodontias, totalProcedimentos: r.totalProcedimentos, porcentagem: `${r.porcentagem.toFixed(2)}%`,
-              }))}
-            />
-          </div>}
-          <div id="dashboard-content-tab6">
-            <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
-              {isLoadingTab6 ? <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</> : <>
-                <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
-                <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                <Tab6QuadrimesterCards records={filteredTab6} />
-              </>}
+          {/* Tab 5 - Proced. Odont. Preventivos */}
+          <TabsContent value="tab5" className="mt-6">
+            {!isLoadingTab5 && tab5Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab5Patients as any}
+                  filters={filtersTab5}
+                  onFiltersChange={setFiltersTab5}
+                  contentId="dashboard-content-tab5"
+                  pdfTitle="Procedimentos Odontológicos Preventivos"
+                  pdfFileName="procedimentos-preventivos"
+                  pdfSummaryCards={[
+                    { label: "Total de Registros", value: totalTab5.toLocaleString("pt-BR") },
+                    { label: "Preventivos", value: totalPreventivosTab5.toLocaleString("pt-BR"), percentage: `${totalIndividuaisTab5 > 0 ? ((totalPreventivosTab5 / totalIndividuaisTab5) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
+                    { key: "preventivos", header: "Preventivos" }, { key: "totalIndividuais", header: "Total Individuais" }, { key: "porcentagem", header: "Pontuação" },
+                  ]}
+                  pdfData={filteredTab5.map((r, i) => ({
+                    num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
+                    preventivos: r.preventivos, totalIndividuais: r.totalIndividuais, porcentagem: `${r.porcentagem.toFixed(2)}%`,
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab5">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTab5 ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab5QuadrimesterCards records={filteredTab5} />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
+                {isLoadingTab5
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab5MonthlyCards records={filteredTab5} />}
+              </div>
+              {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
-              {isLoadingTab6
-                ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                : <Tab6MonthlyCards records={filteredTab6} />}
+          </TabsContent>
+
+          {/* Tab 6 - Trat. Restaurador Atraumático */}
+          <TabsContent value="tab6" className="mt-6">
+            {!isLoadingTab6 && tab6Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab6Patients as any}
+                  filters={filtersTab6}
+                  onFiltersChange={setFiltersTab6}
+                  contentId="dashboard-content-tab6"
+                  pdfTitle="Tratamento Restaurador Atraumático"
+                  pdfFileName="tratamento-restaurador"
+                  pdfSummaryCards={[
+                    { label: "Total de Registros", value: totalTab6.toLocaleString("pt-BR") },
+                    { label: "Exodontias", value: totalExodontiasTab6.toLocaleString("pt-BR"), percentage: `${totalProcedimentosTab6 > 0 ? ((totalExodontiasTab6 / totalProcedimentosTab6) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
+                    { key: "exodontias", header: "Exodontias" }, { key: "totalProcedimentos", header: "Total Procedimentos" }, { key: "porcentagem", header: "Pontuação" },
+                  ]}
+                  pdfData={filteredTab6.map((r, i) => ({
+                    num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
+                    exodontias: r.exodontias, totalProcedimentos: r.totalProcedimentos, porcentagem: `${r.porcentagem.toFixed(2)}%`,
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab6">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTab6 ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab6QuadrimesterCards records={filteredTab6} />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
+                {isLoadingTab6
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab6MonthlyCards records={filteredTab6} />}
+              </div>
+              {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
-            {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        {/* Tab 7 - Resultado Final */}
-        <TabsContent value="resultado" className="mt-6">
-          {!isAllLoaded ? (
-            <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
-          ) : (
-            <ResultadoFinalTab
-              geral={resultadoFinal.geral}
-              porEquipe={resultadoFinal.porEquipe}
-              quadrimestre={quadrimestre}
-              onQuadrimestreChange={setQuadrimestre}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
-    </main>
+          {/* Tab 7 - Resultado Final */}
+          <TabsContent value="resultado" className="mt-6">
+            {!isAllLoaded ? (
+              <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
+            ) : (
+              // ✅ CORRIGIDO: todas as props necessárias agora são passadas
+              <ResultadoFinalTab
+                geral={resultadoFinal.geral}
+                porEquipe={resultadoFinal.porEquipe}
+                quadrimestre={quadrimestre}
+                onQuadrimestreChange={setQuadrimestre}
+                equipe={equipeResultado}
+                onEquipeChange={setEquipeResultado}
+                equipeOptions={equipeOptions}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
 
-    <footer className="border-t border-border/50 bg-card py-6">
-      <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-        <p>Secretaria Municipal de Saúde de Varjota - 2026 • Desenvolvido por Alidemberg Araújo - Coordenador do e-SUS Municipal</p>
-      </div>
-    </footer>
-  </div>;
+      <footer className="border-t border-border/50 bg-card py-6">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>Secretaria Municipal de Saúde de Varjota - 2026 • Desenvolvido por Alidemberg Araújo - Coordenador do e-SUS Municipal</p>
+        </div>
+      </footer>
+    </div>
+  );
 };
 
 export default Index;
