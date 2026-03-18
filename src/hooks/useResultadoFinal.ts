@@ -92,10 +92,10 @@ const getConceitoB4 = (pct: number): Conceito => {
 
 const getConceitoB5 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
-  if (pct <= 0.25) return "regular";
-  if (pct <= 0.5) return "suficiente";
-  if (pct <= 1) return "bom";
-  return "otimo";
+  if (pct >= 80 && pct <= 85) return "otimo";
+  if (pct >= 60 && pct < 80)  return "bom";
+  if (pct >= 40 && pct < 60)  return "suficiente";
+  return "regular"; // < 40 ou > 85
 };
 
 const getConceitoB6 = (pct: number): Conceito => {
