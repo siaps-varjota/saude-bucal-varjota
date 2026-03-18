@@ -82,20 +82,22 @@ const getConceitoB3 = (pct: number): Conceito => {
   return "regular";
 };
 
+// Proced. Odont. Preventivos — critérios B5: Ótimo ≥80% e ≤85%, Bom ≥60% e <80%, Suficiente ≥40% e <60%, Regular <40% ou >85%
 const getConceitoB4 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct <= 30) return "regular";
-  if (pct <= 50) return "suficiente";
-  if (pct <= 70) return "bom";
-  return "otimo";
-};
-
-const getConceitoB5 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
   if (pct >= 80 && pct <= 85) return "otimo";
   if (pct >= 60 && pct < 80)  return "bom";
   if (pct >= 40 && pct < 60)  return "suficiente";
   return "regular"; // < 40 ou > 85
+};
+
+// Escovação Supervisionada — Regular ≤0,25%, Suficiente >0,25% e ≤0,5%, Bom >0,5% e ≤1%, Ótimo >1%
+const getConceitoB5 = (pct: number): Conceito => {
+  if (pct <= 0)    return "none";
+  if (pct > 1)     return "otimo";
+  if (pct > 0.5)   return "bom";
+  if (pct > 0.25)  return "suficiente";
+  return "regular"; // <= 0,25
 };
 
 const getConceitoB6 = (pct: number): Conceito => {
@@ -110,8 +112,8 @@ const INDICADORES = [
    { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
    { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
    { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-   { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB5 }, // usa critérios B5
-   { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB4 }, // usa critérios B4
+   { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
+   { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
    { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
 ];
 
