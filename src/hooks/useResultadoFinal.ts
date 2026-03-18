@@ -189,10 +189,13 @@ function calcB1(allPatients: Patient[], quad: Quadrimestre, equipe?: string): Ra
     }).length;
   });
 
+  // Numerador  = total de primeiras consultas realizadas nos meses do quadrimestre
+  // Denominador = total de pacientes cadastrados (source.length)
+  // Porcentagem = média mensal (numerador / meses / totalPatients * 100) — igual ao card
   const mediaConsultas = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
   return {
-    numerador: mediaConsultas,
-    denominador: totalPatients,
+    numerador: totalConsultas,          // soma das consultas no quadrimestre
+    denominador: totalPatients,         // total cadastrado (denominador fixo do card)
     porcentagem: monthsWithData > 0 ? (mediaConsultas / totalPatients) * 100 : 0,
   };
 }
@@ -342,8 +345,14 @@ function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): Ra
     }).length;
   });
 
+  // Numerador  = soma das escovações realizadas nos meses do quadrimestre
+  // Denominador = total de pacientes cadastrados (denominador fixo do card)
   const media = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
-  return { numerador: media, denominador: totalPatients, porcentagem: monthsWithData > 0 ? (media / totalPatients) * 100 : 0 };
+  return {
+    numerador: totalConsultas,        // soma no quadrimestre
+    denominador: totalPatients,       // total cadastrado
+    porcentagem: monthsWithData > 0 ? (media / totalPatients) * 100 : 0,
+  };
 }
 
 function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCalc {
