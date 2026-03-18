@@ -55,6 +55,11 @@ function getNotaFinalBg(nota: number): string {
   return "bg-gradient-to-br from-red-100 to-red-50 border-red-200";
 }
 
+/** Formata número: se inteiro mostra sem decimais, senão 1 decimal */
+function fmtNum(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
 const ResultTable = ({ result, title }: { result: EquipeResult; title: string }) => (
   <Card className="border shadow-md">
     <CardHeader className="pb-3">
@@ -70,6 +75,8 @@ const ResultTable = ({ result, title }: { result: EquipeResult; title: string })
             <TableRow>
               <TableHead className="font-semibold">Indicador (A)</TableHead>
               <TableHead className="text-center font-semibold">Peso (B)</TableHead>
+              <TableHead className="text-center font-semibold">Numerador</TableHead>
+              <TableHead className="text-center font-semibold">Denominador</TableHead>
               <TableHead className="text-center font-semibold">% Obtido</TableHead>
               <TableHead className="text-center font-semibold">Conceito</TableHead>
               <TableHead className="text-center font-semibold">Nota</TableHead>
@@ -81,6 +88,8 @@ const ResultTable = ({ result, title }: { result: EquipeResult; title: string })
               <TableRow key={idx}>
                 <TableCell className="font-medium">{ind.indicador}</TableCell>
                 <TableCell className="text-center">{ind.peso}</TableCell>
+                <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
+                <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
                 <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
                 <TableCell className="text-center">
                   <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
@@ -94,6 +103,8 @@ const ResultTable = ({ result, title }: { result: EquipeResult; title: string })
             <TableRow className="bg-muted/30 font-bold">
               <TableCell>Total</TableCell>
               <TableCell className="text-center">10</TableCell>
+              <TableCell />
+              <TableCell />
               <TableCell />
               <TableCell />
               <TableCell className="text-center">Nota Final</TableCell>
@@ -144,6 +155,7 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
           </SelectContent>
         </Select>
       </div>
+
       {/* Ranking Cards */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
