@@ -110,8 +110,8 @@ const INDICADORES = [
    { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
    { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
    { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-   { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
-   { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
+   { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB5 }, // usa critérios B5
+   { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB4 }, // usa critérios B4
    { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
 ];
 
@@ -189,13 +189,10 @@ function calcB1(allPatients: Patient[], quad: Quadrimestre, equipe?: string): Ra
     }).length;
   });
 
-  // Numerador  = total de primeiras consultas realizadas nos meses do quadrimestre
-  // Denominador = total de pacientes cadastrados (source.length)
-  // Porcentagem = média mensal (numerador / meses / totalPatients * 100) — igual ao card
   const mediaConsultas = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
   return {
-    numerador: totalConsultas,          // soma das consultas no quadrimestre
-    denominador: totalPatients,         // total cadastrado (denominador fixo do card)
+    numerador: totalConsultas,
+    denominador: totalPatients,
     porcentagem: monthsWithData > 0 ? (mediaConsultas / totalPatients) * 100 : 0,
   };
 }
@@ -345,12 +342,10 @@ function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): Ra
     }).length;
   });
 
-  // Numerador  = soma das escovações realizadas nos meses do quadrimestre
-  // Denominador = total de pacientes cadastrados (denominador fixo do card)
   const media = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
   return {
-    numerador: totalConsultas,        // soma no quadrimestre
-    denominador: totalPatients,       // total cadastrado
+    numerador: totalConsultas,
+    denominador: totalPatients,
     porcentagem: monthsWithData > 0 ? (media / totalPatients) * 100 : 0,
   };
 }
