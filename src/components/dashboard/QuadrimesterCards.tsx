@@ -5,7 +5,7 @@ import { parse, isValid, getMonth, getYear } from "date-fns";
 
 interface QuadrimesterCardsProps {
   patients: Patient[];
-  totalPatients: number;
+  totalPatients: number; // mantido por compatibilidade, mas não usado como denominador
   quadFiltered?: string;
 }
 
@@ -33,11 +33,11 @@ const getScoreCategory = (percentage: number): ScoreCategory => {
 
 const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
-    case "regular": return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500", icon: "text-red-600", label: "text-red-700", count: "text-red-700" };
-    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
-    case "bom": return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
-    case "otimo": return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
-    default: return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
+    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",     icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
+    case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",   icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
+    default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
@@ -45,7 +45,7 @@ interface Quadrimester {
   label: string;
   months: number[];
   year: number;
-  quadKey: string; // ex: "Q1-2026"
+  quadKey: string;
 }
 
 const getQuadrimesterForMonth = (month: number): number => {
@@ -54,7 +54,8 @@ const getQuadrimesterForMonth = (month: number): number => {
   return 3;
 };
 
-const getQuadrimesterLabel = (quadNum: number, year: number): string => `${quadNum}º Quad/${year}`;
+const getQuadrimesterLabel = (quadNum: number, year: number): string =>
+  `${quadNum}º Quad/${year}`;
 
 const getQuadrimesterMonths = (quadNum: number): number[] => {
   switch (quadNum) {
@@ -65,21 +66,24 @@ const getQuadrimesterMonths = (quadNum: number): number[] => {
   }
 };
 
-export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "todos" }: QuadrimesterCardsProps) => {
+export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: QuadrimesterCardsProps) => {
   const now = new Date();
   const currentMonth = getMonth(now);
-  const currentYear = getYear(now);
-  const currentQuad = getQuadrimesterForMonth(currentMonth);
+  const currentYear  = getYear(now);
+  const currentQuad  = getQuadrimesterForMonth(currentMonth);
+
+  // ── Denominador correto: total de pacientes cadastrados (sem filtro de data) ──
+  const totalCadastrados = patients.length;
 
   const quadrimesters: Quadrimester[] = [];
   let quad = currentQuad;
   let year = currentYear;
   for (let i = 0; i < 3; i++) {
     quadrimesters.push({
-      label: getQuadrimesterLabel(quad, year),
-      months: getQuadrimesterMonths(quad),
+      label:   getQuadrimesterLabel(quad, year),
+      months:  getQuadrimesterMonths(quad),
       year,
-      quadKey: `Q${quad}-${year}`
+      quadKey: `Q${quad}-${year}`,
     });
     quad--;
     if (quad < 1) { quad = 3; year--; }
@@ -87,37 +91,38 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
   quadrimesters.reverse();
 
   const quadCounts = quadrimesters.map(q => {
+    // Conta primeiras consultas realizadas nos meses do quadrimestre
     let count = 0;
     patients.forEach(patient => {
-      const consultaDate = parseConsultaDate(patient.primeiraConsulta);
-      if (consultaDate) {
-        const consultaMonth = getMonth(consultaDate);
-        const consultaYear = getYear(consultaDate);
-        if (consultaYear === q.year && q.months.includes(consultaMonth)) count++;
-      }
+      const d = parseConsultaDate(patient.primeiraConsulta);
+      if (d && getYear(d) === q.year && q.months.includes(getMonth(d))) count++;
     });
 
+    // Meses já decorridos neste quadrimestre
     let monthsWithData = 0;
     q.months.forEach(m => {
-      if (q.year < currentYear || (q.year === currentYear && m <= currentMonth)) monthsWithData++;
+      if (q.year < currentYear || (q.year === currentYear && m <= currentMonth))
+        monthsWithData++;
     });
 
     const average = monthsWithData > 0 ? count / monthsWithData : 0;
     return { ...q, total: count, average, monthsWithData };
   });
 
-  // Filter by selected quadrimester
   const visibleCards = quadFiltered !== "todos"
     ? quadCounts.filter(q => q.quadKey === quadFiltered)
     : quadCounts;
 
   return <>
     {visibleCards.map(quad => {
+      // % = (média mensal de consultas) / (total cadastrados) * 100
+      // — mesmo cálculo de calcB1 em useResultadoFinal
       const percentage = quad.monthsWithData > 0
-  ? (quad.total / quad.monthsWithData / totalPatients) * 100
-  : 0;
+        ? (quad.total / quad.monthsWithData / totalCadastrados) * 100
+        : 0;
       const category = getScoreCategory(percentage);
-      const styles = getScoreStyles(category);
+      const styles   = getScoreStyles(category);
+
       return (
         <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
           <CardContent className="p-4">
@@ -126,7 +131,8 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
               <span className={`text-sm font-medium ${styles.label}`}>{quad.label}</span>
             </div>
             <p className={`text-3xl font-bold ${styles.count}`}>{quad.total}</p>
-            <p className="text-xs text-muted-foreground mt-1">de {totalPatients}</p>
+            {/* Denominador = total cadastrado, igual ao useResultadoFinal */}
+            <p className="text-xs text-muted-foreground mt-1">de {totalCadastrados}</p>
             <p className="text-xs text-muted-foreground">Média/mês: {quad.average.toFixed(1)}</p>
             <p className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</p>
           </CardContent>
