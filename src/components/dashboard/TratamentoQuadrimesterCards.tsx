@@ -23,12 +23,13 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
   return null;
 };
 
+// Critérios B2 — Tratamento Concluído: Regular ≤25%, Suficiente >25% e ≤50%, Bom >50% e ≤75%, Ótimo >75%
 const getScoreCategory = (percentage: number, total: number): string => {
   if (total === 0) return "none";
-  if (percentage >= 80 && percentage <= 85) return "otimo";
-  if (percentage >= 60 && percentage < 80) return "bom";
-  if (percentage >= 40 && percentage < 60) return "suficiente";
-  return "regular"; // < 40 ou > 85
+  if (percentage > 75) return "otimo";
+  if (percentage > 50) return "bom";
+  if (percentage > 25) return "suficiente";
+  return "regular";
 };
 
 const getScoreStyles = (category: string) => {
@@ -61,7 +62,7 @@ export const TratamentoQuadrimesterCards = ({
     const result: {
       label: string;
       total: number;
-      totalConsultasQuad: number; // denominador correto: 1ªs consultas no quadrimestre
+      totalConsultasQuad: number;
       average: number;
       months: number;
       percentage: number;
@@ -85,19 +86,16 @@ export const TratamentoQuadrimesterCards = ({
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
-      // Total de tratamentos concluídos no quadrimestre
       const tratamentoCount = patients.filter(p => {
         const d = parseTratamentoDate(p.tratamentoConcluido);
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
-      // Total de primeiras consultas no quadrimestre (denominador correto)
       const consultasQuad = allPatients.filter(p => {
         const d = parseTratamentoDate(p.primeiraConsulta);
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
-      // Percentual = média mensal de (tratamentos/consultas) — igual ao calcB2
       const monthlyPcts: number[] = [];
       for (let m = startMonth; m <= actualEndMonth; m++) {
         const mStart = startOfMonth(new Date(targetYear, m, 1));
@@ -154,7 +152,6 @@ export const TratamentoQuadrimesterCards = ({
                   <span className={`text-xs font-medium ${styles.label}`}>{label}</span>
                 </div>
                 <span className={`text-3xl font-bold ${styles.count}`}>{total}</span>
-                {/* Denominador = 1ªs consultas realizadas no próprio quadrimestre */}
                 <span className="text-xs text-muted-foreground mt-1">de {totalConsultasQuad}</span>
                 <span className="text-xs text-muted-foreground">Média/mês: {average.toFixed(1)}</span>
                 <span className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</span>
