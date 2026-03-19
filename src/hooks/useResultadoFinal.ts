@@ -40,7 +40,7 @@ const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set
 export type Conceito = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
 export interface MesDetalhe {
-  mes: string;       // ex: "Set/2025"
+  mes: string;
   numerador: number;
   denominador: number;
   porcentagem: number;
@@ -103,10 +103,10 @@ const getConceitoB4 = (pct: number): Conceito => {
 
 // Escovação Supervisionada
 const getConceitoB5 = (pct: number): Conceito => {
-  if (pct <= 0)    return "none";
-  if (pct > 1)     return "otimo";
-  if (pct > 0.5)   return "bom";
-  if (pct > 0.25)  return "suficiente";
+  if (pct <= 0)   return "none";
+  if (pct > 1)    return "otimo";
+  if (pct > 0.5)  return "bom";
+  if (pct > 0.25) return "suficiente";
   return "regular";
 };
 
@@ -165,7 +165,7 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-// ── Cálculos ──────────────────────────────────────────────────────────────────
+// ── Cálculos — % = sumNumerador / sumDenominador (divisão direta) ─────────────
 
 function calcB1(allPatients: Patient[], quad: Quadrimestre, equipe?: string): RawCalc {
   const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
@@ -184,34 +184,31 @@ function calcB1(allPatients: Patient[], quad: Quadrimestre, equipe?: string): Ra
     });
     if (byMonth.size === 0) return { numerador: 0, denominador: totalPatients, porcentagem: 0, mesesDetalhe: [] };
     const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
-    const mediaConsultas = totalConsultas / byMonth.size;
-    return { numerador: mediaConsultas, denominador: totalPatients, porcentagem: (mediaConsultas / totalPatients) * 100, mesesDetalhe: [] };
+    return { numerador: totalConsultas, denominador: totalPatients, porcentagem: (totalConsultas / totalPatients) * 100, mesesDetalhe: [] };
   }
 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let totalConsultas = 0, monthsWithData = 0;
+  let sumNum = 0;
   const mesesDetalhe: MesDetalhe[] = [];
 
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
-    monthsWithData++;
     const count = source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
-    totalConsultas += count;
-    const pct = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: pct });
+    sumNum += count;
+    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: totalPatients > 0 ? (count / totalPatients) * 100 : 0 });
   });
 
-  const mediaConsultas = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
+  // % = sumNumerador / denominador (total cadastrados)
   return {
-    numerador: totalConsultas,
+    numerador: sumNum,
     denominador: totalPatients,
-    porcentagem: monthsWithData > 0 ? (mediaConsultas / totalPatients) * 100 : 0,
+    porcentagem: totalPatients > 0 ? (sumNum / totalPatients) * 100 : 0,
     mesesDetalhe,
   };
 }
@@ -223,6 +220,7 @@ function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: st
   const currentMonth = now.getMonth();
 
   if (quad === "todos") {
+    let sumTrat = 0, sumCons = 0;
     const consultaByMonth = new Map<string, number>();
     const tratamentoByMonth = new Map<string, number>();
     source.forEach(p => {
@@ -231,20 +229,17 @@ function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: st
       if (dCons) { const k = `${getMonth(dCons)}-${getYear(dCons)}`; consultaByMonth.set(k, (consultaByMonth.get(k) || 0) + 1); }
       if (dTrat) { const k = `${getMonth(dTrat)}-${getYear(dTrat)}`; tratamentoByMonth.set(k, (tratamentoByMonth.get(k) || 0) + 1); }
     });
-    let totalTrat = 0, totalCons = 0, months = 0;
     consultaByMonth.forEach((consultas, key) => {
       const tratamentos = tratamentoByMonth.get(key) || 0;
-      if (consultas > 0) { totalTrat += tratamentos; totalCons += consultas; months++; }
+      if (consultas > 0) { sumTrat += tratamentos; sumCons += consultas; }
     });
-    const pct = months > 0 ? (totalTrat / totalCons) * 100 : 0;
-    return { numerador: totalTrat / (months || 1), denominador: totalCons / (months || 1), porcentagem: pct, mesesDetalhe: [] };
+    return { numerador: sumTrat, denominador: sumCons, porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0, mesesDetalhe: [] };
   }
 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
   let sumTrat = 0, sumCons = 0;
-  const monthlyPcts: number[] = [];
   const mesesDetalhe: MesDetalhe[] = [];
 
   months.forEach((m) => {
@@ -252,37 +247,21 @@ function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: st
     if (!isCurrentOrPast) return;
     const mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
     const mCons = source.filter(p => { const d = parseDate(p.primeiraConsulta); return d && getMonth(d) === m && getYear(d) === year; }).length;
-    if (mCons > 0) {
-      sumTrat += mTrat; sumCons += mCons;
-      const pct = (mTrat / mCons) * 100;
-      monthlyPcts.push(pct);
-      mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: mTrat, denominador: mCons, porcentagem: pct });
-    } else {
-      mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: mTrat, denominador: mCons, porcentagem: 0 });
-    }
+    sumTrat += mTrat;
+    sumCons += mCons;
+    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: mTrat, denominador: mCons, porcentagem: mCons > 0 ? (mTrat / mCons) * 100 : 0 });
   });
 
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumTrat, denominador: sumCons, porcentagem: pct, mesesDetalhe };
+  // % = sumTrat / sumCons (divisão direta)
+  return { numerador: sumTrat, denominador: sumCons, porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0, mesesDetalhe };
 }
 
 function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCalc {
   const source = equipe ? tab3.filter((r) => r.equipe === equipe) : tab3;
 
   if (quad === "todos") {
-    const byMonth = new Map<string, { exodontias: number; total: number }>();
-    source.forEach(r => {
-      const parts = r.mesAno.split("/");
-      const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-      const ano = parseInt(parts[1]);
-      if (mesIdx === undefined) return;
-      const k = `${mesIdx}-${ano}`;
-      const ex = byMonth.get(k) || { exodontias: 0, total: 0 };
-      ex.exodontias += r.exodontias; ex.total += r.totalAtendimentos;
-      byMonth.set(k, ex);
-    });
     let sumExo = 0, sumTot = 0;
-    byMonth.forEach(({ exodontias, total }) => { sumExo += exodontias; sumTot += total; });
+    source.forEach(r => { sumExo += r.exodontias; sumTot += r.totalAtendimentos; });
     return { numerador: sumExo, denominador: sumTot, porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0, mesesDetalhe: [] };
   }
 
@@ -299,36 +278,24 @@ function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCal
     ex.exodontias += r.exodontias; ex.total += r.totalAtendimentos;
     byMonth.set(mesIdx, ex);
   });
+
   let sumExo = 0, sumTot = 0;
-  const monthlyPcts: number[] = [];
   const mesesDetalhe: MesDetalhe[] = [];
   months.forEach((m) => {
     const data = byMonth.get(m) || { exodontias: 0, total: 0 };
-    const pct = data.total > 0 ? (data.exodontias / data.total) * 100 : 0;
-    if (data.total > 0) { sumExo += data.exodontias; sumTot += data.total; monthlyPcts.push(pct); }
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.exodontias, denominador: data.total, porcentagem: pct });
+    sumExo += data.exodontias; sumTot += data.total;
+    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.exodontias, denominador: data.total, porcentagem: data.total > 0 ? (data.exodontias / data.total) * 100 : 0 });
   });
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumExo, denominador: sumTot, porcentagem: pct, mesesDetalhe };
+
+  return { numerador: sumExo, denominador: sumTot, porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0, mesesDetalhe };
 }
 
 function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCalc {
   const source = equipe ? tab5.filter((r) => r.equipe === equipe) : tab5;
 
   if (quad === "todos") {
-    const byMonth = new Map<string, { preventivos: number; total: number }>();
-    source.forEach(r => {
-      const parts = r.mesAno.split("/");
-      const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-      const ano = parseInt(parts[1]);
-      if (mesIdx === undefined) return;
-      const k = `${mesIdx}-${ano}`;
-      const ex = byMonth.get(k) || { preventivos: 0, total: 0 };
-      ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
-      byMonth.set(k, ex);
-    });
     let sumPrev = 0, sumTot = 0;
-    byMonth.forEach(({ preventivos, total }) => { sumPrev += preventivos; sumTot += total; });
+    source.forEach(r => { sumPrev += r.preventivos; sumTot += r.totalIndividuais; });
     return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0, mesesDetalhe: [] };
   }
 
@@ -345,17 +312,16 @@ function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCal
     ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
     byMonth.set(mesIdx, ex);
   });
+
   let sumPrev = 0, sumTot = 0;
-  const monthlyPcts: number[] = [];
   const mesesDetalhe: MesDetalhe[] = [];
   months.forEach((m) => {
     const data = byMonth.get(m) || { preventivos: 0, total: 0 };
-    const pct = data.total > 0 ? (data.preventivos / data.total) * 100 : 0;
-    if (data.total > 0) { sumPrev += data.preventivos; sumTot += data.total; monthlyPcts.push(pct); }
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.preventivos, denominador: data.total, porcentagem: pct });
+    sumPrev += data.preventivos; sumTot += data.total;
+    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.preventivos, denominador: data.total, porcentagem: data.total > 0 ? (data.preventivos / data.total) * 100 : 0 });
   });
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumPrev, denominador: sumTot, porcentagem: pct, mesesDetalhe };
+
+  return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0, mesesDetalhe };
 }
 
 function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): RawCalc {
@@ -375,34 +341,31 @@ function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): Ra
     });
     if (byMonth.size === 0) return { numerador: 0, denominador: totalPatients, porcentagem: 0, mesesDetalhe: [] };
     const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
-    const media = totalConsultas / byMonth.size;
-    return { numerador: media, denominador: totalPatients, porcentagem: (media / totalPatients) * 100, mesesDetalhe: [] };
+    return { numerador: totalConsultas, denominador: totalPatients, porcentagem: (totalConsultas / totalPatients) * 100, mesesDetalhe: [] };
   }
 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let totalConsultas = 0, monthsWithData = 0;
+  let sumNum = 0;
   const mesesDetalhe: MesDetalhe[] = [];
 
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
-    monthsWithData++;
     const count = source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
-    totalConsultas += count;
-    const pct = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: pct });
+    sumNum += count;
+    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: totalPatients > 0 ? (count / totalPatients) * 100 : 0 });
   });
 
-  const media = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
+  // % = sumNumerador / denominador (total cadastrados)
   return {
-    numerador: totalConsultas,
+    numerador: sumNum,
     denominador: totalPatients,
-    porcentagem: monthsWithData > 0 ? (media / totalPatients) * 100 : 0,
+    porcentagem: totalPatients > 0 ? (sumNum / totalPatients) * 100 : 0,
     mesesDetalhe,
   };
 }
@@ -411,19 +374,8 @@ function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCal
   const source = equipe ? tab6.filter((r) => r.equipe === equipe) : tab6;
 
   if (quad === "todos") {
-    const byMonth = new Map<string, { exodontias: number; total: number }>();
-    source.forEach(r => {
-      const parts = r.mesAno.split("/");
-      const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-      const ano = parseInt(parts[1]);
-      if (mesIdx === undefined) return;
-      const k = `${mesIdx}-${ano}`;
-      const ex = byMonth.get(k) || { exodontias: 0, total: 0 };
-      ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
-      byMonth.set(k, ex);
-    });
     let sumArt = 0, sumTot = 0;
-    byMonth.forEach(({ exodontias, total }) => { sumArt += exodontias; sumTot += total; });
+    source.forEach(r => { sumArt += r.exodontias; sumTot += r.totalProcedimentos; });
     return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe: [] };
   }
 
@@ -440,17 +392,16 @@ function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCal
     ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
     byMonth.set(mesIdx, ex);
   });
+
   let sumArt = 0, sumTot = 0;
-  const monthlyPcts: number[] = [];
   const mesesDetalhe: MesDetalhe[] = [];
   months.forEach((m) => {
     const data = byMonth.get(m) || { exodontias: 0, total: 0 };
-    const pct = data.total > 0 ? (data.exodontias / data.total) * 100 : 0;
-    if (data.total > 0) { sumArt += data.exodontias; sumTot += data.total; monthlyPcts.push(pct); }
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.exodontias, denominador: data.total, porcentagem: pct });
+    sumArt += data.exodontias; sumTot += data.total;
+    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.exodontias, denominador: data.total, porcentagem: data.total > 0 ? (data.exodontias / data.total) * 100 : 0 });
   });
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumArt, denominador: sumTot, porcentagem: pct, mesesDetalhe };
+
+  return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe };
 }
 
 // ── hook principal ────────────────────────────────────────────────────────────
