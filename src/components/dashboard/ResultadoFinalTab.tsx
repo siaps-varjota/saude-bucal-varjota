@@ -1,502 +1,286 @@
-import { useMemo } from "react";
-import { parse, isValid, getMonth, getYear } from "date-fns";
-import { Patient } from "@/hooks/usePatientData";
-import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { Tab3Record } from "@/hooks/useTab3Data";
-import { Tab4Patient } from "@/hooks/useTab4Data";
-import { Tab5Record } from "@/hooks/useTab5Data";
-import { Tab6Record } from "@/hooks/useTab6Data";
-import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trophy, Award, Filter, ChevronDown, ChevronRight } from "lucide-react";
+import { EquipeResult, Conceito } from "@/hooks/useResultadoFinal";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-const parseDate = (val: string): Date | null => {
-  if (!val || val === "-" || val.trim() === "") return null;
-  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-  for (const fmt of formats) {
-    try {
-      const parsed = parse(val.trim(), fmt, new Date());
-      if (isValid(parsed)) return parsed;
-    } catch { continue; }
-  }
-  return null;
-};
-
-const QUAD_MONTHS: Record<string, number[]> = {
-  Q1: [0, 1, 2, 3],
-  Q2: [4, 5, 6, 7],
-  Q3: [8, 9, 10, 11],
-};
-
-const MONTH_NAME_TO_NUM: Record<string, number> = {
-  janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
-  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
-};
-
-const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-// ── tipos e constantes ────────────────────────────────────────────────────────
-
-export type Conceito = "regular" | "suficiente" | "bom" | "otimo" | "none";
-
-export interface MesDetalhe {
-  mes: string;       // ex: "Set/2025"
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-}
-
-export interface IndicadorResult {
-  indicador: string;
-  peso: number;
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-  conceito: Conceito;
-  nota: number;
-  notaFinal: number;
-  mesesDetalhe: MesDetalhe[];
-}
-
-export interface EquipeResult {
+interface ResultadoFinalTabProps {
+  geral: EquipeResult;
+  porEquipe: EquipeResult[];
+  quadrimestre: Quadrimestre;
+  onQuadrimestreChange: (q: Quadrimestre) => void;
   equipe: string;
-  indicadores: IndicadorResult[];
-  notaFinal: number;
+  onEquipeChange: (e: string) => void;
+  equipeOptions: string[];
 }
 
-const CONCEITO_SCORES: Record<Conceito, number> = {
-  regular: 0.25, suficiente: 0.50, bom: 0.75, otimo: 1.00, none: 0,
+const CONCEITO_LABELS: Record<Conceito, string> = {
+  regular: "Regular",
+  suficiente: "Suficiente",
+  bom: "Bom",
+  otimo: "Ótimo",
+  none: "-",
 };
 
-const getConceitoB1 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct <= 1) return "regular";
-  if (pct <= 3) return "suficiente";
-  if (pct <= 5) return "bom";
-  return "otimo";
+const CONCEITO_COLORS: Record<Conceito, string> = {
+  regular: "bg-red-100 text-red-700 border-red-200",
+  suficiente: "bg-amber-100 text-amber-700 border-amber-200",
+  bom: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  otimo: "bg-blue-100 text-blue-700 border-blue-200",
+  none: "bg-muted text-muted-foreground border-border",
 };
 
-const getConceitoB2 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct <= 25) return "regular";
-  if (pct <= 50) return "suficiente";
-  if (pct <= 75) return "bom";
-  return "otimo";
+const NOTA_SCORE: Record<Conceito, string> = {
+  regular: "0,25",
+  suficiente: "0,50",
+  bom: "0,75",
+  otimo: "1,00",
+  none: "0,00",
 };
 
-const getConceitoB3 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct >= 8 && pct <= 10) return "otimo";
-  if (pct > 10 && pct < 12) return "bom";
-  if (pct >= 12 && pct < 14) return "suficiente";
-  return "regular";
-};
-
-// Proced. Odont. Preventivos
-const getConceitoB4 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct >= 80 && pct <= 85) return "otimo";
-  if (pct >= 60 && pct < 80)  return "bom";
-  if (pct >= 40 && pct < 60)  return "suficiente";
-  return "regular";
-};
-
-// Escovação Supervisionada
-const getConceitoB5 = (pct: number): Conceito => {
-  if (pct <= 0)    return "none";
-  if (pct > 1)     return "otimo";
-  if (pct > 0.5)   return "bom";
-  if (pct > 0.25)  return "suficiente";
-  return "regular";
-};
-
-const getConceitoB6 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct > 8) return "otimo";
-  if (pct > 6) return "bom";
-  if (pct > 3) return "suficiente";
-  return "regular";
-};
-
-const INDICADORES = [
-  { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
-  { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
-  { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-  { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
-  { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
-  { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
-];
-
-interface RawCalc {
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-  mesesDetalhe: MesDetalhe[];
+function getNotaFinalColor(nota: number): string {
+  if (nota >= 7.5) return "text-blue-700";
+  if (nota >= 5) return "text-emerald-700";
+  if (nota >= 2.5) return "text-amber-700";
+  return "text-red-700";
 }
 
-function buildIndicador(key: string, raw: RawCalc): IndicadorResult {
-  const config = INDICADORES.find((i) => i.key === key)!;
-  const conceito = config.getConceito(raw.porcentagem);
-  const nota = CONCEITO_SCORES[conceito];
-  return {
-    indicador: config.label,
-    peso: config.peso,
-    numerador: Math.round(raw.numerador),
-    denominador: Math.round(raw.denominador),
-    porcentagem: raw.porcentagem,
-    conceito,
-    nota,
-    notaFinal: nota * config.peso,
-    mesesDetalhe: raw.mesesDetalhe,
+function getNotaFinalBg(nota: number): string {
+  if (nota >= 7.5) return "bg-gradient-to-br from-blue-100 to-blue-50 border-blue-200";
+  if (nota >= 5) return "bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-200";
+  if (nota >= 2.5) return "bg-gradient-to-br from-amber-100 to-amber-50 border-amber-200";
+  return "bg-gradient-to-br from-red-100 to-red-50 border-red-200";
+}
+
+function fmtNum(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+const ResultTable = ({ result, title, showMeses }: { result: EquipeResult; title: string; showMeses: boolean }) => {
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (idx: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
   };
-}
 
-function getAllEquipes(
-  patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
-  tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[]
-): string[] {
-  const set = new Set<string>();
-  patients.forEach((p) => p.equipe && set.add(p.equipe));
-  tratamento.forEach((p) => p.equipe && set.add(p.equipe));
-  tab3.forEach((r) => set.add(r.equipe));
-  tab4.forEach((p) => p.equipe && set.add(p.equipe));
-  tab5.forEach((r) => set.add(r.equipe));
-  tab6.forEach((r) => set.add(r.equipe));
-  return Array.from(set).sort();
-}
+  return (
+    <Card className="border shadow-md">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Trophy className="h-5 w-5 text-primary" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {showMeses && <TableHead className="w-8" />}
+                <TableHead className="font-semibold">Indicador (A)</TableHead>
+                <TableHead className="text-center font-semibold">Peso (B)</TableHead>
+                <TableHead className="text-center font-semibold">Numerador</TableHead>
+                <TableHead className="text-center font-semibold">Denominador</TableHead>
+                <TableHead className="text-center font-semibold">% Obtido</TableHead>
+                <TableHead className="text-center font-semibold">Conceito</TableHead>
+                <TableHead className="text-center font-semibold">Nota</TableHead>
+                <TableHead className="text-center font-semibold">A × B</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {result.indicadores.map((ind, idx) => {
+                const isExpanded = expandedRows.has(idx);
+                const hasMeses = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+                return (
+                  <>
+                    <TableRow
+                      key={idx}
+                      className={hasMeses ? "cursor-pointer hover:bg-muted/40" : ""}
+                      onClick={() => hasMeses && toggleRow(idx)}
+                    >
+                      {showMeses && (
+                        <TableCell className="w-8 pr-0">
+                          {hasMeses ? (
+                            isExpanded
+                              ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          ) : null}
+                        </TableCell>
+                      )}
+                      <TableCell className="font-medium">{ind.indicador}</TableCell>
+                      <TableCell className="text-center">{ind.peso}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
+                      <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
+                          {CONCEITO_LABELS[ind.conceito]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
+                      <TableCell className="text-center font-mono font-semibold">{ind.notaFinal.toFixed(2).replace(".", ",")}</TableCell>
+                    </TableRow>
 
-// ── Cálculos ──────────────────────────────────────────────────────────────────
+                    {/* Detalhe mensal expansível */}
+                    {hasMeses && isExpanded && (
+                      <TableRow key={`${idx}-detail`} className="bg-muted/20">
+                        <TableCell colSpan={showMeses ? 9 : 8} className="py-2 px-4">
+                          <div className="flex flex-wrap gap-3">
+                            {ind.mesesDetalhe.map((mes) => (
+                              <div
+                                key={mes.mes}
+                                className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 min-w-[90px] shadow-sm"
+                              >
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{mes.mes}</span>
+                                <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+                                <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
+                                <span className="text-xs font-medium text-primary mt-0.5">{mes.porcentagem.toFixed(1)}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
+              <TableRow className="bg-muted/30 font-bold">
+                {showMeses && <TableCell />}
+                <TableCell>Total</TableCell>
+                <TableCell className="text-center">10</TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell />
+                <TableCell />
+                <TableCell className="text-center">Nota Final</TableCell>
+                <TableCell className={`text-center text-lg font-mono ${getNotaFinalColor(result.notaFinal)}`}>
+                  {result.notaFinal.toFixed(2).replace(".", ",")}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
-function calcB1(allPatients: Patient[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
-  const totalPatients = source.length;
-  if (totalPatients === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
+export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimestreChange, equipe, onEquipeChange, equipeOptions }: ResultadoFinalTabProps) => {
+  const sortedEquipes = useMemo(
+    () => [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal),
+    [porEquipe]
+  );
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  // Só mostra detalhe mensal quando um quadrimestre específico está selecionado
+  const showMeses = quadrimestre !== "todos";
 
-  if (quad === "todos") {
-    const byMonth = new Map<string, number>();
-    source.forEach(p => {
-      const d = parseDate(p.primeiraConsulta);
-      if (d) { const key = `${getMonth(d)}-${getYear(d)}`; byMonth.set(key, (byMonth.get(key) || 0) + 1); }
-    });
-    if (byMonth.size === 0) return { numerador: 0, denominador: totalPatients, porcentagem: 0, mesesDetalhe: [] };
-    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
-    const mediaConsultas = totalConsultas / byMonth.size;
-    return { numerador: mediaConsultas, denominador: totalPatients, porcentagem: (mediaConsultas / totalPatients) * 100, mesesDetalhe: [] };
-  }
+  return (
+    <div className="space-y-8">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+        </div>
+        <Select value={equipe} onValueChange={onEquipeChange}>
+          <SelectTrigger className="w-[200px] h-9">
+            <SelectValue placeholder="Selecione a equipe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Equipes</SelectItem>
+            {equipeOptions.map((eq) => (
+              <SelectItem key={eq} value={eq}>{eq}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={quadrimestre} onValueChange={(v) => onQuadrimestreChange(v as Quadrimestre)}>
+          <SelectTrigger className="w-[260px] h-9">
+            <SelectValue placeholder="Selecione o quadrimestre" />
+          </SelectTrigger>
+          <SelectContent>
+            {QUADRIMESTRE_OPTIONS_SEM_TODOS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let totalConsultas = 0, monthsWithData = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
+      {/* Ranking Cards */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
+          <CardContent className="p-3 text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Trophy className="h-4 w-4 text-primary" />
+              <span className="text-xs font-bold uppercase text-primary">Geral</span>
+            </div>
+            <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(geral.notaFinal)}`}>
+              {geral.notaFinal.toFixed(2).replace(".", ",")}
+            </p>
+            <p className="text-muted-foreground text-xs">Nota Final</p>
+          </CardContent>
+        </Card>
+        {sortedEquipes.map((eq, idx) => (
+          <Card key={eq.equipe} className={`border shadow-md ${getNotaFinalBg(eq.notaFinal)} border-l-4`}>
+            <CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Award className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
+              </div>
+              <p className="text-xs font-semibold truncate mb-1">{eq.equipe}</p>
+              <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(eq.notaFinal)}`}>
+                {eq.notaFinal.toFixed(2).replace(".", ",")}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
-    monthsWithData++;
-    const count = source.filter((p) => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year;
-    }).length;
-    totalConsultas += count;
-    const pct = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: pct });
-  });
+      {/* Geral Table */}
+      <ResultTable result={geral} title="Resultado Geral" showMeses={showMeses} />
 
-  const mediaConsultas = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
-  return {
-    numerador: totalConsultas,
-    denominador: totalPatients,
-    porcentagem: monthsWithData > 0 ? (mediaConsultas / totalPatients) * 100 : 0,
-    mesesDetalhe,
-  };
-}
+      {/* Legend */}
+      <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
+        <span className="font-medium text-muted-foreground">Conceito no Indicador:</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span>
+          <span className="text-red-600 text-xs">= 0,25</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span>
+          <span className="text-amber-600 text-xs">= 0,50</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span>
+          <span className="text-emerald-600 text-xs">= 0,75</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span>
+          <span className="text-blue-600 text-xs">= 1,00</span>
+        </div>
+        {showMeses && (
+          <span className="text-muted-foreground text-xs ml-2">
+            · Clique em uma linha para ver o detalhe mensal
+          </span>
+        )}
+      </div>
 
-function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tratamento.filter((p) => p.equipe === equipe) : tratamento;
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-
-  if (quad === "todos") {
-    const consultaByMonth = new Map<string, number>();
-    const tratamentoByMonth = new Map<string, number>();
-    source.forEach(p => {
-      const dCons = parseDate(p.primeiraConsulta);
-      const dTrat = parseDate(p.tratamentoConcluido);
-      if (dCons) { const k = `${getMonth(dCons)}-${getYear(dCons)}`; consultaByMonth.set(k, (consultaByMonth.get(k) || 0) + 1); }
-      if (dTrat) { const k = `${getMonth(dTrat)}-${getYear(dTrat)}`; tratamentoByMonth.set(k, (tratamentoByMonth.get(k) || 0) + 1); }
-    });
-    let totalTrat = 0, totalCons = 0, months = 0;
-    consultaByMonth.forEach((consultas, key) => {
-      const tratamentos = tratamentoByMonth.get(key) || 0;
-      if (consultas > 0) { totalTrat += tratamentos; totalCons += consultas; months++; }
-    });
-    const pct = months > 0 ? (totalTrat / totalCons) * 100 : 0;
-    return { numerador: totalTrat / (months || 1), denominador: totalCons / (months || 1), porcentagem: pct, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let sumTrat = 0, sumCons = 0;
-  const monthlyPcts: number[] = [];
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
-    const mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
-    const mCons = source.filter(p => { const d = parseDate(p.primeiraConsulta); return d && getMonth(d) === m && getYear(d) === year; }).length;
-    if (mCons > 0) {
-      sumTrat += mTrat; sumCons += mCons;
-      const pct = (mTrat / mCons) * 100;
-      monthlyPcts.push(pct);
-      mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: mTrat, denominador: mCons, porcentagem: pct });
-    } else {
-      mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: mTrat, denominador: mCons, porcentagem: 0 });
-    }
-  });
-
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumTrat, denominador: sumCons, porcentagem: pct, mesesDetalhe };
-}
-
-function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab3.filter((r) => r.equipe === equipe) : tab3;
-
-  if (quad === "todos") {
-    const byMonth = new Map<string, { exodontias: number; total: number }>();
-    source.forEach(r => {
-      const parts = r.mesAno.split("/");
-      const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-      const ano = parseInt(parts[1]);
-      if (mesIdx === undefined) return;
-      const k = `${mesIdx}-${ano}`;
-      const ex = byMonth.get(k) || { exodontias: 0, total: 0 };
-      ex.exodontias += r.exodontias; ex.total += r.totalAtendimentos;
-      byMonth.set(k, ex);
-    });
-    let sumExo = 0, sumTot = 0;
-    byMonth.forEach(({ exodontias, total }) => { sumExo += exodontias; sumTot += total; });
-    return { numerador: sumExo, denominador: sumTot, porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  const byMonth = new Map<number, { exodontias: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
-    ex.exodontias += r.exodontias; ex.total += r.totalAtendimentos;
-    byMonth.set(mesIdx, ex);
-  });
-  let sumExo = 0, sumTot = 0;
-  const monthlyPcts: number[] = [];
-  const mesesDetalhe: MesDetalhe[] = [];
-  months.forEach((m) => {
-    const data = byMonth.get(m) || { exodontias: 0, total: 0 };
-    const pct = data.total > 0 ? (data.exodontias / data.total) * 100 : 0;
-    if (data.total > 0) { sumExo += data.exodontias; sumTot += data.total; monthlyPcts.push(pct); }
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.exodontias, denominador: data.total, porcentagem: pct });
-  });
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumExo, denominador: sumTot, porcentagem: pct, mesesDetalhe };
-}
-
-function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab5.filter((r) => r.equipe === equipe) : tab5;
-
-  if (quad === "todos") {
-    const byMonth = new Map<string, { preventivos: number; total: number }>();
-    source.forEach(r => {
-      const parts = r.mesAno.split("/");
-      const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-      const ano = parseInt(parts[1]);
-      if (mesIdx === undefined) return;
-      const k = `${mesIdx}-${ano}`;
-      const ex = byMonth.get(k) || { preventivos: 0, total: 0 };
-      ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
-      byMonth.set(k, ex);
-    });
-    let sumPrev = 0, sumTot = 0;
-    byMonth.forEach(({ preventivos, total }) => { sumPrev += preventivos; sumTot += total; });
-    return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  const byMonth = new Map<number, { preventivos: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
-    ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
-    byMonth.set(mesIdx, ex);
-  });
-  let sumPrev = 0, sumTot = 0;
-  const monthlyPcts: number[] = [];
-  const mesesDetalhe: MesDetalhe[] = [];
-  months.forEach((m) => {
-    const data = byMonth.get(m) || { preventivos: 0, total: 0 };
-    const pct = data.total > 0 ? (data.preventivos / data.total) * 100 : 0;
-    if (data.total > 0) { sumPrev += data.preventivos; sumTot += data.total; monthlyPcts.push(pct); }
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.preventivos, denominador: data.total, porcentagem: pct });
-  });
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumPrev, denominador: sumTot, porcentagem: pct, mesesDetalhe };
-}
-
-function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? allTab4.filter((p) => p.equipe === equipe) : allTab4;
-  const totalPatients = source.length;
-  if (totalPatients === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
-
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-
-  if (quad === "todos") {
-    const byMonth = new Map<string, number>();
-    source.forEach(p => {
-      const d = parseDate(p.primeiraConsulta);
-      if (d) { const k = `${getMonth(d)}-${getYear(d)}`; byMonth.set(k, (byMonth.get(k) || 0) + 1); }
-    });
-    if (byMonth.size === 0) return { numerador: 0, denominador: totalPatients, porcentagem: 0, mesesDetalhe: [] };
-    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
-    const media = totalConsultas / byMonth.size;
-    return { numerador: media, denominador: totalPatients, porcentagem: (media / totalPatients) * 100, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let totalConsultas = 0, monthsWithData = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
-    monthsWithData++;
-    const count = source.filter((p) => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year;
-    }).length;
-    totalConsultas += count;
-    const pct = totalPatients > 0 ? (count / totalPatients) * 100 : 0;
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: pct });
-  });
-
-  const media = monthsWithData > 0 ? totalConsultas / monthsWithData : 0;
-  return {
-    numerador: totalConsultas,
-    denominador: totalPatients,
-    porcentagem: monthsWithData > 0 ? (media / totalPatients) * 100 : 0,
-    mesesDetalhe,
-  };
-}
-
-function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab6.filter((r) => r.equipe === equipe) : tab6;
-
-  if (quad === "todos") {
-    const byMonth = new Map<string, { exodontias: number; total: number }>();
-    source.forEach(r => {
-      const parts = r.mesAno.split("/");
-      const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-      const ano = parseInt(parts[1]);
-      if (mesIdx === undefined) return;
-      const k = `${mesIdx}-${ano}`;
-      const ex = byMonth.get(k) || { exodontias: 0, total: 0 };
-      ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
-      byMonth.set(k, ex);
-    });
-    let sumArt = 0, sumTot = 0;
-    byMonth.forEach(({ exodontias, total }) => { sumArt += exodontias; sumTot += total; });
-    return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  const byMonth = new Map<number, { exodontias: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
-    ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
-    byMonth.set(mesIdx, ex);
-  });
-  let sumArt = 0, sumTot = 0;
-  const monthlyPcts: number[] = [];
-  const mesesDetalhe: MesDetalhe[] = [];
-  months.forEach((m) => {
-    const data = byMonth.get(m) || { exodontias: 0, total: 0 };
-    const pct = data.total > 0 ? (data.exodontias / data.total) * 100 : 0;
-    if (data.total > 0) { sumArt += data.exodontias; sumTot += data.total; monthlyPcts.push(pct); }
-    mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: data.exodontias, denominador: data.total, porcentagem: pct });
-  });
-  const pct = monthlyPcts.length > 0 ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length : 0;
-  return { numerador: sumArt, denominador: sumTot, porcentagem: pct, mesesDetalhe };
-}
-
-// ── hook principal ────────────────────────────────────────────────────────────
-
-export function useResultadoFinal(
-  patients: Patient[],
-  tratamento: TratamentoPatient[],
-  tab3: Tab3Record[],
-  tab4: Tab4Patient[],
-  tab5: Tab5Record[],
-  tab6: Tab6Record[],
-  quad: Quadrimestre = "todos",
-  equipeFilter: string = "all"
-) {
-  return useMemo(() => {
-    const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-    const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
-
-    const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-      const indicadores = [
-        buildIndicador("B1", calcB1(patients, quad, equipe)),
-        buildIndicador("B2", calcB2(tratamento, quad, equipe)),
-        buildIndicador("B3", calcB3(tab3, quad, equipe)),
-        buildIndicador("B5", calcB5(tab4, quad, equipe)),
-        buildIndicador("B4", calcB4(tab5, quad, equipe)),
-        buildIndicador("B6", calcB6(tab6, quad, equipe)),
-      ];
-      return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
-    });
-
-    const buildGeral = (eq?: string) => [
-      buildIndicador("B1", calcB1(patients, quad, eq)),
-      buildIndicador("B2", calcB2(tratamento, quad, eq)),
-      buildIndicador("B3", calcB3(tab3, quad, eq)),
-      buildIndicador("B5", calcB5(tab4, quad, eq)),
-      buildIndicador("B4", calcB4(tab5, quad, eq)),
-      buildIndicador("B6", calcB6(tab6, quad, eq)),
-    ];
-
-    const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
-    const geral: EquipeResult = {
-      equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
-      indicadores: geralIndicadores,
-      notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
-    };
-
-    return { geral, porEquipe };
-  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter]);
-}
+      {/* Per Team Tables */}
+      <div className="space-y-6">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <Award className="h-5 w-5" />
+          Resultado por Equipe
+        </h2>
+        {sortedEquipes.map((eq) => (
+          <ResultTable key={eq.equipe} result={eq} title={eq.equipe} showMeses={showMeses} />
+        ))}
+      </div>
+    </div>
+  );
+};
