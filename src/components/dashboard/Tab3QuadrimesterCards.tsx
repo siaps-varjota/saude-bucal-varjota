@@ -20,16 +20,11 @@ const getScoreCategory = (percentage: number): ScoreCategory => {
 
 const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
-    case "regular":
-      return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500", icon: "text-red-600", label: "text-red-700", count: "text-red-700" };
-    case "suficiente":
-      return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
-    case "bom":
-      return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
-    case "otimo":
-      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
-    default:
-      return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
+    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",             icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
+    case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
+    default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
@@ -53,19 +48,19 @@ export const Tab3QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab3Q
   const currentQuad = getQuadrimesterForMonth(currentMonth);
 
   const quadCounts = useMemo(() => {
-    const quadrimesters: {label: string;quadNum: number;year: number;quadKey: string;}[] = [];
+    const quadrimesters: { label: string; quadNum: number; year: number; quadKey: string }[] = [];
     let quad = currentQuad;
     let year = currentYear;
     for (let i = 0; i < 3; i++) {
       quadrimesters.push({ label: getQuadrimesterLabel(quad, year), quadNum: quad, year, quadKey: `Q${quad}-${year}` });
       quad--;
-      if (quad < 1) {quad = 3;year--;}
+      if (quad < 1) { quad = 3; year--; }
     }
     quadrimesters.reverse();
 
     return quadrimesters.map((q) => {
       const quadMonths = q.quadNum === 1 ? [0, 1, 2, 3] : q.quadNum === 2 ? [4, 5, 6, 7] : [8, 9, 10, 11];
-      const byMonth = new Map<number, {exodontias: number;total: number;}>();
+      const byMonth = new Map<number, { exodontias: number; total: number }>();
 
       records.forEach((r) => {
         const parts = r.mesAno.split("/");
@@ -73,36 +68,27 @@ export const Tab3QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab3Q
         const ano = parseInt(parts[1]);
         const mesIdx = MONTH_MAP[mesName];
         if (mesIdx === undefined || ano !== q.year || !quadMonths.includes(mesIdx)) return;
-
         const existing = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
         existing.exodontias += r.exodontias;
         existing.total += r.totalAtendimentos;
         byMonth.set(mesIdx, existing);
       });
 
-      const monthlyData: {exodontias: number;total: number;}[] = [];
-      byMonth.forEach((data) => {if (data.total > 0) monthlyData.push(data);});
+      let totalExodontias = 0, totalAtendimentos = 0;
+      byMonth.forEach(({ exodontias, total }) => {
+        totalExodontias += exodontias;
+        totalAtendimentos += total;
+      });
 
-      const totalExodontias = monthlyData.reduce((s, m) => s + m.exodontias, 0);
-      const totalAtendimentos = monthlyData.reduce((s, m) => s + m.total, 0);
-      const monthsWithData = monthlyData.length;
+      // % = sumExodontias / sumAtendimentos (divisão direta)
+      const percentage = totalAtendimentos > 0 ? (totalExodontias / totalAtendimentos) * 100 : 0;
+      const monthsWithData = byMonth.size;
       const avgMonthlyExodontias = monthsWithData > 0 ? totalExodontias / monthsWithData : 0;
-      const monthlyPercentages = monthlyData.map((m) => m.exodontias / m.total * 100);
-      const avgPercentage = monthlyPercentages.length > 0 ?
-      monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length :
-      0;
 
-      return {
-        ...q,
-        totalExodontias,
-        totalAtendimentos,
-        avgMonthlyExodontias,
-        percentage: avgPercentage
-      };
+      return { ...q, totalExodontias, totalAtendimentos, avgMonthlyExodontias, percentage };
     });
   }, [records, currentQuad, currentYear]);
 
-  // Filter by selected quadrimester
   const visibleCards = quadrimestre !== "todos"
     ? quadCounts.filter(q => q.quadKey === quadrimestre)
     : quadCounts;
@@ -124,9 +110,9 @@ export const Tab3QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab3Q
               <p className="text-xs text-muted-foreground">Média/mês: {quad.avgMonthlyExodontias.toFixed(1)}</p>
               <p className={`text-xs mt-0.5 ${styles.label}`}>{quad.percentage.toFixed(1)}%</p>
             </CardContent>
-          </Card>);
-
+          </Card>
+        );
       })}
-    </>);
-
+    </>
+  );
 };
