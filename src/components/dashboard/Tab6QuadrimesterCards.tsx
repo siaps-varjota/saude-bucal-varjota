@@ -20,31 +20,11 @@ const getScoreCategory = (percentage: number): ScoreCategory => {
 
 const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
-    case "regular":
-      return {
-        bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
-        icon: "text-red-600", label: "text-red-700", count: "text-red-700",
-      };
-    case "suficiente":
-      return {
-        bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
-        icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700",
-      };
-    case "bom":
-      return {
-        bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
-        icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700",
-      };
-    case "otimo":
-      return {
-        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
-        icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700",
-      };
-    default:
-      return {
-        bg: "bg-muted/30",
-        icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground",
-      };
+    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",             icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
+    case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
+    default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
@@ -88,37 +68,27 @@ export const Tab6QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab6Q
         const ano = parseInt(parts[1]);
         const mesIdx = MONTH_MAP[mesName];
         if (mesIdx === undefined || ano !== q.year || !quadMonths.includes(mesIdx)) return;
-
         const existing = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
         existing.exodontias += r.exodontias;
         existing.total += r.totalProcedimentos;
         byMonth.set(mesIdx, existing);
       });
 
-      const monthlyData: { exodontias: number; total: number }[] = [];
-      byMonth.forEach((data) => {
-        if (data.total > 0) monthlyData.push(data);
+      let totalExodontias = 0, totalProcedimentos = 0;
+      byMonth.forEach(({ exodontias, total }) => {
+        totalExodontias += exodontias;
+        totalProcedimentos += total;
       });
 
-      const totalExodontias = monthlyData.reduce((s, m) => s + m.exodontias, 0);
-      const totalProcedimentos = monthlyData.reduce((s, m) => s + m.total, 0);
-      const monthlyPercentages = monthlyData.map((m) => (m.exodontias / m.total) * 100);
-      const avgPercentage = monthlyPercentages.length > 0
-        ? monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length
-        : 0;
-      const avgMonthlyExodontias = monthlyData.length > 0 ? totalExodontias / monthlyData.length : 0;
+      // % = sumExodontias / sumProcedimentos (divisão direta)
+      const percentage = totalProcedimentos > 0 ? (totalExodontias / totalProcedimentos) * 100 : 0;
+      const monthsWithData = byMonth.size;
+      const avgMonthlyExodontias = monthsWithData > 0 ? totalExodontias / monthsWithData : 0;
 
-      return {
-        ...q,
-        totalExodontias,
-        totalProcedimentos,
-        percentage: avgPercentage,
-        avgMonthlyExodontias,
-      };
+      return { ...q, totalExodontias, totalProcedimentos, percentage, avgMonthlyExodontias };
     });
   }, [records, currentQuad, currentYear]);
 
-  // Filter by selected quadrimester
   const visibleCards = quadrimestre !== "todos"
     ? quadCounts.filter(q => q.quadKey === quadrimestre)
     : quadCounts;
