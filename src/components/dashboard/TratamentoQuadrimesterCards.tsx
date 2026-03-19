@@ -7,7 +7,7 @@ import { Calendar } from "lucide-react";
 interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
   allPatients: TratamentoPatient[];
-  totalComConsulta: number; // mantido por compatibilidade, não usado como denominador
+  totalComConsulta: number;
   quadrimestre?: string;
 }
 
@@ -23,7 +23,7 @@ const parseTratamentoDate = (tratamento: string): Date | null => {
   return null;
 };
 
-// Critérios B2 — Tratamento Concluído: Regular ≤25%, Suficiente >25% e ≤50%, Bom >50% e ≤75%, Ótimo >75%
+// Critérios B2 — Regular ≤25%, Suficiente >25% e ≤50%, Bom >50% e ≤75%, Ótimo >75%
 const getScoreCategory = (percentage: number, total: number): string => {
   if (total === 0) return "none";
   if (percentage > 75) return "otimo";
@@ -34,10 +34,10 @@ const getScoreCategory = (percentage: number, total: number): string => {
 
 const getScoreStyles = (category: string) => {
   switch (category) {
-    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",         icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
-    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",   icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
+    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",             icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
     case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
-    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",       icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
+    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
     case "none":
     default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
@@ -60,13 +60,8 @@ export const TratamentoQuadrimesterCards = ({
     const now = new Date();
     const currentQuad = getQuadrimesterInfo(now);
     const result: {
-      label: string;
-      total: number;
-      totalConsultasQuad: number;
-      average: number;
-      months: number;
-      percentage: number;
-      quadKey: string;
+      label: string; total: number; totalConsultasQuad: number;
+      average: number; months: number; percentage: number; quadKey: string;
     }[] = [];
 
     for (let i = 2; i >= 0; i--) {
@@ -81,7 +76,7 @@ export const TratamentoQuadrimesterCards = ({
 
       const isCurrentQuad = i === 0;
       const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
-      const monthsCount    = actualEndMonth - startMonth + 1;
+      const monthsCount = actualEndMonth - startMonth + 1;
 
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
@@ -96,39 +91,11 @@ export const TratamentoQuadrimesterCards = ({
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
-      const monthlyPcts: number[] = [];
-      for (let m = startMonth; m <= actualEndMonth; m++) {
-        const mStart = startOfMonth(new Date(targetYear, m, 1));
-        const mEnd   = endOfMonth(new Date(targetYear, m, 1));
-
-        const mTrat = patients.filter(p => {
-          const d = parseTratamentoDate(p.tratamentoConcluido);
-          return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
-        }).length;
-
-        const mCons = allPatients.filter(p => {
-          const d = parseTratamentoDate(p.primeiraConsulta);
-          return d ? isWithinInterval(d, { start: mStart, end: mEnd }) : false;
-        }).length;
-
-        if (mCons > 0) monthlyPcts.push((mTrat / mCons) * 100);
-      }
-
-      const percentage = monthlyPcts.length > 0
-        ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length
-        : 0;
-
+      // % = sumTratamentos / sumConsultas (divisão direta)
+      const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
       const average = monthsCount > 0 ? tratamentoCount / monthsCount : 0;
 
-      result.push({
-        label,
-        total: tratamentoCount,
-        totalConsultasQuad: consultasQuad,
-        average,
-        months: monthsCount,
-        percentage,
-        quadKey: `Q${targetQuad}-${targetYear}`,
-      });
+      result.push({ label, total: tratamentoCount, totalConsultasQuad: consultasQuad, average, months: monthsCount, percentage, quadKey: `Q${targetQuad}-${targetYear}` });
     }
 
     return result;
