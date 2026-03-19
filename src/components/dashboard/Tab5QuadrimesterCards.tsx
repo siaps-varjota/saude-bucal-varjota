@@ -10,41 +10,22 @@ interface Tab5QuadrimesterCardsProps {
 
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
+// Critérios B5 — Proced. Odont. Preventivos
 const getScoreCategory = (percentage: number): ScoreCategory => {
   if (percentage <= 0) return "none";
   if (percentage >= 80 && percentage <= 85) return "otimo";
-  if (percentage >= 60 && percentage < 80) return "bom";
-  if (percentage >= 40 && percentage < 60) return "suficiente";
+  if (percentage >= 60 && percentage < 80)  return "bom";
+  if (percentage >= 40 && percentage < 60)  return "suficiente";
   return "regular"; // < 40 ou > 85
 };
 
 const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
-    case "regular":
-      return {
-        bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",
-        icon: "text-red-600", label: "text-red-700", count: "text-red-700"
-      };
-    case "suficiente":
-      return {
-        bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",
-        icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700"
-      };
-    case "bom":
-      return {
-        bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500",
-        icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700"
-      };
-    case "otimo":
-      return {
-        bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",
-        icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700"
-      };
-    default:
-      return {
-        bg: "bg-muted/30",
-        icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground"
-      };
+    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",             icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
+    case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
+    default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
@@ -68,21 +49,19 @@ export const Tab5QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab5Q
   const currentQuad = getQuadrimesterForMonth(currentMonth);
 
   const quadCounts = useMemo(() => {
-    const quadrimesters: {label: string;quadNum: number;year: number;quadKey: string;}[] = [];
+    const quadrimesters: { label: string; quadNum: number; year: number; quadKey: string }[] = [];
     let quad = currentQuad;
     let year = currentYear;
     for (let i = 0; i < 3; i++) {
       quadrimesters.push({ label: getQuadrimesterLabel(quad, year), quadNum: quad, year, quadKey: `Q${quad}-${year}` });
       quad--;
-      if (quad < 1) {quad = 3;year--;}
+      if (quad < 1) { quad = 3; year--; }
     }
     quadrimesters.reverse();
 
     return quadrimesters.map((q) => {
       const quadMonths = q.quadNum === 1 ? [0, 1, 2, 3] : q.quadNum === 2 ? [4, 5, 6, 7] : [8, 9, 10, 11];
-
-      const monthlyData: {preventivos: number;total: number;}[] = [];
-      const byMonth = new Map<number, {preventivos: number;total: number;}>();
+      const byMonth = new Map<number, { preventivos: number; total: number }>();
 
       records.forEach((r) => {
         const parts = r.mesAno.split("/");
@@ -90,36 +69,27 @@ export const Tab5QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab5Q
         const ano = parseInt(parts[1]);
         const mesIdx = MONTH_MAP[mesName];
         if (mesIdx === undefined || ano !== q.year || !quadMonths.includes(mesIdx)) return;
-
         const existing = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
         existing.preventivos += r.preventivos;
         existing.total += r.totalIndividuais;
         byMonth.set(mesIdx, existing);
       });
 
-      byMonth.forEach((data) => {
-        if (data.total > 0) monthlyData.push(data);
+      let totalPreventivos = 0, totalIndividuais = 0;
+      byMonth.forEach(({ preventivos, total }) => {
+        totalPreventivos += preventivos;
+        totalIndividuais += total;
       });
 
-      const totalPreventivos = monthlyData.reduce((s, m) => s + m.preventivos, 0);
-      const totalIndividuais = monthlyData.reduce((s, m) => s + m.total, 0);
-      const monthlyPercentages = monthlyData.map((m) => m.preventivos / m.total * 100);
-      const avgPercentage = monthlyPercentages.length > 0 ?
-      monthlyPercentages.reduce((s, p) => s + p, 0) / monthlyPercentages.length :
-      0;
-      const avgMonthlyPreventivos = monthlyData.length > 0 ? totalPreventivos / monthlyData.length : 0;
+      // % = sumPreventivos / sumIndividuais (divisão direta)
+      const percentage = totalIndividuais > 0 ? (totalPreventivos / totalIndividuais) * 100 : 0;
+      const monthsWithData = byMonth.size;
+      const avgMonthlyPreventivos = monthsWithData > 0 ? totalPreventivos / monthsWithData : 0;
 
-      return {
-        ...q,
-        totalPreventivos,
-        totalIndividuais,
-        percentage: avgPercentage,
-        avgMonthlyPreventivos
-      };
+      return { ...q, totalPreventivos, totalIndividuais, percentage, avgMonthlyPreventivos };
     });
   }, [records, currentQuad, currentYear]);
 
-  // Filter by selected quadrimester
   const visibleCards = quadrimestre !== "todos"
     ? quadCounts.filter(q => q.quadKey === quadrimestre)
     : quadCounts;
@@ -141,9 +111,9 @@ export const Tab5QuadrimesterCards = ({ records, quadrimestre = "todos" }: Tab5Q
               <p className="text-xs text-muted-foreground">Média mensal: {quad.avgMonthlyPreventivos.toFixed(1)}</p>
               <p className={`text-xs mt-0.5 ${styles.label}`}>{quad.percentage.toFixed(1)}%</p>
             </CardContent>
-          </Card>);
-
+          </Card>
+        );
       })}
-    </>);
-
+    </>
+  );
 };
