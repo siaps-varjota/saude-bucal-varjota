@@ -267,15 +267,26 @@ function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCal
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let sumExo = 0, sumTot = 0;
+  const byMonth = new Map<number, { exodontias: number; total: number }>();
   source.forEach(r => {
     const parts = r.mesAno.split("/");
     const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
     const ano = parseInt(parts[1]);
     if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    sumExo += r.exodontias; sumTot += r.totalAtendimentos;
+    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
+    ex.exodontias += r.exodontias; ex.total += r.totalAtendimentos;
+    byMonth.set(mesIdx, ex);
   });
-  return { numerador: sumExo, denominador: sumTot, porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0 };
+  let sumExo = 0, sumTot = 0;
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ exodontias, total }) => {
+    if (total > 0) { sumExo += exodontias; sumTot += total; monthlyPcts.push((exodontias / total) * 100); }
+  });
+  // Média mensal dos percentuais — igual à lógica do Tab3QuadrimesterCards
+  const pct = monthlyPcts.length > 0
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length
+    : 0;
+  return { numerador: sumExo, denominador: sumTot, porcentagem: pct };
 }
 
 function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCalc {
@@ -301,15 +312,26 @@ function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCal
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let sumPrev = 0, sumTot = 0;
+  const byMonth = new Map<number, { preventivos: number; total: number }>();
   source.forEach(r => {
     const parts = r.mesAno.split("/");
     const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
     const ano = parseInt(parts[1]);
     if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    sumPrev += r.preventivos; sumTot += r.totalIndividuais;
+    const ex = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
+    ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
+    byMonth.set(mesIdx, ex);
   });
-  return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0 };
+  let sumPrev = 0, sumTot = 0;
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ preventivos, total }) => {
+    if (total > 0) { sumPrev += preventivos; sumTot += total; monthlyPcts.push((preventivos / total) * 100); }
+  });
+  // Média mensal dos percentuais — igual à lógica do Tab5QuadrimesterCards
+  const pct = monthlyPcts.length > 0
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length
+    : 0;
+  return { numerador: sumPrev, denominador: sumTot, porcentagem: pct };
 }
 
 function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): RawCalc {
@@ -379,15 +401,26 @@ function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCal
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let sumArt = 0, sumTot = 0;
+  const byMonth = new Map<number, { exodontias: number; total: number }>();
   source.forEach(r => {
     const parts = r.mesAno.split("/");
     const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
     const ano = parseInt(parts[1]);
     if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    sumArt += r.exodontias; sumTot += r.totalProcedimentos;
+    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
+    ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
+    byMonth.set(mesIdx, ex);
   });
-  return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0 };
+  let sumArt = 0, sumTot = 0;
+  const monthlyPcts: number[] = [];
+  byMonth.forEach(({ exodontias, total }) => {
+    if (total > 0) { sumArt += exodontias; sumTot += total; monthlyPcts.push((exodontias / total) * 100); }
+  });
+  // Média mensal dos percentuais — igual à lógica do Tab6QuadrimesterCards
+  const pct = monthlyPcts.length > 0
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length
+    : 0;
+  return { numerador: sumArt, denominador: sumTot, porcentagem: pct };
 }
 
 // ── hook principal ────────────────────────────────────────────────────────────
