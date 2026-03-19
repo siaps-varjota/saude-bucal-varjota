@@ -226,17 +226,21 @@ function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: st
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let sumTrat = 0, sumCons = 0, mCount = 0;
+  let sumTrat = 0, sumCons = 0;
+  const monthlyPcts: number[] = [];
 
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
     const mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
     const mCons = source.filter(p => { const d = parseDate(p.primeiraConsulta); return d && getMonth(d) === m && getYear(d) === year; }).length;
-    if (mCons > 0) { sumTrat += mTrat; sumCons += mCons; mCount++; }
+    if (mCons > 0) { sumTrat += mTrat; sumCons += mCons; monthlyPcts.push((mTrat / mCons) * 100); }
   });
 
-  const pct = mCount > 0 ? (sumTrat / sumCons) * 100 : 0;
+  // Média mensal dos percentuais — igual à lógica do TratamentoQuadrimesterCards
+  const pct = monthlyPcts.length > 0
+    ? monthlyPcts.reduce((a, b) => a + b, 0) / monthlyPcts.length
+    : 0;
   return { numerador: sumTrat, denominador: sumCons, porcentagem: pct };
 }
 
