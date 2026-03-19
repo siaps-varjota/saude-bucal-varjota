@@ -362,11 +362,12 @@ function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): Ra
     mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: totalPatients > 0 ? (count / totalPatients) * 100 : 0 });
   });
 
-  // % = sumNumerador / denominador (total cadastrados)
+  // % = sumEscovações / (totalPatients × 4)
+  const denominador = totalPatients * 4;
   return {
     numerador: sumNum,
-    denominador: totalPatients,
-    porcentagem: totalPatients > 0 ? (sumNum / totalPatients) * 100 : 0,
+    denominador: denominador,
+    porcentagem: denominador > 0 ? (sumNum / denominador) * 100 : 0,
     mesesDetalhe,
   };
 }
