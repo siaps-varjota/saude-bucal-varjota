@@ -26,19 +26,19 @@ type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 const getScoreCategory = (percentage: number, total: number): ScoreCategory => {
   if (total === 0) return "none";
   if (percentage <= 0.25) return "regular";
-  if (percentage <= 0.5) return "suficiente";
-  if (percentage <= 1) return "bom";
+  if (percentage <= 0.5)  return "suficiente";
+  if (percentage <= 1)    return "bom";
   return "otimo";
 };
 
 const getScoreStyles = (category: ScoreCategory) => {
   switch (category) {
-    case "regular": return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500", icon: "text-red-600", label: "text-red-700", count: "text-red-700" };
-    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500", icon: "text-amber-600", label: "text-amber-700", count: "text-amber-700" };
-    case "bom": return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
-    case "otimo": return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500", icon: "text-blue-600", label: "text-blue-700", count: "text-blue-700" };
+    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",             icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
+    case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
     case "none":
-    default: return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
+    default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
@@ -103,7 +103,6 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
     return { ...q, total: count, average, monthsWithData };
   });
 
-  // Filter by selected quadrimester
   const visibleCards = quadrimestre !== "todos"
     ? quadCounts.filter(q => q.quadKey === quadrimestre)
     : quadCounts;
@@ -111,9 +110,9 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
   return (
     <>
       {visibleCards.map(quad => {
-        const percentage = quad.monthsWithData > 0
-          ? (quad.total / quad.monthsWithData / totalPatients) * 100
-          : 0;
+        // % = sumEscovações / (totalPatients × 4)
+        const denominador = totalPatients * 4;
+        const percentage = denominador > 0 ? (quad.total / denominador) * 100 : 0;
         const category = getScoreCategory(percentage, quad.total);
         const styles = getScoreStyles(category);
 
@@ -125,7 +124,7 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
                 <span className={`text-sm font-medium ${styles.label}`}>{quad.label}</span>
               </div>
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.total}</p>
-              <p className="text-xs text-muted-foreground mt-1">de {totalPatients}</p>
+              <p className="text-xs text-muted-foreground mt-1">de {denominador}</p>
               <p className="text-xs text-muted-foreground mt-1">Média/mês: {quad.average.toFixed(1)}</p>
               <p className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</p>
             </CardContent>
