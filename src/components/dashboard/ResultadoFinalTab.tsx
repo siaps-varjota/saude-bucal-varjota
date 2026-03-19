@@ -41,17 +41,18 @@ const NOTA_SCORE: Record<Conceito, string> = {
   none: "0,00",
 };
 
+// Nota Final — Ótimo: > 7,5 | Bom: 5 a 7,5 | Suficiente: 2,6 a 4,9 | Regular: ≥ 2,5
 function getNotaFinalColor(nota: number): string {
-  if (nota >= 7.5) return "text-blue-700";
-  if (nota >= 5) return "text-emerald-700";
-  if (nota >= 2.5) return "text-amber-700";
-  return "text-red-700";
+  if (nota > 7.5)              return "text-blue-700";    // Ótimo
+  if (nota >= 5)               return "text-emerald-700"; // Bom
+  if (nota >= 2.6)             return "text-amber-700";   // Suficiente
+  return "text-red-700";                                  // Regular
 }
 
 function getNotaFinalBg(nota: number): string {
-  if (nota >= 7.5) return "bg-gradient-to-br from-blue-100 to-blue-50 border-blue-200";
-  if (nota >= 5) return "bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-200";
-  if (nota >= 2.5) return "bg-gradient-to-br from-amber-100 to-amber-50 border-amber-200";
+  if (nota > 7.5)  return "bg-gradient-to-br from-blue-100 to-blue-50 border-blue-200";
+  if (nota >= 5)   return "bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-200";
+  if (nota >= 2.6) return "bg-gradient-to-br from-amber-100 to-amber-50 border-amber-200";
   return "bg-gradient-to-br from-red-100 to-red-50 border-red-200";
 }
 
@@ -178,7 +179,6 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
     [porEquipe]
   );
 
-  // Só mostra detalhe mensal quando um quadrimestre específico está selecionado
   const showMeses = quadrimestre !== "todos";
 
   return (
@@ -269,6 +269,27 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
             · Clique em uma linha para ver o detalhe mensal
           </span>
         )}
+      </div>
+
+      {/* Nota Final Legend */}
+      <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
+        <span className="font-medium text-muted-foreground">Nota Final:</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span>
+          <span className="text-red-600 text-xs">≥ 2,5</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span>
+          <span className="text-amber-600 text-xs">2,6 a 4,9</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span>
+          <span className="text-emerald-600 text-xs">5 a 7,5</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span>
+          <span className="text-blue-600 text-xs">&gt; 7,5</span>
+        </div>
       </div>
 
       {/* Per Team Tables */}
