@@ -278,9 +278,9 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
               </div>
             )}
             <div id="dashboard-content-tratamento">
-              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-6">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
                 {isLoadingTratamento ? (
-                  <>{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
                 ) : (
                   <>
                     <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
