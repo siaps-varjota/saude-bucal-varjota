@@ -221,9 +221,9 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
               </div>
             )}
             <div id="dashboard-content-consulta">
-              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-6">
                 {isLoadingPatients ? (
-                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                  <>{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
                 ) : (
                   <>
                     <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
@@ -278,9 +278,9 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
               </div>
             )}
             <div id="dashboard-content-tratamento">
-              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-6">
                 {isLoadingTratamento ? (
-                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                  <>{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
                 ) : (
                   <>
                     <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
@@ -381,9 +381,9 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
               </div>
             )}
             <div id="dashboard-content-tab4">
-              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-6">
                 {isLoadingTab4 ? (
-                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                  <>{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
                 ) : (
                   <>
                     <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
