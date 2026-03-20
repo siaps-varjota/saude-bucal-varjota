@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Target } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
@@ -91,6 +91,7 @@ export const TratamentoQuadrimesterCards = ({
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
+      // % = sumTratamentos / sumConsultas (divisão direta)
       const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
       const average = monthsCount > 0 ? tratamentoCount / monthsCount : 0;
 
@@ -103,41 +104,6 @@ export const TratamentoQuadrimesterCards = ({
   const visibleCards = quadrimestre !== "todos"
     ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
     : quadrimesterData;
-
-  // Para o card de meta, usamos o quadrimestre atual (último da lista)
-  const currentData = quadrimesterData[quadrimesterData.length - 1];
-  const denominadorAtual = currentData?.totalConsultasQuad ?? 0;
-
-  // Metas B2: Bom > 50%, Ótimo > 75% — sobre as consultas do quadrimestre atual
-  const metaBomQuad   = denominadorAtual > 0 ? Math.ceil(denominadorAtual * 0.50) + 1 : 0;
-  const metaOtimoQuad = denominadorAtual > 0 ? Math.ceil(denominadorAtual * 0.75) + 1 : 0;
-  const mesesAtual    = currentData?.months ?? 4;
-  const mediaMensalBom   = mesesAtual > 0 ? metaBomQuad / mesesAtual : 0;
-  const mediaMensalOtimo = mesesAtual > 0 ? metaOtimoQuad / mesesAtual : 0;
-
-  const metaCard = (
-    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-1.5 mb-2">
-          <Target className="w-3.5 h-3.5 text-purple-600" />
-          <span className="text-xs font-medium text-purple-700">Meta do Quadrimestre</span>
-        </div>
-        <p className="text-xs text-muted-foreground mb-2">de {denominadorAtual} consultas</p>
-        <div className="space-y-2">
-          <div>
-            <p className="text-xs font-semibold text-emerald-700">Bom (&gt; 50%)</p>
-            <p className="text-lg font-bold text-emerald-700">{metaBomQuad} trat.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
-          </div>
-          <div className="border-t pt-2">
-            <p className="text-xs font-semibold text-blue-700">Ótimo (&gt; 75%)</p>
-            <p className="text-lg font-bold text-blue-700">{metaOtimoQuad} trat.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <>
@@ -161,7 +127,6 @@ export const TratamentoQuadrimesterCards = ({
           </Card>
         );
       })}
-      {metaCard}
     </>
   );
 };
