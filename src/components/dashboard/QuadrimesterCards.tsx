@@ -74,11 +74,9 @@ export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: Quadrime
   const totalCadastrados = patients.length;
   const denominador = totalCadastrados * 4;
 
-  // Metas B1: Bom > 3% e ≤ 5%, Ótimo > 5%
-  const metaBom   = Math.ceil(denominador * 0.03) + 1; // mínimo para entrar em Bom (>3%)
-  const metaOtimo = Math.ceil(denominador * 0.05) + 1; // mínimo para entrar em Ótimo (>5%)
-  const mediaMensalBom   = totalCadastrados > 0 ? (denominador * 0.03 / 4) + 0.25 : 0;
-  const mediaMensalOtimo = totalCadastrados > 0 ? (denominador * 0.05 / 4) + 0.25 : 0;
+  // Meta Ótimo B1: > 5%
+  const metaOtimo = Math.ceil(denominador * 0.05) + 1;
+  const mediaMensalOtimo = metaOtimo / 4;
 
   const quadrimesters: Quadrimester[] = [];
   let quad = currentQuad;
@@ -96,12 +94,10 @@ export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: Quadrime
       const d = parseConsultaDate(patient.primeiraConsulta);
       if (d && getYear(d) === q.year && q.months.includes(getMonth(d))) count++;
     });
-
     let monthsWithData = 0;
     q.months.forEach(m => {
       if (q.year < currentYear || (q.year === currentYear && m <= currentMonth)) monthsWithData++;
     });
-
     const average = monthsWithData > 0 ? count / monthsWithData : 0;
     return { ...q, total: count, average, monthsWithData };
   });
@@ -110,26 +106,25 @@ export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: Quadrime
     ? quadCounts.filter(q => q.quadKey === quadFiltered)
     : quadCounts;
 
-  // Card de meta: fixo, não depende do quadrimestre selecionado
+  // Total atual do quadrimestre mais recente visível
+  const totalAtual = visibleCards.length > 0 ? visibleCards[visibleCards.length - 1].total : 0;
+  const faltam = Math.max(0, metaOtimo - totalAtual);
+  const atingiu = totalAtual >= metaOtimo;
+
   const metaCard = (
     <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
           <Target className="h-4 w-4 text-purple-600" />
-          <span className="text-sm font-medium text-purple-700">Meta do Quadrimestre</span>
+          <span className="text-sm font-medium text-purple-700">Meta Ótimo (&gt; 5%)</span>
         </div>
-        <div className="space-y-2 mt-1">
-          <div>
-            <p className="text-xs font-semibold text-emerald-700">Bom (&gt; 3%)</p>
-            <p className="text-lg font-bold text-emerald-700">{metaBom} atend.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
-          </div>
-          <div className="border-t pt-2">
-            <p className="text-xs font-semibold text-blue-700">Ótimo (&gt; 5%)</p>
-            <p className="text-lg font-bold text-blue-700">{metaOtimo} atend.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
-          </div>
-        </div>
+        <p className={`text-3xl font-bold text-blue-700`}>{metaOtimo} atend.</p>
+        <p className="text-xs text-muted-foreground mt-1">de {denominador}</p>
+        <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
+        {atingiu
+          ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
+          : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltam} atend.</p>
+        }
       </CardContent>
     </Card>
   );
