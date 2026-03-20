@@ -73,11 +73,9 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
 
   const denominador = totalPatients * 4;
 
-  // Metas B4 (Escovação): Bom > 0,5% e ≤ 1%, Ótimo > 1%
-  const metaBomQuad   = Math.ceil(denominador * 0.005) + 1; // mínimo para Bom (> 0,5%)
-  const metaOtimoQuad = Math.ceil(denominador * 0.01) + 1;  // mínimo para Ótimo (> 1%)
-  const mediaMensalBom   = totalPatients > 0 ? metaBomQuad / 4 : 0;
-  const mediaMensalOtimo = totalPatients > 0 ? metaOtimoQuad / 4 : 0;
+  // Meta Ótimo B4 (Escovação): > 1%
+  const metaOtimo = Math.ceil(denominador * 0.01) + 1;
+  const mediaMensalOtimo = metaOtimo / 4;
 
   const quadrimesters: (Quadrimester & { quadKey: string })[] = [];
   let quad = currentQuad;
@@ -115,26 +113,24 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
     ? quadCounts.filter(q => q.quadKey === quadrimestre)
     : quadCounts;
 
+  const totalAtual = visibleCards.length > 0 ? visibleCards[visibleCards.length - 1].total : 0;
+  const faltam = Math.max(0, metaOtimo - totalAtual);
+  const atingiu = totalAtual >= metaOtimo;
+
   const metaCard = (
     <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500">
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
           <Target className="h-4 w-4 text-purple-600" />
-          <span className="text-sm font-medium text-purple-700">Meta do Quadrimestre</span>
+          <span className="text-sm font-medium text-purple-700">Meta Ótimo (&gt; 1%)</span>
         </div>
-        <p className="text-xs text-muted-foreground mb-2">de {denominador} pacientes</p>
-        <div className="space-y-2">
-          <div>
-            <p className="text-xs font-semibold text-emerald-700">Bom (&gt; 0,5%)</p>
-            <p className="text-lg font-bold text-emerald-700">{metaBomQuad} escov.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
-          </div>
-          <div className="border-t pt-2">
-            <p className="text-xs font-semibold text-blue-700">Ótimo (&gt; 1%)</p>
-            <p className="text-lg font-bold text-blue-700">{metaOtimoQuad} escov.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
-          </div>
-        </div>
+        <p className="text-3xl font-bold text-blue-700">{metaOtimo} escov.</p>
+        <p className="text-xs text-muted-foreground mt-1">de {denominador}</p>
+        <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
+        {atingiu
+          ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
+          : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltam} escov.</p>
+        }
       </CardContent>
     </Card>
   );
