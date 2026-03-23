@@ -39,12 +39,12 @@ export const StatsCard = ({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden border-0 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]",
+        "relative overflow-hidden border-0 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] h-full",
         variantStyles[variant]
       )}
     >
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-6 flex items-center justify-center h-full">
+        <div className="flex items-center justify-between w-full">
           <div className="space-y-2">
             <p className="text-sm font-medium opacity-90">{title}</p>
             <p className="text-3xl font-bold tracking-tight">{value}</p>
@@ -54,12 +54,7 @@ export const StatsCard = ({
               </p>
             )}
           </div>
-          <div
-            className={cn(
-              "rounded-full p-3",
-              iconContainerStyles[variant]
-            )}
-          >
+          <div className={cn("rounded-full p-3", iconContainerStyles[variant])}>
             <Icon className="h-6 w-6" />
           </div>
         </div>
