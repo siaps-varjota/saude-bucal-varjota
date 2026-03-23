@@ -2,7 +2,6 @@ import { parse, isValid, getMonth, getYear } from "date-fns";
 
 export type Quadrimestre =
   | "todos"
-  | "Q1-2024" | "Q2-2024" | "Q3-2024"
   | "Q1-2025" | "Q2-2025" | "Q3-2025"
   | "Q1-2026" | "Q2-2026" | "Q3-2026";
 
@@ -13,9 +12,6 @@ export interface QuadrimestreOption {
 
 export const QUADRIMESTRE_OPTIONS: QuadrimestreOption[] = [
   { value: "todos",   label: "Todos os períodos" },
-  { value: "Q1-2024", label: "1º Quadrimestre 2024 (Jan–Abr)" },
-  { value: "Q2-2024", label: "2º Quadrimestre 2024 (Mai–Ago)" },
-  { value: "Q3-2024", label: "3º Quadrimestre 2024 (Set–Dez)" },
   { value: "Q1-2025", label: "1º Quadrimestre 2025 (Jan–Abr)" },
   { value: "Q2-2025", label: "2º Quadrimestre 2025 (Mai–Ago)" },
   { value: "Q3-2025", label: "3º Quadrimestre 2025 (Set–Dez)" },
@@ -80,8 +76,10 @@ export function filterPatientsByQuadrimestre<T extends { primeiraConsulta: strin
   });
 }
 
-// Tab2 - filtra por tratamentoConcluido (data)
-export function filterTratamentoByQuadrimestre<T extends { tratamentoConcluido: string }>(
+// Tab2 - filtra por primeiraConsulta; se tiver tratamentoConcluido, filtra também por ele
+// Pendentes (sem tratamento) são incluídos se a primeiraConsulta estiver no quadrimestre.
+// Concluídos são incluídos se o tratamentoConcluido estiver no quadrimestre.
+export function filterTratamentoByQuadrimestre<T extends { primeiraConsulta: string; tratamentoConcluido: string }>(
   patients: T[],
   quad: Quadrimestre
 ): T[] {
@@ -89,10 +87,17 @@ export function filterTratamentoByQuadrimestre<T extends { tratamentoConcluido: 
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
+
   return patients.filter((p) => {
-    const d = parseDate(p.tratamentoConcluido);
-    if (!d) return true;
-    return getYear(d) === year && months.includes(getMonth(d));
+    const dTrat = parseDate(p.tratamentoConcluido);
+    if (dTrat) {
+      // Concluído: filtra pelo tratamentoConcluido
+      return getYear(dTrat) === year && months.includes(getMonth(dTrat));
+    }
+    // Pendente / sem 1ª consulta: filtra pela primeiraConsulta
+    const dCons = parseDate(p.primeiraConsulta);
+    if (!dCons) return false;
+    return getYear(dCons) === year && months.includes(getMonth(dCons));
   });
 }
 
