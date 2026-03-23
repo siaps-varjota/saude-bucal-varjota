@@ -1,25 +1,17 @@
 import { useState, useMemo } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Patient } from "@/hooks/usePatientData";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { parse, isValid } from "date-fns";
 
 type SortKey = "id" | "nome" | "equipe" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
 type SortDirection = "asc" | "desc" | null;
@@ -27,6 +19,18 @@ type SortDirection = "asc" | "desc" | null;
 interface PatientTableProps {
   patients: Patient[];
 }
+
+const parseDateToTimestamp = (val: string): number => {
+  if (!val || val === "-" || val.trim() === "") return 0;
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(val.trim(), fmt, new Date());
+      if (isValid(parsed)) return parsed.getTime();
+    } catch { continue; }
+  }
+  return 0;
+};
 
 export const PatientTable = ({ patients }: PatientTableProps) => {
   const [search, setSearch] = useState("");
@@ -37,14 +41,9 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
-      if (sortDirection === "asc") {
-        setSortDirection("desc");
-      } else if (sortDirection === "desc") {
-        setSortKey(null);
-        setSortDirection(null);
-      } else {
-        setSortDirection("asc");
-      }
+      if (sortDirection === "asc") setSortDirection("desc");
+      else if (sortDirection === "desc") { setSortKey(null); setSortDirection(null); }
+      else setSortDirection("asc");
     } else {
       setSortKey(key);
       setSortDirection("asc");
@@ -58,42 +57,37 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
     return <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
-  const filteredPatients = patients.filter((patient) => {
-    return (
-      patient.nome.toLowerCase().includes(search.toLowerCase()) ||
-      patient.microarea.includes(search) ||
-      patient.cpfCns.includes(search) ||
-      patient.equipe.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  const filteredPatients = patients.filter((patient) =>
+    patient.nome.toLowerCase().includes(search.toLowerCase()) ||
+    patient.microarea.includes(search) ||
+    patient.cpfCns.includes(search) ||
+    patient.equipe.toLowerCase().includes(search.toLowerCase())
+  );
 
   const sortedPatients = useMemo(() => {
     if (!sortKey || !sortDirection) return filteredPatients;
 
     return [...filteredPatients].sort((a, b) => {
-      let aValue: string | number = a[sortKey];
-      let bValue: string | number = b[sortKey];
+      let comparison = 0;
 
       if (sortKey === "id" || sortKey === "idade") {
-        aValue = Number(aValue) || 0;
-        bValue = Number(bValue) || 0;
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+        comparison = (Number(a[sortKey]) || 0) - (Number(b[sortKey]) || 0);
+      } else if (sortKey === "primeiraConsulta") {
+        // Ordena por timestamp real da data
+        comparison = parseDateToTimestamp(a.primeiraConsulta) - parseDateToTimestamp(b.primeiraConsulta);
+      } else {
+        const aVal = String(a[sortKey] ?? "").toLowerCase();
+        const bVal = String(b[sortKey] ?? "").toLowerCase();
+        if (aVal < bVal) comparison = -1;
+        else if (aVal > bVal) comparison = 1;
       }
 
-      aValue = String(aValue).toLowerCase();
-      bValue = String(bValue).toLowerCase();
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
+      return sortDirection === "asc" ? comparison : -comparison;
     });
   }, [filteredPatients, sortKey, sortDirection]);
 
   const totalPages = Math.ceil(sortedPatients.length / perPage);
-  const paginatedPatients = sortedPatients.slice(
-    (page - 1) * perPage,
-    page * perPage
-  );
+  const paginatedPatients = sortedPatients.slice((page - 1) * perPage, page * perPage);
 
   return (
     <Card className="shadow-lg">
@@ -108,10 +102,7 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
               <Input
                 placeholder="Buscar paciente..."
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="pl-9 w-64"
               />
             </div>
@@ -167,7 +158,6 @@ export const PatientTable = ({ patients }: PatientTableProps) => {
             </TableBody>
           </Table>
         </div>
-        {/* Pagination */}
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Exibindo</span>
