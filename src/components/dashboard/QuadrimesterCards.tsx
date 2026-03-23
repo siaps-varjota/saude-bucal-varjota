@@ -74,14 +74,17 @@ export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: Quadrime
   const totalCadastrados = patients.length;
   const denominador = totalCadastrados * 4;
 
-  // Meta Ótimo B1: > 5%
+  // Metas B1: Bom > 3%, Ótimo > 5%
+  const metaBom   = Math.ceil(denominador * 0.03) + 1;
   const metaOtimo = Math.ceil(denominador * 0.05) + 1;
+  const mediaMensalBom   = metaBom / 4;
   const mediaMensalOtimo = metaOtimo / 4;
 
+  // Gera apenas os 2 últimos quadrimestres
   const quadrimesters: Quadrimester[] = [];
   let quad = currentQuad;
   let year = currentYear;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     quadrimesters.push({ label: getQuadrimesterLabel(quad, year), months: getQuadrimesterMonths(quad), year, quadKey: `Q${quad}-${year}` });
     quad--;
     if (quad < 1) { quad = 3; year--; }
@@ -106,25 +109,43 @@ export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: Quadrime
     ? quadCounts.filter(q => q.quadKey === quadFiltered)
     : quadCounts;
 
-  // Total atual do quadrimestre mais recente visível
   const totalAtual = visibleCards.length > 0 ? visibleCards[visibleCards.length - 1].total : 0;
-  const faltam = Math.max(0, metaOtimo - totalAtual);
-  const atingiu = totalAtual >= metaOtimo;
+  const faltamBom   = Math.max(0, metaBom - totalAtual);
+  const faltamOtimo = Math.max(0, metaOtimo - totalAtual);
+  const atingiuBom   = totalAtual >= metaBom;
+  const atingiuOtimo = totalAtual >= metaOtimo;
 
+  // Card de meta ocupa 2 colunas via col-span-2
   const metaCard = (
-    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full">
+    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2">
       <CardContent className="p-4 flex flex-col justify-center h-full">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-3">
           <Target className="h-4 w-4 text-purple-600" />
-          <span className="text-sm font-medium text-purple-700">Meta Ótimo (&gt; 5%)</span>
+          <span className="text-sm font-medium text-purple-700">Meta do Quadrimestre</span>
+          <span className="text-xs text-muted-foreground ml-1">de {denominador}</span>
         </div>
-        <p className="text-3xl font-bold text-blue-700">{metaOtimo} atend.</p>
-        <p className="text-xs text-muted-foreground mt-1">de {denominador}</p>
-        <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
-        {atingiu
-          ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-          : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltam} atend.</p>
-        }
+        <div className="grid grid-cols-2 gap-4">
+          {/* Bom */}
+          <div className="border-r pr-4">
+            <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 3%)</p>
+            <p className="text-2xl font-bold text-emerald-700">{metaBom} atend.</p>
+            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
+            {atingiuBom
+              ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
+              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} atend.</p>
+            }
+          </div>
+          {/* Ótimo */}
+          <div>
+            <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 5%)</p>
+            <p className="text-2xl font-bold text-blue-700">{metaOtimo} atend.</p>
+            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
+            {atingiuOtimo
+              ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
+              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} atend.</p>
+            }
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
