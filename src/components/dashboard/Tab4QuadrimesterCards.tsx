@@ -73,15 +73,17 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
 
   const denominador = totalPatients * 4;
 
-  // Meta Ótimo B4 (Escovação): > 1%
+  // Metas B4 (Escovação): Bom > 0,5%, Ótimo > 1%
+  const metaBom   = Math.ceil(denominador * 0.005) + 1;
   const metaOtimo = Math.ceil(denominador * 0.01) + 1;
+  const mediaMensalBom   = metaBom / 4;
   const mediaMensalOtimo = metaOtimo / 4;
 
+  // Gera apenas os 2 últimos quadrimestres
   const quadrimesters: (Quadrimester & { quadKey: string })[] = [];
   let quad = currentQuad;
   let year = currentYear;
-
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     quadrimesters.push({ label: getQuadrimesterLabel(quad, year), months: getQuadrimesterMonths(quad), year, quadKey: `Q${quad}-${year}` });
     quad--;
     if (quad < 1) { quad = 3; year--; }
@@ -91,20 +93,13 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
   const quadCounts = quadrimesters.map(q => {
     let count = 0;
     let monthsWithData = 0;
-
     patients.forEach(patient => {
       const consultaDate = parseConsultaDate(patient.primeiraConsulta);
-      if (consultaDate) {
-        const consultaMonth = getMonth(consultaDate);
-        const consultaYear = getYear(consultaDate);
-        if (consultaYear === q.year && q.months.includes(consultaMonth)) count++;
-      }
+      if (consultaDate && getYear(consultaDate) === q.year && q.months.includes(getMonth(consultaDate))) count++;
     });
-
     q.months.forEach(m => {
       if (q.year < currentYear || (q.year === currentYear && m <= currentMonth)) monthsWithData++;
     });
-
     const average = monthsWithData > 0 ? count / monthsWithData : 0;
     return { ...q, total: count, average, monthsWithData };
   });
@@ -114,23 +109,41 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
     : quadCounts;
 
   const totalAtual = visibleCards.length > 0 ? visibleCards[visibleCards.length - 1].total : 0;
-  const faltam = Math.max(0, metaOtimo - totalAtual);
-  const atingiu = totalAtual >= metaOtimo;
+  const faltamBom   = Math.max(0, metaBom - totalAtual);
+  const faltamOtimo = Math.max(0, metaOtimo - totalAtual);
+  const atingiuBom   = totalAtual >= metaBom;
+  const atingiuOtimo = totalAtual >= metaOtimo;
 
   const metaCard = (
-    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-2">
+    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2">
+      <CardContent className="p-4 flex flex-col justify-center h-full">
+        <div className="flex items-center gap-2 mb-3">
           <Target className="h-4 w-4 text-purple-600" />
-          <span className="text-sm font-medium text-purple-700">Meta Ótimo (&gt; 1%)</span>
+          <span className="text-sm font-medium text-purple-700">Meta do Quadrimestre</span>
+          <span className="text-xs text-muted-foreground ml-1">de {denominador}</span>
         </div>
-        <p className="text-3xl font-bold text-blue-700">{metaOtimo} escov.</p>
-        <p className="text-xs text-muted-foreground mt-1">de {denominador}</p>
-        <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
-        {atingiu
-          ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-          : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltam} escov.</p>
-        }
+        <div className="grid grid-cols-2 gap-4">
+          {/* Bom */}
+          <div className="border-r pr-4">
+            <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 0,5%)</p>
+            <p className="text-2xl font-bold text-emerald-700">{metaBom} escov.</p>
+            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
+            {atingiuBom
+              ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
+              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} escov.</p>
+            }
+          </div>
+          {/* Ótimo */}
+          <div>
+            <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 1%)</p>
+            <p className="text-2xl font-bold text-blue-700">{metaOtimo} escov.</p>
+            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
+            {atingiuOtimo
+              ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
+              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} escov.</p>
+            }
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -141,10 +154,9 @@ export const Tab4QuadrimesterCards = ({ patients, totalPatients, quadrimestre = 
         const percentage = denominador > 0 ? (quad.total / denominador) * 100 : 0;
         const category = getScoreCategory(percentage, quad.total);
         const styles = getScoreStyles(category);
-
         return (
-          <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
-            <CardContent className="p-4">
+          <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg h-full ${styles.bg}`}>
+            <CardContent className="p-4 flex flex-col justify-center h-full">
               <div className="flex items-center gap-2 mb-2">
                 <CalendarDays className={`h-4 w-4 ${styles.icon}`} />
                 <span className={`text-sm font-medium ${styles.label}`}>{quad.label}</span>
