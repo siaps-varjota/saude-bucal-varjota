@@ -43,7 +43,7 @@ const NOTA_SCORE: Record<Conceito, string> = {
   regular: "0,25", suficiente: "0,50", bom: "0,75", otimo: "1,00", none: "0,00",
 };
 
-// ── Thresholds para o card Meta do Quadrimestre (B1 e B5) ────────────────────
+// ── Thresholds para Meta do Quadrimestre (B1 e B5) ───────────────────────────
 const META_THRESHOLDS: Partial<Record<string, {
   labelBom: string;
   thresholdBom: number;
@@ -51,8 +51,8 @@ const META_THRESHOLDS: Partial<Record<string, {
   thresholdOtimo: number;
 }>> = {
   "1ª Consulta Odontológica": {
-    labelBom: "> 3%",   thresholdBom: 0.03,
-    labelOtimo: "> 5%", thresholdOtimo: 0.05,
+    labelBom: "> 3%",    thresholdBom: 0.03,
+    labelOtimo: "> 5%",  thresholdOtimo: 0.05,
   },
   "Escovação Supervisionada": {
     labelBom: "> 0,5%",  thresholdBom: 0.005,
@@ -78,7 +78,7 @@ function fmtNum(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-// ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
+// ── Card Meta — flex item inline com os cards de meses ───────────────────────
 const MetaQuadrimestreCard = ({
   denominador,
   numerador,
@@ -88,65 +88,126 @@ const MetaQuadrimestreCard = ({
   numerador: number;
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
 }) => {
-  // mínimo para atingir o conceito (pct estritamente maior que o threshold)
   const metaBom   = Math.floor(denominador * thresholds.thresholdBom)   + 1;
   const metaOtimo = Math.floor(denominador * thresholds.thresholdOtimo) + 1;
   const faltamBom   = Math.max(0, metaBom   - numerador);
   const faltamOtimo = Math.max(0, metaOtimo - numerador);
 
-  const cols = [
-    {
-      label: `Bom (${thresholds.labelBom})`,
-      meta: metaBom,
-      faltam: faltamBom,
-      colorText: "text-emerald-700",
-      colorSub:  "text-emerald-600",
-    },
-    {
-      label: `Ótimo (${thresholds.labelOtimo})`,
-      meta: metaOtimo,
-      faltam: faltamOtimo,
-      colorText: "text-blue-700",
-      colorSub:  "text-blue-600",
-    },
-  ];
-
   return (
-    <div className="flex flex-wrap items-start gap-x-8 gap-y-2 px-4 py-3 mt-2 bg-violet-50 border border-violet-200 rounded-lg">
+    <div className="flex flex-col justify-between bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm min-w-[260px]">
       {/* Cabeçalho */}
-      <div className="flex items-center gap-1.5 w-full text-sm font-semibold text-violet-700">
-        <Target className="h-4 w-4 shrink-0" />
-        <span>Meta do Quadrimestre</span>
-        <span className="text-muted-foreground font-normal text-xs ml-1">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
+        <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
+          Meta do Quadrimestre
+        </span>
+        <span className="text-xs text-muted-foreground ml-0.5">
           de {denominador.toLocaleString("pt-BR")}
         </span>
       </div>
-      {/* Colunas Bom / Ótimo */}
-      {cols.map(({ label, meta, faltam, colorText, colorSub }) => (
-        <div key={label} className="min-w-[130px]">
-          <p className={`text-xs font-semibold ${colorText}`}>{label}</p>
-          <p className={`text-2xl font-bold font-mono ${colorText}`}>
-            {meta.toLocaleString("pt-BR")}{" "}
-            <span className="text-base font-normal">atend.</span>
+
+      {/* Colunas Bom / Ótimo lado a lado */}
+      <div className="flex gap-6">
+        {/* Bom */}
+        <div>
+          <p className="text-xs font-semibold text-emerald-700">
+            Bom ({thresholds.labelBom})
           </p>
-          <p className="text-xs text-muted-foreground">
-            Média/mês: {(meta / 4).toFixed(1)}
+          <p className="text-xl font-bold font-mono text-emerald-700 leading-tight">
+            {metaBom.toLocaleString("pt-BR")}{" "}
+            <span className="text-sm font-normal">atend.</span>
           </p>
-          {faltam > 0 ? (
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / 4).toFixed(1)}</p>
+          {faltamBom > 0 ? (
             <p className="text-xs font-medium text-red-600">
-              Faltam: {faltam.toLocaleString("pt-BR")} atend.
+              Faltam: {faltamBom.toLocaleString("pt-BR")} atend.
             </p>
           ) : (
-            <p className={`text-xs font-medium ${colorSub}`}>✓ Meta atingida!</p>
+            <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>
           )}
         </div>
-      ))}
+
+        {/* Ótimo */}
+        <div>
+          <p className="text-xs font-semibold text-blue-700">
+            Ótimo ({thresholds.labelOtimo})
+          </p>
+          <p className="text-xl font-bold font-mono text-blue-700 leading-tight">
+            {metaOtimo.toLocaleString("pt-BR")}{" "}
+            <span className="text-sm font-normal">atend.</span>
+          </p>
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / 4).toFixed(1)}</p>
+          {faltamOtimo > 0 ? (
+            <p className="text-xs font-medium text-red-600">
+              Faltam: {faltamOtimo.toLocaleString("pt-BR")} atend.
+            </p>
+          ) : (
+            <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
+// ── Row de detalhe compartilhado (meses + meta numa só linha flex) ────────────
+const DetalheRow = ({
+  ind,
+  colSpan,
+  cardMinWidth = "90px",
+}: {
+  ind: IndicadorResult;
+  colSpan: number;
+  cardMinWidth?: string;
+}) => {
+  const metaThresholds = META_THRESHOLDS[ind.indicador];
+  const hasMeses = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+
+  return (
+    <TableRow className="bg-muted/20">
+      <TableCell colSpan={colSpan} className="py-2 px-4">
+        {/* Um único flex: cards de mês + card meta na mesma altura */}
+        <div className="flex flex-wrap items-stretch gap-3">
+          {hasMeses && ind.mesesDetalhe.map((mes) => (
+            <div
+              key={mes.mes}
+              className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+              style={{ minWidth: cardMinWidth }}
+            >
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                {mes.mes}
+              </span>
+              <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+              <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
+              <span className="text-xs font-medium text-primary mt-0.5">
+                {mes.porcentagem.toFixed(1)}%
+              </span>
+            </div>
+          ))}
+
+          {metaThresholds && (
+            <MetaQuadrimestreCard
+              denominador={ind.denominador}
+              numerador={ind.numerador}
+              thresholds={metaThresholds}
+            />
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+};
+
 // ── Tabela completa por equipe ────────────────────────────────────────────────
-const ResultTable = ({ result, title, showMeses }: { result: EquipeResult; title: string; showMeses: boolean }) => {
+const ResultTable = ({
+  result,
+  title,
+  showMeses,
+}: {
+  result: EquipeResult;
+  title: string;
+  showMeses: boolean;
+}) => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const toggleRow = (idx: number) => {
@@ -185,9 +246,8 @@ const ResultTable = ({ result, title, showMeses }: { result: EquipeResult; title
               {result.indicadores.map((ind, idx) => {
                 const isExpanded = expandedRows.has(idx);
                 const hasMeses = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
-                const metaThresholds = META_THRESHOLDS[ind.indicador];
-                // B1/B5 são sempre expansíveis quando showMeses, mesmo sem detalhe mensal
-                const isExpandable = hasMeses || (showMeses && !!metaThresholds);
+                const hasMetaCard = showMeses && !!META_THRESHOLDS[ind.indicador];
+                const isExpandable = hasMeses || hasMetaCard;
 
                 return (
                   <>
@@ -216,36 +276,17 @@ const ResultTable = ({ result, title, showMeses }: { result: EquipeResult; title
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
-                      <TableCell className="text-center font-mono font-semibold">{ind.notaFinal.toFixed(2).replace(".", ",")}</TableCell>
+                      <TableCell className="text-center font-mono font-semibold">
+                        {ind.notaFinal.toFixed(2).replace(".", ",")}
+                      </TableCell>
                     </TableRow>
 
-                    {/* Linha de detalhe expandida */}
                     {isExpandable && isExpanded && (
-                      <TableRow key={`${idx}-detail`} className="bg-muted/20">
-                        <TableCell colSpan={showMeses ? 9 : 8} className="py-2 px-4">
-                          {/* Detalhe mensal */}
-                          {hasMeses && (
-                            <div className="flex flex-wrap gap-3 mb-0">
-                              {ind.mesesDetalhe.map((mes) => (
-                                <div key={mes.mes} className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 min-w-[90px] shadow-sm">
-                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{mes.mes}</span>
-                                  <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-                                  <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-                                  <span className="text-xs font-medium text-primary mt-0.5">{mes.porcentagem.toFixed(1)}%</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {/* Card Meta do Quadrimestre (B1 e B5) */}
-                          {metaThresholds && (
-                            <MetaQuadrimestreCard
-                              denominador={ind.denominador}
-                              numerador={ind.numerador}
-                              thresholds={metaThresholds}
-                            />
-                          )}
-                        </TableCell>
-                      </TableRow>
+                      <DetalheRow
+                        key={`${idx}-detail`}
+                        ind={ind}
+                        colSpan={showMeses ? 9 : 8}
+                      />
                     )}
                   </>
                 );
@@ -286,8 +327,6 @@ const IndicadorComparativo = ({
   const geralInd = getInd(geral);
   if (!geralInd) return null;
 
-  const metaThresholds = META_THRESHOLDS[indicadorNome];
-
   const equipeRows = porEquipe
     .map((eq, idx) => ({ equipe: eq.equipe, ind: getInd(eq), rank: idx + 1 }))
     .filter((r): r is { equipe: string; ind: IndicadorResult; rank: number } => !!r.ind)
@@ -297,6 +336,8 @@ const IndicadorComparativo = ({
       return cc !== 0 ? cc : b.ind.porcentagem - a.ind.porcentagem;
     });
 
+  const hasMetaCard = !!META_THRESHOLDS[indicadorNome];
+
   return (
     <Card className="border shadow-md">
       <CardHeader className="pb-3">
@@ -305,16 +346,7 @@ const IndicadorComparativo = ({
           Comparativo por Equipe — {indicadorNome}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Card Meta do Quadrimestre (B1 e B5) no comparativo */}
-        {metaThresholds && showMeses && (
-          <MetaQuadrimestreCard
-            denominador={geralInd.denominador}
-            numerador={geralInd.numerador}
-            thresholds={metaThresholds}
-          />
-        )}
-
+      <CardContent>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -341,25 +373,17 @@ const IndicadorComparativo = ({
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center font-mono">{NOTA_SCORE[geralInd.conceito]}</TableCell>
-                <TableCell className="text-center font-mono font-semibold">{geralInd.notaFinal.toFixed(2).replace(".", ",")}</TableCell>
+                <TableCell className="text-center font-mono font-semibold">
+                  {geralInd.notaFinal.toFixed(2).replace(".", ",")}
+                </TableCell>
               </TableRow>
-              {showMeses && geralInd.mesesDetalhe?.length > 0 && (
-                <TableRow className="bg-muted/10">
-                  <TableCell colSpan={7} className="py-2 px-4">
-                    <div className="flex flex-wrap gap-2">
-                      {geralInd.mesesDetalhe.map((mes) => (
-                        <div key={mes.mes} className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 min-w-[80px] shadow-sm">
-                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{mes.mes}</span>
-                          <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-                          <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-                          <span className="text-xs font-medium text-primary mt-0.5">{mes.porcentagem.toFixed(1)}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
-                </TableRow>
+
+              {/* Detalhe Geral */}
+              {showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard) && (
+                <DetalheRow ind={geralInd} colSpan={7} cardMinWidth="80px" />
               )}
-              {/* Linhas por equipe */}
+
+              {/* Linhas por equipe — cada uma com seu próprio detalhe + meta */}
               {equipeRows.map(({ equipe, ind }, idx) => (
                 <>
                   <TableRow key={equipe}>
@@ -373,23 +397,18 @@ const IndicadorComparativo = ({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
-                    <TableCell className="text-center font-mono font-semibold">{ind.notaFinal.toFixed(2).replace(".", ",")}</TableCell>
+                    <TableCell className="text-center font-mono font-semibold">
+                      {ind.notaFinal.toFixed(2).replace(".", ",")}
+                    </TableCell>
                   </TableRow>
-                  {showMeses && ind.mesesDetalhe?.length > 0 && (
-                    <TableRow key={`${equipe}-detail`} className="bg-muted/10">
-                      <TableCell colSpan={7} className="py-2 px-4">
-                        <div className="flex flex-wrap gap-2">
-                          {ind.mesesDetalhe.map((mes) => (
-                            <div key={mes.mes} className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 min-w-[80px] shadow-sm">
-                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{mes.mes}</span>
-                              <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-                              <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-                              <span className="text-xs font-medium text-primary mt-0.5">{mes.porcentagem.toFixed(1)}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+
+                  {showMeses && (ind.mesesDetalhe?.length > 0 || hasMetaCard) && (
+                    <DetalheRow
+                      key={`${equipe}-detail`}
+                      ind={ind}
+                      colSpan={7}
+                      cardMinWidth="80px"
+                    />
                   )}
                 </>
               ))}
@@ -402,7 +421,15 @@ const IndicadorComparativo = ({
 };
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimestreChange, equipe, onEquipeChange, equipeOptions }: ResultadoFinalTabProps) => {
+export const ResultadoFinalTab = ({
+  geral,
+  porEquipe,
+  quadrimestre,
+  onQuadrimestreChange,
+  equipe,
+  onEquipeChange,
+  equipeOptions,
+}: ResultadoFinalTabProps) => {
   const [indicadorFiltro, setIndicadorFiltro] = useState("todos");
 
   const sortedEquipes = useMemo(
@@ -483,7 +510,7 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
         ))}
       </div>
 
-      {/* Conteúdo principal — comparativo ou tabelas completas */}
+      {/* Conteúdo principal */}
       {indicadorFiltro !== "todos" ? (
         <IndicadorComparativo
           indicadorNome={indicadorFiltro}
@@ -521,7 +548,9 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
           <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">= 1,00</span>
         </div>
-        {showMeses && <span className="text-muted-foreground text-xs ml-2">· Clique na linha para expandir detalhes</span>}
+        {showMeses && (
+          <span className="text-muted-foreground text-xs ml-2">· Clique na linha para expandir detalhes</span>
+        )}
       </div>
 
       <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
