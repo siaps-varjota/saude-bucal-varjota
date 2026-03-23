@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Award, Filter, ChevronDown, ChevronRight, BarChart2 } from "lucide-react";
+import { Trophy, Award, Filter, ChevronDown, ChevronRight, BarChart2, Target } from "lucide-react";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
@@ -43,6 +43,23 @@ const NOTA_SCORE: Record<Conceito, string> = {
   regular: "0,25", suficiente: "0,50", bom: "0,75", otimo: "1,00", none: "0,00",
 };
 
+// ── Thresholds para o card Meta do Quadrimestre (B1 e B5) ────────────────────
+const META_THRESHOLDS: Partial<Record<string, {
+  labelBom: string;
+  thresholdBom: number;
+  labelOtimo: string;
+  thresholdOtimo: number;
+}>> = {
+  "1ª Consulta Odontológica": {
+    labelBom: "> 3%",   thresholdBom: 0.03,
+    labelOtimo: "> 5%", thresholdOtimo: 0.05,
+  },
+  "Escovação Supervisionada": {
+    labelBom: "> 0,5%",  thresholdBom: 0.005,
+    labelOtimo: "> 1%",  thresholdOtimo: 0.01,
+  },
+};
+
 function getNotaFinalColor(nota: number): string {
   if (nota > 7.5)  return "text-blue-700";
   if (nota >= 5)   return "text-emerald-700";
@@ -60,6 +77,73 @@ function getNotaFinalBg(nota: number): string {
 function fmtNum(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
+
+// ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
+const MetaQuadrimestreCard = ({
+  denominador,
+  numerador,
+  thresholds,
+}: {
+  denominador: number;
+  numerador: number;
+  thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
+}) => {
+  // mínimo para atingir o conceito (pct estritamente maior que o threshold)
+  const metaBom   = Math.floor(denominador * thresholds.thresholdBom)   + 1;
+  const metaOtimo = Math.floor(denominador * thresholds.thresholdOtimo) + 1;
+  const faltamBom   = Math.max(0, metaBom   - numerador);
+  const faltamOtimo = Math.max(0, metaOtimo - numerador);
+
+  const cols = [
+    {
+      label: `Bom (${thresholds.labelBom})`,
+      meta: metaBom,
+      faltam: faltamBom,
+      colorText: "text-emerald-700",
+      colorSub:  "text-emerald-600",
+    },
+    {
+      label: `Ótimo (${thresholds.labelOtimo})`,
+      meta: metaOtimo,
+      faltam: faltamOtimo,
+      colorText: "text-blue-700",
+      colorSub:  "text-blue-600",
+    },
+  ];
+
+  return (
+    <div className="flex flex-wrap items-start gap-x-8 gap-y-2 px-4 py-3 mt-2 bg-violet-50 border border-violet-200 rounded-lg">
+      {/* Cabeçalho */}
+      <div className="flex items-center gap-1.5 w-full text-sm font-semibold text-violet-700">
+        <Target className="h-4 w-4 shrink-0" />
+        <span>Meta do Quadrimestre</span>
+        <span className="text-muted-foreground font-normal text-xs ml-1">
+          de {denominador.toLocaleString("pt-BR")}
+        </span>
+      </div>
+      {/* Colunas Bom / Ótimo */}
+      {cols.map(({ label, meta, faltam, colorText, colorSub }) => (
+        <div key={label} className="min-w-[130px]">
+          <p className={`text-xs font-semibold ${colorText}`}>{label}</p>
+          <p className={`text-2xl font-bold font-mono ${colorText}`}>
+            {meta.toLocaleString("pt-BR")}{" "}
+            <span className="text-base font-normal">atend.</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Média/mês: {(meta / 4).toFixed(1)}
+          </p>
+          {faltam > 0 ? (
+            <p className="text-xs font-medium text-red-600">
+              Faltam: {faltam.toLocaleString("pt-BR")} atend.
+            </p>
+          ) : (
+            <p className={`text-xs font-medium ${colorSub}`}>✓ Meta atingida!</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 // ── Tabela completa por equipe ────────────────────────────────────────────────
 const ResultTable = ({ result, title, showMeses }: { result: EquipeResult; title: string; showMeses: boolean }) => {
@@ -101,16 +185,24 @@ const ResultTable = ({ result, title, showMeses }: { result: EquipeResult; title
               {result.indicadores.map((ind, idx) => {
                 const isExpanded = expandedRows.has(idx);
                 const hasMeses = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+                const metaThresholds = META_THRESHOLDS[ind.indicador];
+                // B1/B5 são sempre expansíveis quando showMeses, mesmo sem detalhe mensal
+                const isExpandable = hasMeses || (showMeses && !!metaThresholds);
+
                 return (
                   <>
                     <TableRow
                       key={idx}
-                      className={hasMeses ? "cursor-pointer hover:bg-muted/40" : ""}
-                      onClick={() => hasMeses && toggleRow(idx)}
+                      className={isExpandable ? "cursor-pointer hover:bg-muted/40" : ""}
+                      onClick={() => isExpandable && toggleRow(idx)}
                     >
                       {showMeses && (
                         <TableCell className="w-8 pr-0">
-                          {hasMeses ? (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />) : null}
+                          {isExpandable
+                            ? (isExpanded
+                                ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                : <ChevronRight className="h-4 w-4 text-muted-foreground" />)
+                            : null}
                         </TableCell>
                       )}
                       <TableCell className="font-medium">{ind.indicador}</TableCell>
@@ -126,19 +218,32 @@ const ResultTable = ({ result, title, showMeses }: { result: EquipeResult; title
                       <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
                       <TableCell className="text-center font-mono font-semibold">{ind.notaFinal.toFixed(2).replace(".", ",")}</TableCell>
                     </TableRow>
-                    {hasMeses && isExpanded && (
+
+                    {/* Linha de detalhe expandida */}
+                    {isExpandable && isExpanded && (
                       <TableRow key={`${idx}-detail`} className="bg-muted/20">
                         <TableCell colSpan={showMeses ? 9 : 8} className="py-2 px-4">
-                          <div className="flex flex-wrap gap-3">
-                            {ind.mesesDetalhe.map((mes) => (
-                              <div key={mes.mes} className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 min-w-[90px] shadow-sm">
-                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{mes.mes}</span>
-                                <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-                                <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-                                <span className="text-xs font-medium text-primary mt-0.5">{mes.porcentagem.toFixed(1)}%</span>
-                              </div>
-                            ))}
-                          </div>
+                          {/* Detalhe mensal */}
+                          {hasMeses && (
+                            <div className="flex flex-wrap gap-3 mb-0">
+                              {ind.mesesDetalhe.map((mes) => (
+                                <div key={mes.mes} className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 min-w-[90px] shadow-sm">
+                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{mes.mes}</span>
+                                  <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+                                  <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
+                                  <span className="text-xs font-medium text-primary mt-0.5">{mes.porcentagem.toFixed(1)}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Card Meta do Quadrimestre (B1 e B5) */}
+                          {metaThresholds && (
+                            <MetaQuadrimestreCard
+                              denominador={ind.denominador}
+                              numerador={ind.numerador}
+                              thresholds={metaThresholds}
+                            />
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
@@ -181,6 +286,8 @@ const IndicadorComparativo = ({
   const geralInd = getInd(geral);
   if (!geralInd) return null;
 
+  const metaThresholds = META_THRESHOLDS[indicadorNome];
+
   const equipeRows = porEquipe
     .map((eq, idx) => ({ equipe: eq.equipe, ind: getInd(eq), rank: idx + 1 }))
     .filter((r): r is { equipe: string; ind: IndicadorResult; rank: number } => !!r.ind)
@@ -198,7 +305,16 @@ const IndicadorComparativo = ({
           Comparativo por Equipe — {indicadorNome}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Card Meta do Quadrimestre (B1 e B5) no comparativo */}
+        {metaThresholds && showMeses && (
+          <MetaQuadrimestreCard
+            denominador={geralInd.denominador}
+            numerador={geralInd.numerador}
+            thresholds={metaThresholds}
+          />
+        )}
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -405,7 +521,7 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
           <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">= 1,00</span>
         </div>
-        {showMeses && <span className="text-muted-foreground text-xs ml-2">· Detalhe mensal exibido por equipe</span>}
+        {showMeses && <span className="text-muted-foreground text-xs ml-2">· Clique na linha para expandir detalhes</span>}
       </div>
 
       <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
