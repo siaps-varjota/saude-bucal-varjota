@@ -109,7 +109,7 @@ export const PatientFilters = ({
       </div>
 
       <Select value={filters.equipe} onValueChange={value => onFiltersChange({ ...filters, equipe: value })}>
-        <SelectTrigger className="w-[160px] h-9">
+        <SelectTrigger className="w-[280px] h-9">
           <SelectValue placeholder="Equipe" />
         </SelectTrigger>
         <SelectContent>
