@@ -112,13 +112,13 @@ export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: Quadrime
   const atingiu = totalAtual >= metaOtimo;
 
   const metaCard = (
-    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500">
-      <CardContent className="p-4">
+    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full">
+      <CardContent className="p-4 flex flex-col justify-center h-full">
         <div className="flex items-center gap-2 mb-2">
           <Target className="h-4 w-4 text-purple-600" />
           <span className="text-sm font-medium text-purple-700">Meta Ótimo (&gt; 5%)</span>
         </div>
-        <p className={`text-3xl font-bold text-blue-700`}>{metaOtimo} atend.</p>
+        <p className="text-3xl font-bold text-blue-700">{metaOtimo} atend.</p>
         <p className="text-xs text-muted-foreground mt-1">de {denominador}</p>
         <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
         {atingiu
@@ -136,8 +136,8 @@ export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: Quadrime
         const category = getScoreCategory(percentage);
         const styles   = getScoreStyles(category);
         return (
-          <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
-            <CardContent className="p-4">
+          <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg h-full ${styles.bg}`}>
+            <CardContent className="p-4 flex flex-col justify-center h-full">
               <div className="flex items-center gap-2 mb-2">
                 <CalendarDays className={`h-4 w-4 ${styles.icon}`} />
                 <span className={`text-sm font-medium ${styles.label}`}>{quad.label}</span>
