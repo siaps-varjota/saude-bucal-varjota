@@ -13,6 +13,7 @@ import {
   Search, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { parse, isValid } from "date-fns";
 
 interface TratamentoTableProps {
   patients: TratamentoPatient[];
@@ -20,6 +21,18 @@ interface TratamentoTableProps {
 
 type SortField = "id" | "nome" | "equipe" | "microarea" | "idade" | "primeiraConsulta" | "tratamentoConcluido";
 type SortDirection = "asc" | "desc";
+
+const parseDateToTimestamp = (val: string): number => {
+  if (!val || val === "-" || val.trim() === "") return 0;
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(val.trim(), fmt, new Date());
+      if (isValid(parsed)) return parsed.getTime();
+    } catch { continue; }
+  }
+  return 0;
+};
 
 export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
   const [search, setSearch] = useState("");
@@ -45,24 +58,28 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
   };
 
   const filteredAndSortedPatients = useMemo(() => {
-    let result = patients.filter(
-      (patient) =>
-        patient.nome.toLowerCase().includes(search.toLowerCase()) ||
-        patient.cpfCns.includes(search) ||
-        patient.equipe.toLowerCase().includes(search.toLowerCase()) ||
-        patient.microarea.includes(search)
+    const result = patients.filter((patient) =>
+      patient.nome.toLowerCase().includes(search.toLowerCase()) ||
+      patient.cpfCns.includes(search) ||
+      patient.equipe.toLowerCase().includes(search.toLowerCase()) ||
+      patient.microarea.includes(search)
     );
 
     result.sort((a, b) => {
       let comparison = 0;
       switch (sortField) {
-        case "id": comparison = a.id - b.id; break;
-        case "nome": comparison = a.nome.localeCompare(b.nome); break;
-        case "equipe": comparison = a.equipe.localeCompare(b.equipe); break;
+        case "id":        comparison = a.id - b.id; break;
+        case "nome":      comparison = a.nome.localeCompare(b.nome); break;
+        case "equipe":    comparison = a.equipe.localeCompare(b.equipe); break;
         case "microarea": comparison = a.microarea.localeCompare(b.microarea); break;
-        case "idade": comparison = a.idade - b.idade; break;
-        case "primeiraConsulta": comparison = a.primeiraConsulta.localeCompare(b.primeiraConsulta); break;
-        case "tratamentoConcluido": comparison = a.tratamentoConcluido.localeCompare(b.tratamentoConcluido); break;
+        case "idade":     comparison = a.idade - b.idade; break;
+        // Ordena por timestamp real da data
+        case "primeiraConsulta":
+          comparison = parseDateToTimestamp(a.primeiraConsulta) - parseDateToTimestamp(b.primeiraConsulta);
+          break;
+        case "tratamentoConcluido":
+          comparison = parseDateToTimestamp(a.tratamentoConcluido) - parseDateToTimestamp(b.tratamentoConcluido);
+          break;
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
@@ -171,19 +188,11 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
             <span>de {filteredAndSortedPatients.length} pacientes</span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(1)} disabled={page === 1}>
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(1)} disabled={page === 1}><ChevronsLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(page - 1)} disabled={page === 1}><ChevronLeft className="h-4 w-4" /></Button>
             <span className="px-4 text-sm">Página {page} de {totalPages || 1}</span>
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => handlePageChange(totalPages)} disabled={page === totalPages}>
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => handlePageChange(totalPages)} disabled={page === totalPages}><ChevronsRight className="h-4 w-4" /></Button>
           </div>
         </div>
       </CardContent>
