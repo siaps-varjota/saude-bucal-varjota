@@ -184,7 +184,11 @@ const IndicadorComparativo = ({
   const equipeRows = porEquipe
     .map((eq, idx) => ({ equipe: eq.equipe, ind: getInd(eq), rank: idx + 1 }))
     .filter((r): r is { equipe: string; ind: IndicadorResult; rank: number } => !!r.ind)
-    .sort((a, b) => b.ind.porcentagem - a.ind.porcentagem);
+    .sort((a, b) => {
+      const CONCEITO_ORDER: Record<string, number> = { otimo: 0, bom: 1, suficiente: 2, regular: 3, none: 4 };
+      const cc = (CONCEITO_ORDER[a.ind.conceito] ?? 4) - (CONCEITO_ORDER[b.ind.conceito] ?? 4);
+      return cc !== 0 ? cc : b.ind.porcentagem - a.ind.porcentagem;
+    });
 
   return (
     <Card className="border shadow-md">
