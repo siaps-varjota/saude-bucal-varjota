@@ -305,7 +305,7 @@ export const ResultadoFinalTab = ({ geral, porEquipe, quadrimestre, onQuadrimest
           <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
         </div>
         <Select value={equipe} onValueChange={onEquipeChange}>
-          <SelectTrigger className="w-[200px] h-9">
+          <SelectTrigger className="w-[280px] h-9">
             <SelectValue placeholder="Selecione a equipe" />
           </SelectTrigger>
           <SelectContent>
