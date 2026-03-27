@@ -171,7 +171,7 @@ const DetalheRow = ({
           {hasMeses && ind.mesesDetalhe.map((mes) => (
             <div
               key={mes.mes}
-              className="flex flex-col items-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+              className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
               style={{ minWidth: cardMinWidth }}
             >
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
