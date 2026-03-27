@@ -628,31 +628,30 @@ export const ResultadoFinalTab = ({
       </div>
 
      {/* Ranking Cards */}
-<div className="w-full overflow-visible">
-  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 auto-rows-fr">
-    
+<div className="w-full block">
+  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+
     {/* Card Geral */}
-    <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
-      <CardContent className="p-3 text-center">
-        <div className="flex items-center justify-center gap-1 mb-1">
-          <Trophy className="h-4 w-4 text-primary" />
-          <span className="text-xs font-bold uppercase text-primary">Geral</span>
-        </div>
-        <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(geral.notaFinal)}`}>
-          {geral.notaFinal.toFixed(2).replace(".", ",")}
-        </p>
-        <p className="text-muted-foreground text-xs">Nota Final</p>
-      </CardContent>
-    </Card>
+    <div className="block">
+      <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
+        <CardContent className="p-3 text-center">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <Trophy className="h-4 w-4 text-primary" />
+            <span className="text-xs font-bold uppercase text-primary">Geral</span>
+          </div>
+          <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(geral.notaFinal)}`}>
+            {geral.notaFinal.toFixed(2).replace(".", ",")}
+          </p>
+          <p className="text-muted-foreground text-xs">Nota Final</p>
+        </CardContent>
+      </Card>
+    </div>
 
     {/* Cards das Equipes */}
     {sortedEquipes.map((eq, idx) => (
-      <Card
-        key={eq.equipe}
-        className={`border shadow-md ${getNotaFinalBg(eq.notaFinal)} border-l-4 h-full`}
-      >
-        <CardContent className="p-3 text-center flex flex-col justify-between h-full">
-          <div>
+      <div key={eq.equipe} className="block">
+        <Card className={`border shadow-md ${getNotaFinalBg(eq.notaFinal)} border-l-4`}>
+          <CardContent className="p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Award className="h-3 w-3 text-muted-foreground" />
               <span className="text-xs font-medium text-muted-foreground">
@@ -660,17 +659,18 @@ export const ResultadoFinalTab = ({
               </span>
             </div>
 
-            <p className="text-xs font-semibold truncate mb-1">
+            <p className="text-xs font-semibold mb-1 break-words">
               {eq.equipe}
             </p>
-          </div>
 
-          <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(eq.notaFinal)}`}>
-            {eq.notaFinal.toFixed(2).replace(".", ",")}
-          </p>
-        </CardContent>
-      </Card>
+            <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(eq.notaFinal)}`}>
+              {eq.notaFinal.toFixed(2).replace(".", ",")}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     ))}
+
   </div>
 </div>
       {/* Conteúdo principal */}
