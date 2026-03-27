@@ -12,6 +12,7 @@ import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4
 import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
+import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -42,16 +43,15 @@ import { Button } from "@/components/ui/button";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
   const getCurrentQuadrimestre = (): Quadrimestre => {
-  const now = new Date();
-  const month = now.getMonth(); // 0-11
-  const year = now.getFullYear();
-  if (month <= 3) return `Q1-${year}` as Quadrimestre;
-  if (month <= 7) return `Q2-${year}` as Quadrimestre;
-  return `Q3-${year}` as Quadrimestre;
-};
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    if (month <= 3) return `Q1-${year}` as Quadrimestre;
+    if (month <= 7) return `Q2-${year}` as Quadrimestre;
+    return `Q3-${year}` as Quadrimestre;
+  };
 
-const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
-  // ✅ NOVO: estado de equipe para o Resultado Final
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
   const { data: patients, isLoading: isLoadingPatients, error: errorPatients, refetch: refetchPatients, isFetching: isFetchingPatients } = usePatientData();
@@ -60,6 +60,9 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
   const { data: tab4Patients, isLoading: isLoadingTab4, error: errorTab4, refetch: refetchTab4, isFetching: isFetchingTab4 } = useTab4Data();
   const { data: tab5Patients, isLoading: isLoadingTab5, error: errorTab5, refetch: refetchTab5, isFetching: isFetchingTab5 } = useTab5Data();
   const { data: tab6Patients, isLoading: isLoadingTab6, error: errorTab6, refetch: refetchTab6, isFetching: isFetchingTab6 } = useTab6Data();
+
+  // ── Denominador B1 vindo da planilha externa ────────────────────────────────
+  const denominadorB1 = useDenominadorB1();
 
   const [filtersConsulta, setFiltersConsulta] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
@@ -87,7 +90,6 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
     [tratamentoPatients, filtersTratamento.equipe]
   );
 
-  // ✅ NOVO: opções de equipe para o seletor do Resultado Final
   const equipeOptions = useMemo(() => {
     const set = new Set<string>();
     (patients || []).forEach(p => p.equipe && set.add(p.equipe));
@@ -121,14 +123,17 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
 
   const { error, isFetching, refetch } = getTabState();
 
-  const isAllLoaded = !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 && !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6;
+  const isAllLoaded =
+    !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
+    !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
+    !denominadorB1.loading; // ← aguarda o CSV também
 
-  // ✅ CORRIGIDO: passa equipeResultado como argumento
   const resultadoFinal = useResultadoFinal(
     patients || [], tratamentoPatients || [], tab3Patients || [],
     tab4Patients || [], tab5Patients || [], tab6Patients || [],
     quadrimestre,
-    equipeResultado
+    equipeResultado,
+    denominadorB1  // ← passa o denominador externo
   );
 
   if (error) {
@@ -503,7 +508,6 @@ const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrim
             {!isAllLoaded ? (
               <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
             ) : (
-              // ✅ CORRIGIDO: todas as props necessárias agora são passadas
               <ResultadoFinalTab
                 geral={resultadoFinal.geral}
                 porEquipe={resultadoFinal.porEquipe}
