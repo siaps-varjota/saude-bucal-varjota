@@ -9,6 +9,8 @@ return useMemo(() => {
     console.log(`[B1 match] "${eq}" → ${val ?? "NÃO ENCONTRADO"}`);
   });
 
+  //
+
 import { useMemo } from "react";
 import { parse, isValid, getMonth, getYear } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
