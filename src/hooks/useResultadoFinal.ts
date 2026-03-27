@@ -1,16 +1,3 @@
-return useMemo(() => {
-  const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-
-  // LOG TEMPORÁRIO — remover depois
-  console.log("[B1 match] equipes dos dados:", allEquipes);
-  console.log("[B1 match] equipes do CSV:", Array.from(denominadorB1.porEquipe.keys()));
-  allEquipes.forEach(eq => {
-    const val = denominadorB1.porEquipe.get(eq);
-    console.log(`[B1 match] "${eq}" → ${val ?? "NÃO ENCONTRADO"}`);
-  });
-
-  //
-
 import { useMemo } from "react";
 import { parse, isValid, getMonth, getYear } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
@@ -20,8 +7,6 @@ import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
-
-// ── helpers ───────────────────────────────────────────────────────────────────
 
 const parseDate = (val: string): Date | null => {
   if (!val || val === "-" || val.trim() === "") return null;
@@ -47,8 +32,6 @@ const MONTH_NAME_TO_NUM: Record<string, number> = {
 };
 
 const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-// ── tipos e constantes ────────────────────────────────────────────────────────
 
 export type Conceito = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
@@ -105,7 +88,6 @@ const getConceitoB3 = (pct: number): Conceito => {
   return "regular";
 };
 
-// Proced. Odont. Preventivos
 const getConceitoB4 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
   if (pct >= 80 && pct <= 85) return "otimo";
@@ -114,7 +96,6 @@ const getConceitoB4 = (pct: number): Conceito => {
   return "regular";
 };
 
-// Escovação Supervisionada
 const getConceitoB5 = (pct: number): Conceito => {
   if (pct <= 0)   return "none";
   if (pct > 1)    return "otimo";
@@ -178,12 +159,10 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-// ── Cálculos — % = sumNumerador / sumDenominador (divisão direta) ─────────────
-
 function calcB1(
   allPatients: Patient[],
   quad: Quadrimestre,
-  denominadorExterno: number,   // ← novo parâmetro
+  denominadorExterno: number,
   equipe?: string
 ): RawCalc {
   const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
@@ -233,6 +212,7 @@ function calcB1(
     mesesDetalhe,
   };
 }
+
 function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: string): RawCalc {
   const source = equipe ? tratamento.filter((p) => p.equipe === equipe) : tratamento;
   const now = new Date();
@@ -272,7 +252,6 @@ function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: st
     mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: mTrat, denominador: mCons, porcentagem: mCons > 0 ? (mTrat / mCons) * 100 : 0 });
   });
 
-  // % = sumTrat / sumCons (divisão direta)
   return { numerador: sumTrat, denominador: sumCons, porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0, mesesDetalhe };
 }
 
@@ -381,11 +360,10 @@ function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): Ra
     mesesDetalhe.push({ mes: `${MONTH_ABBR[m]}/${year}`, numerador: count, denominador: totalPatients, porcentagem: totalPatients > 0 ? (count / totalPatients) * 100 : 0 });
   });
 
-  // % = sumEscovações / (totalPatients × 4)
   const denominador = totalPatients * 4;
   return {
     numerador: sumNum,
-    denominador: denominador,
+    denominador,
     porcentagem: denominador > 0 ? (sumNum / denominador) * 100 : 0,
     mesesDetalhe,
   };
@@ -436,10 +414,20 @@ export function useResultadoFinal(
   tab6: Tab6Record[],
   quad: Quadrimestre = "todos",
   equipeFilter: string = "all",
-  denominadorB1: { porEquipe: Map<string, number>; total: number } // ← novo
+  denominadorB1: { porEquipe: Map<string, number>; total: number }
 ) {
   return useMemo(() => {
     const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+
+    // ── LOG TEMPORÁRIO — remover depois ──────────────────────────────────────
+    console.log("[B1 match] equipes dos dados:", allEquipes);
+    console.log("[B1 match] equipes do CSV:", Array.from(denominadorB1.porEquipe.keys()));
+    allEquipes.forEach(eq => {
+      const val = denominadorB1.porEquipe.get(eq);
+      console.log(`[B1 match] "${eq}" → ${val ?? "NÃO ENCONTRADO"}`);
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
     const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
@@ -475,5 +463,5 @@ export function useResultadoFinal(
     };
 
     return { geral, porEquipe };
-  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1]);
+  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denominadorB1.porEquipe]);
 }
