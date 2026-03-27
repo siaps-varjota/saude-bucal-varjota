@@ -98,7 +98,7 @@ const MetaQuadrimestreCard = ({
   return (
     <div className="flex flex-col justify-between bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm min-w-[260px]">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-center gap-1.5 mb-2">
+      <div className="flex items-center gap-1.5 mb-2">
         <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
         <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
           Meta do Quadrimestre
@@ -171,11 +171,11 @@ const DetalheRow = ({
         {/* Um único flex: cards de mês + card meta na mesma altura */}
         <div className="flex flex-wrap items-stretch justify-center gap-3">
           {hasMeses && ind.mesesDetalhe.map((mes) => (
-           <div
-           key={mes.mes}
-          className="flex flex-col items-center text-center justify-center bg-background border rounded-lg px-3 py-2 shadow-sm"
-          style={{ minWidth: cardMinWidth }}
->
+            <div
+              key={mes.mes}
+              className="flex flex-col items-center text-center justify-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+              style={{ minWidth: cardMinWidth }}
+            >
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                 {mes.mes}
               </span>
@@ -627,52 +627,36 @@ export const ResultadoFinalTab = ({
         </Button>
       </div>
 
-     {/* Ranking Cards */}
-<div className="w-full block">
-  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-
-    {/* Card Geral */}
-    <div className="block">
-      <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
-        <CardContent className="p-3 text-center">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Trophy className="h-4 w-4 text-primary" />
-            <span className="text-xs font-bold uppercase text-primary">Geral</span>
-          </div>
-          <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(geral.notaFinal)}`}>
-            {geral.notaFinal.toFixed(2).replace(".", ",")}
-          </p>
-          <p className="text-muted-foreground text-xs">Nota Final</p>
-        </CardContent>
-      </Card>
-    </div>
-
-    {/* Cards das Equipes */}
-    {sortedEquipes.map((eq, idx) => (
-      <div key={eq.equipe} className="block">
-        <Card className={`border shadow-md ${getNotaFinalBg(eq.notaFinal)} border-l-4`}>
+      {/* Ranking Cards */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
           <CardContent className="p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <Award className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground">
-                #{idx + 1}
-              </span>
+              <Trophy className="h-4 w-4 text-primary" />
+              <span className="text-xs font-bold uppercase text-primary">Geral</span>
             </div>
-
-            <p className="text-xs font-semibold mb-1 break-words">
-              {eq.equipe}
+            <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(geral.notaFinal)}`}>
+              {geral.notaFinal.toFixed(2).replace(".", ",")}
             </p>
-
-            <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(eq.notaFinal)}`}>
-              {eq.notaFinal.toFixed(2).replace(".", ",")}
-            </p>
+            <p className="text-muted-foreground text-xs">Nota Final</p>
           </CardContent>
         </Card>
+        {sortedEquipes.map((eq, idx) => (
+          <Card key={eq.equipe} className={`border shadow-md ${getNotaFinalBg(eq.notaFinal)} border-l-4`}>
+            <CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Award className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
+              </div>
+              <p className="text-xs font-semibold truncate mb-1">{eq.equipe}</p>
+              <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(eq.notaFinal)}`}>
+                {eq.notaFinal.toFixed(2).replace(".", ",")}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-    ))}
 
-  </div>
-</div>
       {/* Conteúdo principal */}
       {indicadorFiltro !== "todos" ? (
         <IndicadorComparativo
