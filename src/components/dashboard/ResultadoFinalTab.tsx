@@ -522,7 +522,7 @@ export const ResultadoFinalTab = ({
         <>
           <ResultTable result={geral} title="Resultado Geral" showMeses={showMeses} />
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground flex items-center text-center gap-2">
               <Award className="h-5 w-5" />
               Resultado por Equipe
             </h2>
