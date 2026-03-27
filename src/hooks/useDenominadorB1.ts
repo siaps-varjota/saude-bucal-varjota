@@ -21,27 +21,46 @@ export function useDenominadorB1(): DenominadorB1 {
     setLoading(true);
     fetch(CSV_URL)
       .then(r => {
+        console.log("[DenominadorB1] status:", r.status, "ok:", r.ok);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();
       })
       .then(text => {
         if (cancelled) return;
-        const lines = text.trim().split("\n").slice(1); // pula cabeçalho
+
+        console.log("[DenominadorB1] CSV raw (primeiros 500 chars):", text.slice(0, 500));
+
+        const lines = text.trim().split("\n");
+        console.log("[DenominadorB1] total de linhas:", lines.length);
+        console.log("[DenominadorB1] cabeçalho:", lines[0]);
+
         const map = new Map<string, number>();
         let sum = 0;
-        lines.forEach(line => {
-          const [equipe, denom] = line.split(",").map(s => s.trim().replace(/\r/g, ""));
-          const val = parseInt(denom, 10);
+
+        lines.slice(1).forEach((line, idx) => {
+          // tenta vírgula e ponto-e-vírgula como separador
+          const separator = line.includes(";") ? ";" : ",";
+          const parts = line.split(separator).map(s => s.trim().replace(/\r/g, ""));
+          const equipe = parts[0];
+          const val = parseInt(parts[1], 10);
+
+          console.log(`[DenominadorB1] linha ${idx + 2}: equipe="${equipe}" denom="${parts[1]}" parseado=${val}`);
+
           if (equipe && !isNaN(val)) {
             map.set(equipe, val);
             sum += val;
           }
         });
+
+        console.log("[DenominadorB1] total calculado:", sum);
+        console.log("[DenominadorB1] porEquipe:", Object.fromEntries(map));
+
         setPorEquipe(map);
         setTotal(sum);
         setError(null);
       })
       .catch(e => {
+        console.error("[DenominadorB1] ERRO:", e);
         if (!cancelled) setError(e.message);
       })
       .finally(() => {
