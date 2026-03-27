@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Award, Filter, ChevronDown, ChevronRight, BarChart2, Target } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Award, Filter, ChevronDown, ChevronRight, BarChart2, Target, FileDown } from "lucide-react";
+import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
@@ -171,7 +173,7 @@ const DetalheRow = ({
           {hasMeses && ind.mesesDetalhe.map((mes) => (
             <div
               key={mes.mes}
-              className="flex flex-col items-center justify-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+              className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
               style={{ minWidth: cardMinWidth }}
             >
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
@@ -439,6 +441,147 @@ export const ResultadoFinalTab = ({
 
   const showMeses = quadrimestre !== "todos";
 
+  // ── Geração de PDF ──────────────────────────────────────────────────────────
+  const handleGeneratePDF = async () => {
+    toast.info("Gerando PDF...");
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      await import("jspdf-autotable");
+
+      const doc = new (jsPDF as any)({ orientation: "landscape", unit: "mm", format: "a4" });
+      let y = 15;
+
+      const filterText = [
+        quadrimestre !== "todos"
+          ? QUADRIMESTRE_OPTIONS_SEM_TODOS.find(o => o.value === quadrimestre)?.label
+          : "Todos os quadrimestres",
+        equipe !== "all" ? equipe : "Todas as equipes",
+        indicadorFiltro !== "todos"
+          ? INDICADOR_OPTIONS.find(o => o.value === indicadorFiltro)?.label
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      // Cabeçalho
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
+      y += 8;
+      doc.setFontSize(13);
+      doc.text("Resultado Final", 14, y);
+      y += 6;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Filtros: ${filterText}`, 14, y);
+      y += 8;
+
+      // Cards de ranking de notas finais
+      const rankEquipes = [
+        { label: "Geral", nota: geral.notaFinal },
+        ...[...porEquipe]
+          .sort((a, b) => b.notaFinal - a.notaFinal)
+          .map((eq, i) => ({ label: `#${i + 1} ${eq.equipe}`, nota: eq.notaFinal })),
+      ];
+
+      const cardW = 44;
+      const cardH = 16;
+      rankEquipes.forEach((item, i) => {
+        const x = 14 + i * (cardW + 3);
+        doc.setDrawColor(200);
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        doc.text(item.label, x + cardW / 2, y + 5, { align: "center" });
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30);
+        doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + 12, { align: "center" });
+      });
+      y += cardH + 8;
+
+      // Tabelas por equipe (respeitando filtros)
+      const equipesList =
+        equipe !== "all"
+          ? porEquipe.filter(e => e.equipe === equipe)
+          : [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal);
+
+      const resultsList = [
+        { label: "Geral", result: geral },
+        ...equipesList.map(e => ({ label: e.equipe, result: e })),
+      ];
+
+      for (const { label, result } of resultsList) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30);
+        doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
+        y += 4;
+
+        const rows = result.indicadores
+          .filter(ind => indicadorFiltro === "todos" || ind.indicador === indicadorFiltro)
+          .map(ind => ({
+            indicador:    ind.indicador,
+            peso:         String(ind.peso),
+            numerador:    fmtNum(ind.numerador),
+            denominador:  fmtNum(ind.denominador),
+            porcentagem:  `${ind.porcentagem.toFixed(2)}%`,
+            conceito:     CONCEITO_LABELS[ind.conceito],
+            nota:         NOTA_SCORE[ind.conceito],
+            axb:          ind.notaFinal.toFixed(2).replace(".", ","),
+          }));
+
+        (doc as any).autoTable({
+          startY: y,
+          columns: [
+            { header: "Indicador (A)",  dataKey: "indicador" },
+            { header: "Peso (B)",       dataKey: "peso" },
+            { header: "Numerador",      dataKey: "numerador" },
+            { header: "Denominador",    dataKey: "denominador" },
+            { header: "% Obtido",       dataKey: "porcentagem" },
+            { header: "Conceito",       dataKey: "conceito" },
+            { header: "Nota",           dataKey: "nota" },
+            { header: "A × B",          dataKey: "axb" },
+          ],
+          body: rows,
+          theme: "grid",
+          headStyles: {
+            fillColor: [245, 245, 245],
+            textColor: [30, 30, 30],
+            fontStyle: "bold",
+            fontSize: 8,
+            halign: "center",
+          },
+          bodyStyles: { fontSize: 8, halign: "center" },
+          columnStyles: { 0: { halign: "left" } },
+          showHead: "everyPage",
+          margin: { left: 14, right: 14 },
+          alternateRowStyles: { fillColor: [250, 250, 250] },
+          styles: { overflow: "linebreak", cellPadding: 2 },
+          didParseCell: (data: any) => {
+            if (data.section === "body" && data.column.dataKey === "conceito") {
+              const conceito = data.cell.raw as string;
+              if (conceito === "Ótimo")       data.cell.styles.textColor = [29, 78, 216];
+              else if (conceito === "Bom")    data.cell.styles.textColor = [4, 120, 87];
+              else if (conceito === "Suficiente") data.cell.styles.textColor = [180, 83, 9];
+              else if (conceito === "Regular")    data.cell.styles.textColor = [185, 28, 28];
+            }
+          },
+        });
+
+        y = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF");
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Filters */}
@@ -478,6 +621,10 @@ export const ResultadoFinalTab = ({
             ))}
           </SelectContent>
         </Select>
+        <Button variant="outline" size="sm" onClick={handleGeneratePDF} className="h-9 gap-2 ml-auto">
+          <FileDown className="h-4 w-4" />
+          Gerar PDF
+        </Button>
       </div>
 
       {/* Ranking Cards */}
