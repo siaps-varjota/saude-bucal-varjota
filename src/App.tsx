@@ -8,6 +8,13 @@ import NotFound from "./pages/NotFound";
 import { LoginGate } from "./components/LoginGate";
 
 const queryClient = new QueryClient();
+const denominadorB1 = useDenominadorB1();
+
+const resultado = useResultadoFinal(
+  patients, tratamento, tab3, tab4, tab5, tab6,
+  quadrimestre, equipe,
+  denominadorB1  // ← passa aqui
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
