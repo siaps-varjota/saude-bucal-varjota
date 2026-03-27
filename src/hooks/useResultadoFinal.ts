@@ -1,3 +1,14 @@
+return useMemo(() => {
+  const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+
+  // LOG TEMPORÁRIO — remover depois
+  console.log("[B1 match] equipes dos dados:", allEquipes);
+  console.log("[B1 match] equipes do CSV:", Array.from(denominadorB1.porEquipe.keys()));
+  allEquipes.forEach(eq => {
+    const val = denominadorB1.porEquipe.get(eq);
+    console.log(`[B1 match] "${eq}" → ${val ?? "NÃO ENCONTRADO"}`);
+  });
+
 import { useMemo } from "react";
 import { parse, isValid, getMonth, getYear } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
