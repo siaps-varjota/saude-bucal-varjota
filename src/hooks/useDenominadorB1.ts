@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmWTBTuo3l7yKebZuk-qJxQfpG_qvoKSHK6_DxSmaV0cT_iKHZQkZLAakrvYeDPh1oe20_vlOJJ7ex/pub?gid=2062770567&single=true&output=csv";
 
-export interface DenominadorB1 {
+export interface DenominadorB1Data {
   porEquipe: Map<string, number>;
   total: number;
 }
 
-const fetchDenominadorB1 = async (): Promise<DenominadorB1> => {
+const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
   const response = await fetch(CSV_URL);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const text = await response.text();
@@ -35,6 +35,6 @@ export function useDenominadorB1() {
   return useQuery({
     queryKey: ["denominadorB1"],
     queryFn: fetchDenominadorB1,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 5 * 60 * 1000,
   });
 }
