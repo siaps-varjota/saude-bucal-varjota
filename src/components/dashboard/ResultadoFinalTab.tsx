@@ -167,7 +167,7 @@ const DetalheRow = ({
     <TableRow className="bg-muted/20">
       <TableCell colSpan={colSpan} className="py-2 px-4">
         {/* Um único flex: cards de mês + card meta na mesma altura */}
-        <div className="flex flex-wrap items-stretch gap-3">
+        <div className="flex flex-wrap items-stretch justify-center gap-3">
           {hasMeses && ind.mesesDetalhe.map((mes) => (
             <div
               key={mes.mes}
