@@ -167,7 +167,7 @@ function calcB1(
 ): RawCalc {
   const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
   // DEBUG — remover depois
-  console.log(`[calcB1] equipe=${equipe} quad=${quad} denom=${denominadorExterno} source=${source.length}`);
+  console.log(`[calcB1] amostras primeiraConsulta:`, JSON.stringify(amostras));
   const amostras = source.slice(0, 3).map(p => p.primeiraConsulta);
   console.log(`[calcB1] amostras primeiraConsulta:`, amostras);
 
