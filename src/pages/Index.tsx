@@ -131,7 +131,7 @@ const Index = () => {
   const isAllLoaded =
   !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
   !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-  !denominadorB1.loading;
+  !isLoadingDenominadorB1;
 
   // Passa fallback seguro enquanto o CSV ainda não chegou
   const resultadoFinal = useResultadoFinal(
