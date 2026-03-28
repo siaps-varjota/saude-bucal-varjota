@@ -63,7 +63,7 @@ const Index = () => {
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
 
   // ── Denominador B1 vindo da planilha externa (react-query) ──────────────────
-  const { porEquipe: denominadorB1PorEquipe, total: denominadorB1Total, loading: isLoadingDenominadorB1 } = useDenominadorB1();
+  const { data: denominadorB1Data, isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
@@ -144,7 +144,7 @@ const resultadoFinal = useResultadoFinal(
   tab6Patients       ?? [],
   quadrimestre,
   equipeResultado,
-  { porEquipe: denominadorB1PorEquipe, total: denominadorB1Total }
+  denominadorB1Data ?? { porEquipe: new Map(), total: 0 }
 );
 
   if (error) {
