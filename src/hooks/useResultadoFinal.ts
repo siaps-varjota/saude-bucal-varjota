@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { parse, isValid, getMonth, getYear } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
@@ -166,6 +165,12 @@ function calcB1(
   equipe?: string
 ): RawCalc {
   const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
+
+  // DEBUG — remover depois
+  const amostras = source.slice(0, 3).map(p => p.primeiraConsulta);
+  console.log(`[calcB1] equipe=${equipe} quad=${quad} denom=${denominadorExterno} source=${source.length}`);
+  console.log(`[calcB1] amostras primeiraConsulta:`, JSON.stringify(amostras));
+
   if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
 
   const now = new Date();
@@ -404,7 +409,6 @@ function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCal
 }
 
 // ── hook principal ────────────────────────────────────────────────────────────
-
 export function useResultadoFinal(
   patients: Patient[],
   tratamento: TratamentoPatient[],
@@ -414,48 +418,42 @@ export function useResultadoFinal(
   tab6: Tab6Record[],
   quad: Quadrimestre = "todos",
   equipeFilter: string = "all",
-  denominadorB1: { porEquipe: Map<string, number>; total: number }
+  denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
-  const denomKey = Array.from(denominadorB1.porEquipe.entries())
-    .map(([k, v]) => `${k}:${v}`)
-    .join("|");
+  const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+  const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
-  return useMemo(() => {
-    const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-    const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
+  const porEquipe: EquipeResult[] = equipes.map((equipe) => {
+    const denomB1 = denominadorB1.porEquipe[equipe] ?? 0;
+    const indicadores = [
+      buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
+      buildIndicador("B2", calcB2(tratamento, quad, equipe)),
+      buildIndicador("B3", calcB3(tab3, quad, equipe)),
+      buildIndicador("B5", calcB5(tab4, quad, equipe)),
+      buildIndicador("B4", calcB4(tab5, quad, equipe)),
+      buildIndicador("B6", calcB6(tab6, quad, equipe)),
+    ];
+    return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
+  });
 
-    const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-      const denomB1 = denominadorB1.porEquipe.get(equipe) ?? 0;
-      const indicadores = [
-        buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
-        buildIndicador("B2", calcB2(tratamento, quad, equipe)),
-        buildIndicador("B3", calcB3(tab3, quad, equipe)),
-        buildIndicador("B5", calcB5(tab4, quad, equipe)),
-        buildIndicador("B4", calcB4(tab5, quad, equipe)),
-        buildIndicador("B6", calcB6(tab6, quad, equipe)),
-      ];
-      return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
-    });
+  const buildGeral = (eq?: string) => {
+    const denomB1 = eq ? (denominadorB1.porEquipe[eq] ?? 0) : denominadorB1.total;
+    return [
+      buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
+      buildIndicador("B2", calcB2(tratamento, quad, eq)),
+      buildIndicador("B3", calcB3(tab3, quad, eq)),
+      buildIndicador("B5", calcB5(tab4, quad, eq)),
+      buildIndicador("B4", calcB4(tab5, quad, eq)),
+      buildIndicador("B6", calcB6(tab6, quad, eq)),
+    ];
+  };
 
-    const buildGeral = (eq?: string) => {
-      const denomB1 = eq ? (denominadorB1.porEquipe.get(eq) ?? 0) : denominadorB1.total;
-      return [
-        buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
-        buildIndicador("B2", calcB2(tratamento, quad, eq)),
-        buildIndicador("B3", calcB3(tab3, quad, eq)),
-        buildIndicador("B5", calcB5(tab4, quad, eq)),
-        buildIndicador("B4", calcB4(tab5, quad, eq)),
-        buildIndicador("B6", calcB6(tab6, quad, eq)),
-      ];
-    };
+  const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
+  const geral: EquipeResult = {
+    equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
+    indicadores: geralIndicadores,
+    notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
+  };
 
-    const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
-    const geral: EquipeResult = {
-      equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
-      indicadores: geralIndicadores,
-      notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
-    };
-
-    return { geral, porEquipe };
-  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denomKey]);
+  return { geral, porEquipe };
 }
