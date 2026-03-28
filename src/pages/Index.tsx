@@ -144,7 +144,7 @@ const resultadoFinal = useResultadoFinal(
   tab6Patients       ?? [],
   quadrimestre,
   equipeResultado,
-  denominadorB1Data ?? { porEquipe: new Map(), total: 0 }
+  denominadorB1Data ?? { porEquipe: {}, total: 0 }
 );
 
   if (error) {
