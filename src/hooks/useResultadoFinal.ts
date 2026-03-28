@@ -166,6 +166,11 @@ function calcB1(
   equipe?: string
 ): RawCalc {
   const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
+  // DEBUG — remover depois
+  console.log(`[calcB1] equipe=${equipe} quad=${quad} denom=${denominadorExterno} source=${source.length}`);
+  const amostras = source.slice(0, 3).map(p => p.primeiraConsulta);
+  console.log(`[calcB1] amostras primeiraConsulta:`, amostras);
+
   if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
 
   const now = new Date();
