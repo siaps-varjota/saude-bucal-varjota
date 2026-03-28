@@ -42,7 +42,6 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
-
   const getCurrentQuadrimestre = (): Quadrimestre => {
     const now = new Date();
     const month = now.getMonth();
@@ -55,32 +54,32 @@ const Index = () => {
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: patients, isLoading: isLoadingPatients, error: errorPatients, refetch: refetchPatients, isFetching: isFetchingPatients } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
-  const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
-  const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
-  const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
-  const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
+  const { data: tab3Patients, isLoading: isLoadingTab3, error: errorTab3, refetch: refetchTab3, isFetching: isFetchingTab3 } = useTab3Data();
+  const { data: tab4Patients, isLoading: isLoadingTab4, error: errorTab4, refetch: refetchTab4, isFetching: isFetchingTab4 } = useTab4Data();
+  const { data: tab5Patients, isLoading: isLoadingTab5, error: errorTab5, refetch: refetchTab5, isFetching: isFetchingTab5 } = useTab5Data();
+  const { data: tab6Patients, isLoading: isLoadingTab6, error: errorTab6, refetch: refetchTab6, isFetching: isFetchingTab6 } = useTab6Data();
 
-  // ── Denominador B1 vindo da planilha externa (react-query) ──────────────────
-  const { data: denominadorB1Data, isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
+  // ── Denominador B1 vindo da planilha externa ────────────────────────────────
+  const denominadorB1 = useDenominadorB1();
 
-  const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
+  const [filtersConsulta, setFiltersConsulta] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTab3,       setFiltersTab3]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTab4,       setFiltersTab4]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
+  const [filtersTab3, setFiltersTab3] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
+  const [filtersTab4, setFiltersTab4] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
+  const [filtersTab5, setFiltersTab5] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
+  const [filtersTab6, setFiltersTab6] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
 
-  const filteredPatients        = useFilteredPatients(patients || [], filtersConsulta);
-  const filteredPatientsNoQuad  = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
-  const filteredTratamento      = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
+  const filteredPatients = useFilteredPatients(patients || [], filtersConsulta);
+  const filteredPatientsNoQuad = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
+  const filteredTratamento = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-  const filteredTab3            = useFilteredTab3(tab3Patients || [], filtersTab3);
-  const filteredTab4            = useFilteredTab4(tab4Patients || [], filtersTab4);
-  const filteredTab4NoQuad      = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
-  const filteredTab5            = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTab6            = useFilteredTab6(tab6Patients || [], filtersTab6);
+  const filteredTab3 = useFilteredTab3(tab3Patients || [], filtersTab3);
+  const filteredTab4 = useFilteredTab4(tab4Patients || [], filtersTab4);
+  const filteredTab4NoQuad = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
+  const filteredTab5 = useFilteredTab5(tab5Patients || [], filtersTab5);
+  const filteredTab6 = useFilteredTab6(tab6Patients || [], filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
     (patients || []).filter(p => filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe),
@@ -102,24 +101,21 @@ const Index = () => {
     return Array.from(set).sort();
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
 
-  const refetchAll = () => {
-    refetchPatients(); refetchTratamento(); refetchTab3();
-    refetchTab4(); refetchTab5(); refetchTab6();
-  };
+  const refetchAll = () => { refetchPatients(); refetchTratamento(); refetchTab3(); refetchTab4(); refetchTab5(); refetchTab6(); };
 
   const getTabState = () => {
     switch (activeTab) {
-      case "consulta":   return { isLoading: isLoadingPatients,   error: errorPatients,   isFetching: isFetchingPatients,   refetch: refetchPatients   };
+      case "consulta": return { isLoading: isLoadingPatients, error: errorPatients, isFetching: isFetchingPatients, refetch: refetchPatients };
       case "tratamento": return { isLoading: isLoadingTratamento, error: errorTratamento, isFetching: isFetchingTratamento, refetch: refetchTratamento };
-      case "tab3":       return { isLoading: isLoadingTab3,       error: errorTab3,       isFetching: isFetchingTab3,       refetch: refetchTab3       };
-      case "tab4":       return { isLoading: isLoadingTab4,       error: errorTab4,       isFetching: isFetchingTab4,       refetch: refetchTab4       };
-      case "tab5":       return { isLoading: isLoadingTab5,       error: errorTab5,       isFetching: isFetchingTab5,       refetch: refetchTab5       };
-      case "tab6":       return { isLoading: isLoadingTab6,       error: errorTab6,       isFetching: isFetchingTab6,       refetch: refetchTab6       };
-      case "resultado":  return {
-        isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6 || isLoadingDenominadorB1,
+      case "tab3": return { isLoading: isLoadingTab3, error: errorTab3, isFetching: isFetchingTab3, refetch: refetchTab3 };
+      case "tab4": return { isLoading: isLoadingTab4, error: errorTab4, isFetching: isFetchingTab4, refetch: refetchTab4 };
+      case "tab5": return { isLoading: isLoadingTab5, error: errorTab5, isFetching: isFetchingTab5, refetch: refetchTab5 };
+      case "tab6": return { isLoading: isLoadingTab6, error: errorTab6, isFetching: isFetchingTab6, refetch: refetchTab6 };
+      case "resultado": return {
+        isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6,
         error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
         isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
-        refetch: refetchAll,
+        refetch: refetchAll
       };
       default: return { isLoading: false, error: null, isFetching: false, refetch: () => {} };
     }
@@ -127,23 +123,17 @@ const Index = () => {
 
   const { error, isFetching, refetch } = getTabState();
 
-  // Aguarda TODOS os dados — incluindo o CSV do denominador B1
   const isAllLoaded =
     !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
     !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-    !isLoadingDenominadorB1;
+    !denominadorB1.loading; // ← aguarda o CSV também
 
-  // Passa fallback seguro enquanto o CSV ainda não chegou
   const resultadoFinal = useResultadoFinal(
-    patients           ?? [],
-    tratamentoPatients ?? [],
-    tab3Patients       ?? [],
-    tab4Patients       ?? [],
-    tab5Patients       ?? [],
-    tab6Patients       ?? [],
+    patients || [], tratamentoPatients || [], tab3Patients || [],
+    tab4Patients || [], tab5Patients || [], tab6Patients || [],
     quadrimestre,
     equipeResultado,
-    denominadorB1Data  ?? { porEquipe: new Map(), total: 0 }
+    denominadorB1  // ← passa o denominador externo
   );
 
   if (error) {
@@ -159,20 +149,20 @@ const Index = () => {
   }
 
   // Stats calculations
-  const totalPatients          = patientsByEquipe.length;
-  const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-  const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
-  const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
-  const totalTab3              = filteredTab3.length;
-  const totalExodontiasTab3    = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
-  const totalAtendimentosTab3  = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
-  const totalTab4              = filteredTab4NoQuad.length;
-  const withConsultaTab4       = filteredTab4NoQuad.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
-  const totalTab5              = filteredTab5.length;
-  const totalPreventivosTab5   = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
-  const totalIndividuaisTab5   = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
-  const totalTab6              = filteredTab6.length;
-  const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
+  const totalPatients = patientsByEquipe.length;
+  const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
+  const totalTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
+  const withTratamento = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+  const totalTab3 = filteredTab3.length;
+  const totalExodontiasTab3 = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
+  const totalAtendimentosTab3 = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
+  const totalTab4 = filteredTab4NoQuad.length;
+  const withConsultaTab4 = filteredTab4NoQuad.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
+  const totalTab5 = filteredTab5.length;
+  const totalPreventivosTab5 = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
+  const totalIndividuaisTab5 = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
+  const totalTab6 = filteredTab6.length;
+  const totalExodontiasTab6 = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
   return (
@@ -197,13 +187,13 @@ const Index = () => {
       <main className="container mx-auto px-4 rounded-none py-[26px]">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="flex w-full flex-wrap gap-1 h-auto p-1 mx-auto justify-center">
-            <TabsTrigger value="consulta"   className="text-xs px-2 py-1.5 flex-1 min-w-fit">1ª Consulta Odontológica</TabsTrigger>
+            <TabsTrigger value="consulta" className="text-xs px-2 py-1.5 flex-1 min-w-fit">1ª Consulta Odontológica</TabsTrigger>
             <TabsTrigger value="tratamento" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Tratamento Concluído</TabsTrigger>
-            <TabsTrigger value="tab3"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Taxa Exodontias</TabsTrigger>
-            <TabsTrigger value="tab4"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Escovação Supervisionada</TabsTrigger>
-            <TabsTrigger value="tab5"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
-            <TabsTrigger value="tab6"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
-            <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
+            <TabsTrigger value="tab3" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Taxa Exodontias</TabsTrigger>
+            <TabsTrigger value="tab4" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Escovação Supervisionada</TabsTrigger>
+            <TabsTrigger value="tab5" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
+            <TabsTrigger value="tab6" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
+            <TabsTrigger value="resultado" className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
           </TabsList>
 
           {/* Tab 1 - 1ª Consulta */}
@@ -266,9 +256,9 @@ const Index = () => {
                   filters={filtersTratamento}
                   onFiltersChange={setFiltersTratamento}
                   statusOptions={[
-                    { value: "PENDENTE",        label: "PENDENTE" },
+                    { value: "PENDENTE", label: "PENDENTE" },
                     { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
-                    { value: "CONCLUÍDO",       label: "CONCLUÍDO" },
+                    { value: "CONCLUÍDO", label: "CONCLUÍDO" },
                   ]}
                   contentId="dashboard-content-tratamento"
                   pdfTitle="Tratamento Concluído"
