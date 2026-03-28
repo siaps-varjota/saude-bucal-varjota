@@ -63,7 +63,7 @@ const Index = () => {
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
 
   // ── Denominador B1 vindo da planilha externa (react-query) ──────────────────
-  const { data: denominadorB1Data, isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
+  const { porEquipe: denominadorB1PorEquipe, total: denominadorB1Total, loading: isLoadingDenominadorB1 } = useDenominadorB1();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
@@ -128,23 +128,24 @@ const Index = () => {
   const { error, isFetching, refetch } = getTabState();
 
   // Aguarda TODOS os dados — incluindo o CSV do denominador B1
-  const isAllLoaded =
+ // isAllLoaded
+const isAllLoaded =
   !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
   !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-  !denominadorB1.loading;
+  !isLoadingDenominadorB1;
 
-  // Passa fallback seguro enquanto o CSV ainda não chegou
-  const resultadoFinal = useResultadoFinal(
-    patients           ?? [],
-    tratamentoPatients ?? [],
-    tab3Patients       ?? [],
-    tab4Patients       ?? [],
-    tab5Patients       ?? [],
-    tab6Patients       ?? [],
-    quadrimestre,
-    equipeResultado,
-    denominadorB1Data  ?? { porEquipe: new Map(), total: 0 }
-  );
+// resultadoFinal
+const resultadoFinal = useResultadoFinal(
+  patients           ?? [],
+  tratamentoPatients ?? [],
+  tab3Patients       ?? [],
+  tab4Patients       ?? [],
+  tab5Patients       ?? [],
+  tab6Patients       ?? [],
+  quadrimestre,
+  equipeResultado,
+  { porEquipe: denominadorB1PorEquipe, total: denominadorB1Total }
+);
 
   if (error) {
     return (
