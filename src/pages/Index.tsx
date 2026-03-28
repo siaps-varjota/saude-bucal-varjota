@@ -40,6 +40,9 @@ import { Users, UserCheck, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 
+// Fora do componente Index, logo antes do "const Index = () => {"
+const DENOM_B1_FALLBACK = { porEquipe: {} as Record<string, number>, total: 0 };
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
 
@@ -148,7 +151,7 @@ const resultadoFinal = useResultadoFinal(
   tab6Patients       ?? [],
   quadrimestre,
   equipeResultado,
-  denominadorB1Data ?? { porEquipe: {}, total: 0 }
+  denominadorB1Data ?? DENOM_B1_FALLBACK  // ← referência estável
 );
 
   if (error) {
