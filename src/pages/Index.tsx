@@ -65,6 +65,10 @@ const Index = () => {
   // ── Denominador B1 vindo da planilha externa (react-query) ──────────────────
   const { data: denominadorB1Data, isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
 
+  // DEBUG — remover depois
+  console.log("denominadorB1Data:", denominadorB1Data);
+  console.log("isLoadingDenominadorB1:", isLoadingDenominadorB1);
+
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTab3,       setFiltersTab3]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
