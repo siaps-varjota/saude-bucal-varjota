@@ -166,8 +166,11 @@ function calcB1(
   equipe?: string
 ): RawCalc {
   const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
+
   // DEBUG — remover depois
- console.log(`[calcB1] amostras primeiraConsulta:`, JSON.stringify(amostras));
+  const amostras = source.slice(0, 3).map(p => p.primeiraConsulta);
+  console.log(`[calcB1] equipe=${equipe} quad=${quad} denom=${denominadorExterno} source=${source.length}`);
+  console.log(`[calcB1] amostras primeiraConsulta:`, JSON.stringify(amostras));
 
   if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
 
@@ -416,19 +419,19 @@ export function useResultadoFinal(
   tab6: Tab6Record[],
   quad: Quadrimestre = "todos",
   equipeFilter: string = "all",
-  denominadorB1: { porEquipe: Record<string, number>; total: number }  // ← Record agora
+  denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
   const denomKey = Object.entries(denominadorB1.porEquipe)
     .map(([k, v]) => `${k}:${v}`)
     .join("|");
-  console.log("denomKey:", denomKey, "total:", denominadorB1.total); 
-  
+  console.log("denomKey:", denomKey, "total:", denominadorB1.total);
+
   return useMemo(() => {
     const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
     const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-      const denomB1 = denominadorB1.porEquipe[equipe] ?? 0;  // ← acesso por chave
+      const denomB1 = denominadorB1.porEquipe[equipe] ?? 0;
       const indicadores = [
         buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
         buildIndicador("B2", calcB2(tratamento, quad, equipe)),
@@ -441,7 +444,7 @@ export function useResultadoFinal(
     });
 
     const buildGeral = (eq?: string) => {
-      const denomB1 = eq ? (denominadorB1.porEquipe[eq] ?? 0) : denominadorB1.total;  // ← acesso por chave
+      const denomB1 = eq ? (denominadorB1.porEquipe[eq] ?? 0) : denominadorB1.total;
       return [
         buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
         buildIndicador("B2", calcB2(tratamento, quad, eq)),
