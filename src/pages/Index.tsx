@@ -129,9 +129,9 @@ const Index = () => {
 
   // Aguarda TODOS os dados — incluindo o CSV do denominador B1
   const isAllLoaded =
-    !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
-    !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-    !isLoadingDenominadorB1;
+  !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
+  !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
+  !denominadorB1.loading;
 
   // Passa fallback seguro enquanto o CSV ainda não chegou
   const resultadoFinal = useResultadoFinal(
