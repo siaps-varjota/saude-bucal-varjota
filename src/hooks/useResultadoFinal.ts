@@ -418,7 +418,8 @@ export function useResultadoFinal(
   const denomKey = Object.entries(denominadorB1.porEquipe)
     .map(([k, v]) => `${k}:${v}`)
     .join("|");
-
+  console.log("denomKey:", denomKey, "total:", denominadorB1.total); 
+  
   return useMemo(() => {
     const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
     const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
