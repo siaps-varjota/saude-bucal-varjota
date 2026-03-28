@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { parse, isValid, getMonth, getYear } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
@@ -421,48 +420,40 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
-  const denomKey = Object.entries(denominadorB1.porEquipe)
-    .map(([k, v]) => `${k}:${v}`)
-    .join("|");
-  console.log("denomKey:", denomKey, "total:", denominadorB1.total);
+  const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
+  const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
-  return useMemo(() => {
-    const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-    const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
+  const porEquipe: EquipeResult[] = equipes.map((equipe) => {
+    const denomB1 = denominadorB1.porEquipe[equipe] ?? 0;
+    const indicadores = [
+      buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
+      buildIndicador("B2", calcB2(tratamento, quad, equipe)),
+      buildIndicador("B3", calcB3(tab3, quad, equipe)),
+      buildIndicador("B5", calcB5(tab4, quad, equipe)),
+      buildIndicador("B4", calcB4(tab5, quad, equipe)),
+      buildIndicador("B6", calcB6(tab6, quad, equipe)),
+    ];
+    return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
+  });
 
-    const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-      const denomB1 = denominadorB1.porEquipe[equipe] ?? 0;
-      const indicadores = [
-        buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
-        buildIndicador("B2", calcB2(tratamento, quad, equipe)),
-        buildIndicador("B3", calcB3(tab3, quad, equipe)),
-        buildIndicador("B5", calcB5(tab4, quad, equipe)),
-        buildIndicador("B4", calcB4(tab5, quad, equipe)),
-        buildIndicador("B6", calcB6(tab6, quad, equipe)),
-      ];
-      return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
-    });
+  const buildGeral = (eq?: string) => {
+    const denomB1 = eq ? (denominadorB1.porEquipe[eq] ?? 0) : denominadorB1.total;
+    return [
+      buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
+      buildIndicador("B2", calcB2(tratamento, quad, eq)),
+      buildIndicador("B3", calcB3(tab3, quad, eq)),
+      buildIndicador("B5", calcB5(tab4, quad, eq)),
+      buildIndicador("B4", calcB4(tab5, quad, eq)),
+      buildIndicador("B6", calcB6(tab6, quad, eq)),
+    ];
+  };
 
-    const buildGeral = (eq?: string) => {
-      const denomB1 = eq ? (denominadorB1.porEquipe[eq] ?? 0) : denominadorB1.total;
-      return [
-        buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
-        buildIndicador("B2", calcB2(tratamento, quad, eq)),
-        buildIndicador("B3", calcB3(tab3, quad, eq)),
-        buildIndicador("B5", calcB5(tab4, quad, eq)),
-        buildIndicador("B4", calcB4(tab5, quad, eq)),
-        buildIndicador("B6", calcB6(tab6, quad, eq)),
-      ];
-    };
+  const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
+  const geral: EquipeResult = {
+    equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
+    indicadores: geralIndicadores,
+    notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
+  };
 
-    const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
-    const geral: EquipeResult = {
-      equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
-      indicadores: geralIndicadores,
-      notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
-    };
-
-    return { geral, porEquipe };
- }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denomKey,
-    patients.length, tratamento.length, tab3.length, tab4.length, tab5.length, tab6.length]);
+  return { geral, porEquipe };
 }
