@@ -463,5 +463,6 @@ export function useResultadoFinal(
     };
 
     return { geral, porEquipe };
-  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denomKey]);
+ }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denomKey,
+    patients.length, tratamento.length, tab3.length, tab4.length, tab5.length, tab6.length]);
 }
