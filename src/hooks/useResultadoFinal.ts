@@ -416,7 +416,6 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Map<string, number>; total: number }
 ) {
-  // chave estável que muda apenas quando o conteúdo do Map muda
   const denomKey = Array.from(denominadorB1.porEquipe.entries())
     .map(([k, v]) => `${k}:${v}`)
     .join("|");
@@ -459,5 +458,4 @@ export function useResultadoFinal(
 
     return { geral, porEquipe };
   }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denomKey]);
-};
-
+}
