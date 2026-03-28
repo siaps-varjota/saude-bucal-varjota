@@ -404,7 +404,6 @@ function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCal
 }
 
 // ── hook principal ────────────────────────────────────────────────────────────
-
 export function useResultadoFinal(
   patients: Patient[],
   tratamento: TratamentoPatient[],
@@ -414,10 +413,9 @@ export function useResultadoFinal(
   tab6: Tab6Record[],
   quad: Quadrimestre = "todos",
   equipeFilter: string = "all",
-  denominadorB1: { porEquipe: Map<string, number>; total: number }
+  denominadorB1: { porEquipe: Record<string, number>; total: number }  // ← Record agora
 ) {
-  // chave estável que muda apenas quando o conteúdo do Map muda
-  const denomKey = Array.from(denominadorB1.porEquipe.entries())
+  const denomKey = Object.entries(denominadorB1.porEquipe)
     .map(([k, v]) => `${k}:${v}`)
     .join("|");
 
@@ -426,7 +424,7 @@ export function useResultadoFinal(
     const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-      const denomB1 = denominadorB1.porEquipe.get(equipe) ?? 0;
+      const denomB1 = denominadorB1.porEquipe[equipe] ?? 0;  // ← acesso por chave
       const indicadores = [
         buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
         buildIndicador("B2", calcB2(tratamento, quad, equipe)),
@@ -439,7 +437,7 @@ export function useResultadoFinal(
     });
 
     const buildGeral = (eq?: string) => {
-      const denomB1 = eq ? (denominadorB1.porEquipe.get(eq) ?? 0) : denominadorB1.total;
+      const denomB1 = eq ? (denominadorB1.porEquipe[eq] ?? 0) : denominadorB1.total;  // ← acesso por chave
       return [
         buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
         buildIndicador("B2", calcB2(tratamento, quad, eq)),
