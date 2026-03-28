@@ -416,18 +416,13 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Map<string, number>; total: number }
 ) {
+  // chave estável que muda apenas quando o conteúdo do Map muda
+  const denomKey = Array.from(denominadorB1.porEquipe.entries())
+    .map(([k, v]) => `${k}:${v}`)
+    .join("|");
+
   return useMemo(() => {
     const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-
-    // ── LOG TEMPORÁRIO — remover depois ──────────────────────────────────────
-    console.log("[B1 match] equipes dos dados:", allEquipes);
-    console.log("[B1 match] equipes do CSV:", Array.from(denominadorB1.porEquipe.keys()));
-    allEquipes.forEach(eq => {
-      const val = denominadorB1.porEquipe.get(eq);
-      console.log(`[B1 match] "${eq}" → ${val ?? "NÃO ENCONTRADO"}`);
-    });
-    // ────────────────────────────────────────────────────────────────────────
-
     const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
     const porEquipe: EquipeResult[] = equipes.map((equipe) => {
@@ -463,5 +458,5 @@ export function useResultadoFinal(
     };
 
     return { geral, porEquipe };
-  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denominadorB1.porEquipe]);
+  }, [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1.total, denomKey]);
 }
