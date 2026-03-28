@@ -55,15 +55,19 @@ const Index = () => {
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
   const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
   const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
   const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
 
-  // ── Denominador B1 vindo da planilha externa (react-query) ──────────────────
-  const { porEquipe: denominadorB1PorEquipe, total: denominadorB1Total, loading: isLoadingDenominadorB1 } = useDenominadorB1();
+  // ── Denominador B1 vindo da planilha externa ────────────────────────────────
+  const {
+    porEquipe: denominadorB1PorEquipe,
+    total: denominadorB1Total,
+    loading: isLoadingDenominadorB1,
+  } = useDenominadorB1();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
@@ -72,15 +76,15 @@ const Index = () => {
   const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
 
-  const filteredPatients        = useFilteredPatients(patients || [], filtersConsulta);
-  const filteredPatientsNoQuad  = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
-  const filteredTratamento      = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
+  const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
+  const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
+  const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-  const filteredTab3            = useFilteredTab3(tab3Patients || [], filtersTab3);
-  const filteredTab4            = useFilteredTab4(tab4Patients || [], filtersTab4);
-  const filteredTab4NoQuad      = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
-  const filteredTab5            = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTab6            = useFilteredTab6(tab6Patients || [], filtersTab6);
+  const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
+  const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
+  const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
+  const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
+  const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
     (patients || []).filter(p => filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe),
@@ -128,24 +132,22 @@ const Index = () => {
   const { error, isFetching, refetch } = getTabState();
 
   // Aguarda TODOS os dados — incluindo o CSV do denominador B1
- // isAllLoaded
-const isAllLoaded =
-  !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
-  !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-  !isLoadingDenominadorB1;
+  const isAllLoaded =
+    !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
+    !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
+    !isLoadingDenominadorB1;
 
-// resultadoFinal
-const resultadoFinal = useResultadoFinal(
-  patients           ?? [],
-  tratamentoPatients ?? [],
-  tab3Patients       ?? [],
-  tab4Patients       ?? [],
-  tab5Patients       ?? [],
-  tab6Patients       ?? [],
-  quadrimestre,
-  equipeResultado,
-  { porEquipe: denominadorB1PorEquipe, total: denominadorB1Total }
-);
+  const resultadoFinal = useResultadoFinal(
+    patients           ?? [],
+    tratamentoPatients ?? [],
+    tab3Patients       ?? [],
+    tab4Patients       ?? [],
+    tab5Patients       ?? [],
+    tab6Patients       ?? [],
+    quadrimestre,
+    equipeResultado,
+    { porEquipe: denominadorB1PorEquipe, total: denominadorB1Total }
+  );
 
   if (error) {
     return (
