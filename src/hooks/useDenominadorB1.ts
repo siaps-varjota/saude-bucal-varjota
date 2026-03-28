@@ -4,7 +4,7 @@ const CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmWTBTuo3l7yKebZuk-qJxQfpG_qvoKSHK6_DxSmaV0cT_iKHZQkZLAakrvYeDPh1oe20_vlOJJ7ex/pub?gid=2062770567&single=true&output=csv";
 
 export interface DenominadorB1Data {
-  porEquipe: Map<string, number>;
+  porEquipe: Record<string, number>;  // objeto simples em vez de Map
   total: number;
 }
 
@@ -14,8 +14,8 @@ const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
   const text = await response.text();
 
   const lines = text.trim().split("\n");
-  const map = new Map<string, number>();
-  let sum = 0;
+  const porEquipe: Record<string, number> = {};
+  let total = 0;
 
   lines.slice(1).forEach(line => {
     const separator = line.includes(";") ? ";" : ",";
@@ -23,12 +23,12 @@ const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
     const equipe = parts[0];
     const val = parseInt(parts[1], 10);
     if (equipe && !isNaN(val)) {
-      map.set(equipe, val);
-      sum += val;
+      porEquipe[equipe] = val;
+      total += val;
     }
   });
 
-  return { porEquipe: map, total: sum };
+  return { porEquipe, total };
 };
 
 export function useDenominadorB1() {
