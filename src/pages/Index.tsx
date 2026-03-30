@@ -521,22 +521,24 @@ const resultadoFinal = useResultadoFinal(
             </div>
           </TabsContent>
 
-          {/* Tab 7 - Resultado Final */}
-          <TabsContent value="resultado" className="mt-6">
-            {!isAllLoaded ? (
-              <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
-            ) : (
-              <ResultadoFinalTab
-                geral={resultadoFinal.geral}
-                porEquipe={resultadoFinal.porEquipe}
-                quadrimestre={quadrimestre}
-                onQuadrimestreChange={setQuadrimestre}
-                equipe={equipeResultado}
-                onEquipeChange={setEquipeResultado}
-                equipeOptions={equipeOptions}
-              />
-            )}
-          </TabsContent>
+        {/* Tab 7 - Resultado Final */}
+<TabsContent value="resultado" className="mt-6">
+  {(isLoadingPatients || isLoadingTratamento || isLoadingTab3 ||
+    isLoadingTab4 || isLoadingTab5 || isLoadingTab6 ||
+    isLoadingDenominadorB1) ? (
+    <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
+  ) : (
+    <ResultadoFinalTab
+      geral={resultadoFinal.geral}
+      porEquipe={resultadoFinal.porEquipe}
+      quadrimestre={quadrimestre}
+      onQuadrimestreChange={setQuadrimestre}
+      equipe={equipeResultado}
+      onEquipeChange={setEquipeResultado}
+      equipeOptions={equipeOptions}
+    />
+  )}
+</TabsContent>
         </Tabs>
       </main>
 
