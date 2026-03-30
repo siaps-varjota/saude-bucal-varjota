@@ -39,10 +39,52 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserCheck, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Patient } from "@/hooks/usePatientData";
+import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { Tab3Record } from "@/hooks/useTab3Data";
+import { Tab4Patient } from "@/hooks/useTab4Data";
+import { Tab5Record } from "@/hooks/useTab5Data";
+import { Tab6Record } from "@/hooks/useTab6Data";
 
-// Fora do componente Index, logo antes do "const Index = () => {"
-const DENOM_B1_FALLBACK = { porEquipe: {} as Record<string, number>, total: 0 };
+// ── Wrapper isolado — só monta quando todos os dados estão prontos ─────────────
+const ResultadoFinalWrapper = ({
+  patients, tratamentoPatients, tab3Patients, tab4Patients,
+  tab5Patients, tab6Patients, quadrimestre, equipeResultado,
+  denominadorB1Data, equipeOptions, onQuadrimestreChange, onEquipeChange,
+}: {
+  patients: Patient[];
+  tratamentoPatients: TratamentoPatient[];
+  tab3Patients: Tab3Record[];
+  tab4Patients: Tab4Patient[];
+  tab5Patients: Tab5Record[];
+  tab6Patients: Tab6Record[];
+  quadrimestre: Quadrimestre;
+  equipeResultado: string;
+  denominadorB1Data: { porEquipe: Record<string, number>; total: number };
+  equipeOptions: string[];
+  onQuadrimestreChange: (q: Quadrimestre) => void;
+  onEquipeChange: (e: string) => void;
+}) => {
+  const resultadoFinal = useResultadoFinal(
+    patients, tratamentoPatients, tab3Patients,
+    tab4Patients, tab5Patients, tab6Patients,
+    quadrimestre, equipeResultado, denominadorB1Data
+  );
 
+  return (
+    <ResultadoFinalTab
+      geral={resultadoFinal.geral}
+      porEquipe={resultadoFinal.porEquipe}
+      quadrimestre={quadrimestre}
+      onQuadrimestreChange={onQuadrimestreChange}
+      equipe={equipeResultado}
+      onEquipeChange={onEquipeChange}
+      equipeOptions={equipeOptions}
+    />
+  );
+};
+
+// ── Componente principal ──────────────────────────────────────────────────────
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
 
@@ -58,19 +100,13 @@ const Index = () => {
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
-  const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
-  const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
-  const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
-  const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
-  const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
-
-  // ── Denominador B1 vindo da planilha externa (react-query) ──────────────────
-  const { data: denominadorB1Data, isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
-
-  // DEBUG — remover depois
-  console.log("denominadorB1Data:", denominadorB1Data);
-  console.log("isLoadingDenominadorB1:", isLoadingDenominadorB1);
+  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: tratamentoPatients,  isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
+  const { data: tab3Patients,        isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
+  const { data: tab4Patients,        isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
+  const { data: tab5Patients,        isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
+  const { data: tab6Patients,        isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
+  const { data: denominadorB1Data,   isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
@@ -79,23 +115,19 @@ const Index = () => {
   const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
 
-  const filteredPatients        = useFilteredPatients(patients || [], filtersConsulta);
-  const filteredPatientsNoQuad  = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
-  const filteredTratamento      = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
+  const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
+  const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
+  const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-  const filteredTab3            = useFilteredTab3(tab3Patients || [], filtersTab3);
-  const filteredTab4            = useFilteredTab4(tab4Patients || [], filtersTab4);
-  const filteredTab4NoQuad      = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
-  const filteredTab5            = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTab6            = useFilteredTab6(tab6Patients || [], filtersTab6);
+  const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
+  const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
+  const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
+  const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
+  const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
     (patients || []).filter(p => filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe),
     [patients, filtersConsulta.equipe]
-  );
-  const tratamentoByEquipe = useMemo(() =>
-    (tratamentoPatients || []).filter(p => filtersTratamento.equipe === "all" || p.equipe === filtersTratamento.equipe),
-    [tratamentoPatients, filtersTratamento.equipe]
   );
 
   const equipeOptions = useMemo(() => {
@@ -134,25 +166,19 @@ const Index = () => {
 
   const { error, isFetching, refetch } = getTabState();
 
-  // Aguarda TODOS os dados — incluindo o CSV do denominador B1
- // isAllLoaded
-const isAllLoaded =
-  !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
-  !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-  !isLoadingDenominadorB1;
-
-// resultadoFinal
-const resultadoFinal = useResultadoFinal(
-  patients           ?? [],
-  tratamentoPatients ?? [],
-  tab3Patients       ?? [],
-  tab4Patients       ?? [],
-  tab5Patients       ?? [],
-  tab6Patients       ?? [],
-  quadrimestre,
-  equipeResultado,
-  denominadorB1Data ?? DENOM_B1_FALLBACK  // ← referência estável
-);
+  // Stats calculations
+  const totalPatients          = patientsByEquipe.length;
+  const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
+  const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
+  const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+  const totalExodontiasTab3    = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
+  const totalAtendimentosTab3  = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
+  const totalTab4              = filteredTab4NoQuad.length;
+  const withConsultaTab4       = filteredTab4NoQuad.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
+  const totalPreventivosTab5   = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
+  const totalIndividuaisTab5   = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
+  const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
+  const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
   if (error) {
     return (
@@ -166,22 +192,10 @@ const resultadoFinal = useResultadoFinal(
     );
   }
 
-  // Stats calculations
-  const totalPatients          = patientsByEquipe.length;
-  const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-  const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
-  const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
-  const totalTab3              = filteredTab3.length;
-  const totalExodontiasTab3    = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
-  const totalAtendimentosTab3  = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
-  const totalTab4              = filteredTab4NoQuad.length;
-  const withConsultaTab4       = filteredTab4NoQuad.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
-  const totalTab5              = filteredTab5.length;
-  const totalPreventivosTab5   = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
-  const totalIndividuaisTab5   = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
-  const totalTab6              = filteredTab6.length;
-  const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
-  const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
+  const resultadoPronto =
+    !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
+    !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
+    !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -437,7 +451,7 @@ const resultadoFinal = useResultadoFinal(
                   pdfTitle="Procedimentos Odontológicos Preventivos"
                   pdfFileName="procedimentos-preventivos"
                   pdfSummaryCards={[
-                    { label: "Total de Registros", value: totalTab5.toLocaleString("pt-BR") },
+                    { label: "Total de Registros", value: filteredTab5.length.toLocaleString("pt-BR") },
                     { label: "Preventivos", value: totalPreventivosTab5.toLocaleString("pt-BR"), percentage: `${totalIndividuaisTab5 > 0 ? ((totalPreventivosTab5 / totalIndividuaisTab5) * 100).toFixed(1) : 0}%` },
                   ]}
                   pdfColumns={[
@@ -485,7 +499,7 @@ const resultadoFinal = useResultadoFinal(
                   pdfTitle="Tratamento Restaurador Atraumático"
                   pdfFileName="tratamento-restaurador"
                   pdfSummaryCards={[
-                    { label: "Total de Registros", value: totalTab6.toLocaleString("pt-BR") },
+                    { label: "Total de Registros", value: totalProcedimentosTab6.toLocaleString("pt-BR") },
                     { label: "Exodontias", value: totalExodontiasTab6.toLocaleString("pt-BR"), percentage: `${totalProcedimentosTab6 > 0 ? ((totalExodontiasTab6 / totalProcedimentosTab6) * 100).toFixed(1) : 0}%` },
                   ]}
                   pdfColumns={[
@@ -521,24 +535,27 @@ const resultadoFinal = useResultadoFinal(
             </div>
           </TabsContent>
 
-   {/* Tab 7 - Resultado Final */}
-<TabsContent value="resultado" className="mt-6">
-  {(isLoadingPatients || isLoadingTratamento || isLoadingTab3 ||
-    isLoadingTab4 || isLoadingTab5 || isLoadingTab6 ||
-    isLoadingDenominadorB1 || !denominadorB1Data) ? (
-    <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
-  ) : (
-    <ResultadoFinalTab
-      geral={resultadoFinal.geral}
-      porEquipe={resultadoFinal.porEquipe}
-      quadrimestre={quadrimestre}
-      onQuadrimestreChange={setQuadrimestre}
-      equipe={equipeResultado}
-      onEquipeChange={setEquipeResultado}
-      equipeOptions={equipeOptions}
-    />
-  )}
-</TabsContent>
+          {/* Tab 7 - Resultado Final */}
+          <TabsContent value="resultado" className="mt-6">
+            {!resultadoPronto ? (
+              <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
+            ) : (
+              <ResultadoFinalWrapper
+                patients={patients!}
+                tratamentoPatients={tratamentoPatients ?? []}
+                tab3Patients={tab3Patients ?? []}
+                tab4Patients={tab4Patients ?? []}
+                tab5Patients={tab5Patients ?? []}
+                tab6Patients={tab6Patients ?? []}
+                quadrimestre={quadrimestre}
+                equipeResultado={equipeResultado}
+                denominadorB1Data={denominadorB1Data!}
+                equipeOptions={equipeOptions}
+                onQuadrimestreChange={setQuadrimestre}
+                onEquipeChange={setEquipeResultado}
+              />
+            )}
+          </TabsContent>
         </Tabs>
       </main>
 
