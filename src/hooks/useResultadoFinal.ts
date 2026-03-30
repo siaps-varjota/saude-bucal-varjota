@@ -193,13 +193,17 @@ function calcB1(
   let sumNum = 0;
   const mesesDetalhe: MesDetalhe[] = [];
 
-  months.forEach((m) => {
+ months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
     const count = source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
+
+    // DEBUG
+    console.log(`[calcB1] mês=${m} ano=${year} currentMonth=${currentMonth} currentYear=${currentYear} isCurrentOrPast=${isCurrentOrPast} count=${count}`);
+
     sumNum += count;
     mesesDetalhe.push({
       mes: `${MONTH_ABBR[m]}/${year}`,
