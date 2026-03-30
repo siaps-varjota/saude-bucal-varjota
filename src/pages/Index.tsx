@@ -525,8 +525,7 @@ const resultadoFinal = useResultadoFinal(
 <TabsContent value="resultado" className="mt-6">
   {(isLoadingPatients || isLoadingTratamento || isLoadingTab3 ||
     isLoadingTab4 || isLoadingTab5 || isLoadingTab6 ||
-    isLoadingDenominadorB1 ||
-    !patients?.length || !denominadorB1Data) ? (
+    isLoadingDenominadorB1 || !denominadorB1Data) ? (
     <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
   ) : (
     <ResultadoFinalTab
