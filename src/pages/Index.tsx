@@ -107,6 +107,11 @@ const Index = () => {
   const { data: tab5Patients,        isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
   const { data: tab6Patients,        isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
   const { data: denominadorB1Data,   isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
+  console.log("[Index] DenominadorB1 data state:", { 
+    isLoading: isLoadingDenominadorB1, 
+    hasData: !!denominadorB1Data, 
+    total: denominadorB1Data?.total 
+  });
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });

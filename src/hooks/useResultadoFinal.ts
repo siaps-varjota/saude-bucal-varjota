@@ -311,6 +311,11 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
+  console.log("[useResultadoFinal] Dados recebidos:", { 
+    patientsCount: patients.length, 
+    denominadorB1Total: denominadorB1?.total,
+    denominadorB1Equipes: Object.keys(denominadorB1?.porEquipe || {}).length 
+  });
   const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
   const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
