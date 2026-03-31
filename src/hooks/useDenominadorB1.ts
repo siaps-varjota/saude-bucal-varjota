@@ -35,9 +35,23 @@ const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
 
   // Pula o cabeçalho
   lines.slice(1).forEach(line => {
-    // Tenta detectar o separador (vírgula ou ponto e vírgula)
-    const separator = line.includes(";") ? ";" : ",";
-    const parts = line.split(separator).map(s => s.trim());
+    // Parse robusto de CSV lidando com aspas
+    const parts: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if ((char === "," || char === ";") && !inQuotes) {
+        parts.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    parts.push(current.trim());
     
     const rawEquipe = parts[0];
     // Remove caracteres não numéricos antes de converter
@@ -58,9 +72,12 @@ export function useDenominadorB1() {
   return useQuery({
     queryKey: ["denominadorB1"],
     queryFn: fetchDenominadorB1,
-    // Reduzi o staleTime para 1 minuto para que os dados atualizem mais frequentemente
-    staleTime: 1 * 60 * 1000,
-    // Garante que ele busque novamente ao focar na janela
+    // Reduzido para 30 segundos para garantir dados sempre frescos
+    staleTime: 30 * 1000,
+    // Garante que ele busque novamente ao focar na janela ou reconectar
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    // Tenta novamente em caso de erro na rede
+    retry: 2,
   });
 }
