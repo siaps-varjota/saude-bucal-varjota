@@ -311,11 +311,6 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
-  console.log("[useResultadoFinal] Dados recebidos:", { 
-    patientsCount: patients.length, 
-    denominadorB1Total: denominadorB1?.total,
-    denominadorB1Equipes: Object.keys(denominadorB1?.porEquipe || {}).length 
-  });
   const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
   const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
@@ -341,12 +336,7 @@ export function useResultadoFinal(
       );
       if (matchKey) {
         denomB1 = normalizedDenominadores[matchKey];
-        console.log(`[useResultadoFinal] Match PARCIAL encontrado para equipe "${equipe}": "${matchKey}" -> ${denomB1}`);
-      } else {
-        console.warn(`[useResultadoFinal] AVISO: Nenhum denominador encontrado para a equipe "${equipe}" (Normalizado: ${normalizedName})`);
       }
-    } else {
-      console.log(`[useResultadoFinal] Match EXATO para equipe "${equipe}": ${denomB1}`);
     }
     
     const indicadores = [
@@ -363,7 +353,14 @@ export function useResultadoFinal(
   const buildGeral = (eq?: string) => {
     let denomB1 = 0;
     if (eq) {
-      denomB1 = normalizedDenominadores[normalizeEquipeName(eq)] ?? 0;
+      const normalizedName = normalizeEquipeName(eq);
+      denomB1 = normalizedDenominadores[normalizedName] ?? 0;
+      if (denomB1 === 0) {
+        const matchKey = Object.keys(normalizedDenominadores).find(key => 
+          normalizedName.includes(key) || key.includes(normalizedName)
+        );
+        if (matchKey) denomB1 = normalizedDenominadores[matchKey];
+      }
     } else {
       // Soma os denominadores de todas as equipes usando match flexível
       denomB1 = allEquipes.reduce((acc, equipe) => {
@@ -377,7 +374,6 @@ export function useResultadoFinal(
         }
         return acc + val;
       }, 0);
-      console.log(`[useResultadoFinal] Denominador GERAL calculado (soma das equipes): ${denomB1}`);
     }
 
     return [
