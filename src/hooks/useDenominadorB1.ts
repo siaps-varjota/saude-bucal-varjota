@@ -27,6 +27,7 @@ const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
   const response = await fetch(`${CSV_URL}&t=${Date.now()}`);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const text = await response.text();
+  console.log("[useDenominadorB1] CSV Text received:", text.substring(0, 200) + "...");
 
   // Divide por linhas e remove linhas vazias
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
@@ -62,9 +63,11 @@ const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
       const normalizedEquipe = normalizeEquipeName(rawEquipe);
       porEquipe[normalizedEquipe] = val;
       total += val;
+      console.log(`[useDenominadorB1] Equipe: ${rawEquipe} (${normalizedEquipe}) -> ${val}`);
     }
   });
 
+  console.log("[useDenominadorB1] Final data:", { porEquipe, total });
   return { porEquipe, total };
 };
 

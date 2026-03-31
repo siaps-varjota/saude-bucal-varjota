@@ -343,7 +343,11 @@ export function useResultadoFinal(
     if (eq) {
       denomB1 = normalizedDenominadores[normalizeEquipeName(eq)] ?? 0;
     } else {
-      denomB1 = denominadorB1.total;
+      // Em vez de usar denominadorB1.total (que pode incluir equipes não presentes nos dados),
+      // somamos apenas os denominadores das equipes que estão sendo exibidas no dashboard.
+      denomB1 = allEquipes.reduce((acc, equipe) => {
+        return acc + (normalizedDenominadores[normalizeEquipeName(equipe)] ?? 0);
+      }, 0);
     }
 
     return [
