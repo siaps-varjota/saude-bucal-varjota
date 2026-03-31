@@ -394,4 +394,4 @@ export function useResultadoFinal(
   };
 
   return { geral, porEquipe };
-}
+} 
