@@ -10,15 +10,16 @@ export interface DenominadorB1Data {
 
 /**
  * Normaliza o nome da equipe para facilitar a comparação
- * Remove espaços extras, converte para maiúsculas e remove acentos básicos
+ * Remove espaços extras, converte para maiúsculas, remove acentos e caracteres não alfanuméricos
  */
 const normalizeEquipeName = (name: string): string => {
   return name
     .trim()
     .toUpperCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[^A-Z0-9]/g, "") // Remove TUDO que não for letra ou número (espaços, barras, aspas, etc)
+    .trim();
 };
 
 const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {

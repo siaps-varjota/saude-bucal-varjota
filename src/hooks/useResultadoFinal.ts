@@ -43,13 +43,18 @@ const MONTH_NAME_TO_NUM: Record<string, number> = {
   julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
 };
 
+/**
+ * Normaliza o nome da equipe para facilitar a comparação
+ * Remove espaços extras, converte para maiúsculas, remove acentos e caracteres não alfanuméricos
+ */
 const normalizeEquipeName = (name: string): string => {
   return name
     .trim()
     .toUpperCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[^A-Z0-9]/g, "") // Remove TUDO que não for letra ou número
+    .trim();
 };
 
 function parseDate(d: any): Date | null {
