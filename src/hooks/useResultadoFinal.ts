@@ -48,6 +48,7 @@ const MONTH_NAME_TO_NUM: Record<string, number> = {
  * Remove espaços extras, converte para maiúsculas, remove acentos e caracteres não alfanuméricos
  */
 const normalizeEquipeName = (name: string): string => {
+  if (!name) return "";
   return name
     .trim()
     .toUpperCase()
@@ -83,7 +84,11 @@ function buildIndicador(id: string, calc: RawCalc): IndicadorResult {
 
 function getAllEquipes(...sources: any[][]): string[] {
   const set = new Set<string>();
-  sources.forEach(src => src.forEach(item => item.equipe && set.add(item.equipe)));
+  sources.forEach(src => {
+    if (Array.isArray(src)) {
+      src.forEach(item => item && item.equipe && set.add(item.equipe));
+    }
+  });
   return Array.from(set).sort();
 }
 
@@ -95,9 +100,9 @@ function calcB1(
   denominadorExterno: number,
   equipe?: string
 ): RawCalc {
-  const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
+  const source = (allPatients || []).filter((p) => !equipe || p.equipe === equipe);
 
-  if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
+  if (denominadorExterno <= 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -145,7 +150,7 @@ function calcB1(
 }
 
 function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tratamento.filter((p) => p.equipe === equipe) : tratamento;
+  const source = (tratamento || []).filter((p) => !equipe || p.equipe === equipe);
   const totalPatients = source.length;
   if (quad === "todos") {
     const concluido = source.filter(p => p.concluido === "SIM").length;
@@ -169,10 +174,10 @@ function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: st
 }
 
 function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab3.filter((r) => r.equipe === equipe) : tab3;
+  const source = (tab3 || []).filter((r) => !equipe || r.equipe === equipe);
   if (quad === "todos") {
     let sumArt = 0, sumTot = 0;
-    source.forEach(r => { sumArt += r.art; sumTot += r.totalProcedimentos; });
+    source.forEach(r => { sumArt += (r.art || 0); sumTot += (r.totalProcedimentos || 0); });
     return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe: [] };
   }
   const [q, yearStr] = quad.split("-");
@@ -180,12 +185,13 @@ function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCal
   const months = QUAD_MONTHS[q] || [];
   const byMonth = new Map<number, { art: number; total: number }>();
   source.forEach(r => {
+    if (!r.mesAno) return;
     const parts = r.mesAno.split("/");
     const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
     const ano = parseInt(parts[1]);
     if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
     const ex = byMonth.get(mesIdx) || { art: 0, total: 0 };
-    ex.art += r.art; ex.total += r.totalProcedimentos;
+    ex.art += (r.art || 0); ex.total += (r.totalProcedimentos || 0);
     byMonth.set(mesIdx, ex);
   });
   let sumArt = 0, sumTot = 0;
@@ -199,10 +205,10 @@ function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCal
 }
 
 function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab5.filter((r) => r.equipe === equipe) : tab5;
+  const source = (tab5 || []).filter((r) => !equipe || r.equipe === equipe);
   if (quad === "todos") {
     let sumArt = 0, sumTot = 0;
-    source.forEach(r => { sumArt += r.preventivos; sumTot += r.totalProcedimentos; });
+    source.forEach(r => { sumArt += (r.preventivos || 0); sumTot += (r.totalProcedimentos || 0); });
     return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe: [] };
   }
   const [q, yearStr] = quad.split("-");
@@ -210,12 +216,13 @@ function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCal
   const months = QUAD_MONTHS[q] || [];
   const byMonth = new Map<number, { art: number; total: number }>();
   source.forEach(r => {
+    if (!r.mesAno) return;
     const parts = r.mesAno.split("/");
     const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
     const ano = parseInt(parts[1]);
     if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
     const ex = byMonth.get(mesIdx) || { art: 0, total: 0 };
-    ex.art += r.preventivos; ex.total += r.totalProcedimentos;
+    ex.art += (r.preventivos || 0); ex.total += (r.totalProcedimentos || 0);
     byMonth.set(mesIdx, ex);
   });
   let sumArt = 0, sumTot = 0;
@@ -229,7 +236,7 @@ function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCal
 }
 
 function calcB5(tab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab4.filter((p) => p.equipe === equipe) : tab4;
+  const source = (tab4 || []).filter((p) => !equipe || p.equipe === equipe);
   const totalPatients = source.length;
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -242,7 +249,7 @@ function calcB5(tab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): RawCa
     });
     if (byMonth.size === 0) return { numerador: 0, denominador: totalPatients, porcentagem: 0, mesesDetalhe: [] };
     const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
-    return { numerador: totalConsultas, denominador: totalPatients, porcentagem: (totalConsultas / totalPatients) * 100, mesesDetalhe: [] };
+    return { numerador: totalConsultas, denominador: totalPatients, porcentagem: totalPatients > 0 ? (totalConsultas / totalPatients) * 100 : 0, mesesDetalhe: [] };
   }
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
@@ -269,10 +276,10 @@ function calcB5(tab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): RawCa
 }
 
 function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab6.filter((r) => r.equipe === equipe) : tab6;
+  const source = (tab6 || []).filter((r) => !equipe || r.equipe === equipe);
   if (quad === "todos") {
     let sumArt = 0, sumTot = 0;
-    source.forEach(r => { sumArt += r.exodontias; sumTot += r.totalProcedimentos; });
+    source.forEach(r => { sumArt += (r.exodontias || 0); sumTot += (r.totalProcedimentos || 0); });
     return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe: [] };
   }
   const [q, yearStr] = quad.split("-");
@@ -280,12 +287,13 @@ function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCal
   const months = QUAD_MONTHS[q] || [];
   const byMonth = new Map<number, { exodontias: number; total: number }>();
   source.forEach(r => {
+    if (!r.mesAno) return;
     const parts = r.mesAno.split("/");
     const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
     const ano = parseInt(parts[1]);
     if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
     const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
-    ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
+    ex.exodontias += (r.exodontias || 0); ex.total += (r.totalProcedimentos || 0);
     byMonth.set(mesIdx, ex);
   });
   let sumArt = 0, sumTot = 0;
@@ -311,19 +319,28 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
-  const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-  const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
+  const allEquipes = useMemo(() => 
+    getAllEquipes(patients || [], tratamento || [], tab3 || [], tab4 || [], tab5 || [], tab6 || []),
+    [patients, tratamento, tab3, tab4, tab5, tab6]
+  );
+  
+  const equipes = useMemo(() => 
+    equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter),
+    [equipeFilter, allEquipes]
+  );
 
   // Normaliza as chaves do objeto de denominadores para garantir o match
   const normalizedDenominadores = useMemo(() => {
     const result: Record<string, number> = {};
-    Object.entries(denominadorB1.porEquipe).forEach(([name, val]) => {
-      result[normalizeEquipeName(name)] = val;
-    });
+    if (denominadorB1 && denominadorB1.porEquipe) {
+      Object.entries(denominadorB1.porEquipe).forEach(([name, val]) => {
+        result[normalizeEquipeName(name)] = val;
+      });
+    }
     return result;
-  }, [denominadorB1.porEquipe]);
+  }, [denominadorB1?.porEquipe]);
 
-  const porEquipe: EquipeResult[] = equipes.map((equipe) => {
+  const porEquipe: EquipeResult[] = useMemo(() => equipes.map((equipe) => {
     const normalizedName = normalizeEquipeName(equipe);
     
     // Tenta match exato primeiro
@@ -340,15 +357,15 @@ export function useResultadoFinal(
     }
     
     const indicadores = [
-      buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
-      buildIndicador("B2", calcB2(tratamento, quad, equipe)),
-      buildIndicador("B3", calcB3(tab3, quad, equipe)),
-      buildIndicador("B5", calcB5(tab4, quad, equipe)),
-      buildIndicador("B4", calcB4(tab5, quad, equipe)),
-      buildIndicador("B6", calcB6(tab6, quad, equipe)),
+      buildIndicador("B1", calcB1(patients || [], quad, denomB1, equipe)),
+      buildIndicador("B2", calcB2(tratamento || [], quad, equipe)),
+      buildIndicador("B3", calcB3(tab3 || [], quad, equipe)),
+      buildIndicador("B5", calcB5(tab4 || [], quad, equipe)),
+      buildIndicador("B4", calcB4(tab5 || [], quad, equipe)),
+      buildIndicador("B6", calcB6(tab6 || [], quad, equipe)),
     ];
     return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
-  });
+  }), [equipes, normalizedDenominadores, patients, tratamento, tab3, tab4, tab5, tab6, quad]);
 
   const buildGeral = (eq?: string) => {
     let denomB1 = 0;
@@ -377,21 +394,23 @@ export function useResultadoFinal(
     }
 
     return [
-      buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
-      buildIndicador("B2", calcB2(tratamento, quad, eq)),
-      buildIndicador("B3", calcB3(tab3, quad, eq)),
-      buildIndicador("B5", calcB5(tab4, quad, eq)),
-      buildIndicador("B4", calcB4(tab5, quad, eq)),
-      buildIndicador("B6", calcB6(tab6, quad, eq)),
+      buildIndicador("B1", calcB1(patients || [], quad, denomB1, eq)),
+      buildIndicador("B2", calcB2(tratamento || [], quad, eq)),
+      buildIndicador("B3", calcB3(tab3 || [], quad, eq)),
+      buildIndicador("B5", calcB5(tab4 || [], quad, eq)),
+      buildIndicador("B4", calcB4(tab5 || [], quad, eq)),
+      buildIndicador("B6", calcB6(tab6 || [], quad, eq)),
     ];
   };
 
-  const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
-  const geral: EquipeResult = {
-    equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
-    indicadores: geralIndicadores,
-    notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
-  };
+  const geral: EquipeResult = useMemo(() => {
+    const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
+    return {
+      equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
+      indicadores: geralIndicadores,
+      notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
+    };
+  }, [equipeFilter, allEquipes, normalizedDenominadores, patients, tratamento, tab3, tab4, tab5, tab6, quad]);
 
   return { geral, porEquipe };
 } 
