@@ -8,7 +8,20 @@ export interface DenominadorB1Data {
   total: number;
 }
 
-const fetchDenominadorB1 = async ( ): Promise<DenominadorB1Data> => {
+/**
+ * Normaliza o nome da equipe para facilitar a comparação
+ * Remove espaços extras, converte para maiúsculas e remove acentos básicos
+ */
+const normalizeEquipeName = (name: string): string => {
+  return name
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+};
+
+const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
   // Adicionando um timestamp para evitar cache do navegador e garantir dados novos
   const response = await fetch(`${CSV_URL}&t=${Date.now()}`);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -25,13 +38,14 @@ const fetchDenominadorB1 = async ( ): Promise<DenominadorB1Data> => {
     const separator = line.includes(";") ? ";" : ",";
     const parts = line.split(separator).map(s => s.trim());
     
-    const equipe = parts[0];
+    const rawEquipe = parts[0];
     // Remove caracteres não numéricos antes de converter
     const valStr = parts[1]?.replace(/[^\d]/g, "");
     const val = parseInt(valStr, 10);
 
-    if (equipe && !isNaN(val)) {
-      porEquipe[equipe] = val;
+    if (rawEquipe && !isNaN(val)) {
+      const normalizedEquipe = normalizeEquipeName(rawEquipe);
+      porEquipe[normalizedEquipe] = val;
       total += val;
     }
   });
