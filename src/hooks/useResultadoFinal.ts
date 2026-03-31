@@ -325,7 +325,24 @@ export function useResultadoFinal(
 
   const porEquipe: EquipeResult[] = equipes.map((equipe) => {
     const normalizedName = normalizeEquipeName(equipe);
-    const denomB1 = normalizedDenominadores[normalizedName] ?? 0;
+    
+    // Tenta match exato primeiro
+    let denomB1 = normalizedDenominadores[normalizedName] ?? 0;
+    
+    // Se não encontrar, tenta match parcial (ex: "ESB SEDE 1" e "SEDE 1")
+    if (denomB1 === 0) {
+      const matchKey = Object.keys(normalizedDenominadores).find(key => 
+        normalizedName.includes(key) || key.includes(normalizedName)
+      );
+      if (matchKey) {
+        denomB1 = normalizedDenominadores[matchKey];
+        console.log(`[useResultadoFinal] Match PARCIAL encontrado para equipe "${equipe}": "${matchKey}" -> ${denomB1}`);
+      } else {
+        console.warn(`[useResultadoFinal] AVISO: Nenhum denominador encontrado para a equipe "${equipe}" (Normalizado: ${normalizedName})`);
+      }
+    } else {
+      console.log(`[useResultadoFinal] Match EXATO para equipe "${equipe}": ${denomB1}`);
+    }
     
     const indicadores = [
       buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
@@ -343,11 +360,19 @@ export function useResultadoFinal(
     if (eq) {
       denomB1 = normalizedDenominadores[normalizeEquipeName(eq)] ?? 0;
     } else {
-      // Em vez de usar denominadorB1.total (que pode incluir equipes não presentes nos dados),
-      // somamos apenas os denominadores das equipes que estão sendo exibidas no dashboard.
+      // Soma os denominadores de todas as equipes usando match flexível
       denomB1 = allEquipes.reduce((acc, equipe) => {
-        return acc + (normalizedDenominadores[normalizeEquipeName(equipe)] ?? 0);
+        const normalizedName = normalizeEquipeName(equipe);
+        let val = normalizedDenominadores[normalizedName] ?? 0;
+        if (val === 0) {
+          const matchKey = Object.keys(normalizedDenominadores).find(key => 
+            normalizedName.includes(key) || key.includes(normalizedName)
+          );
+          if (matchKey) val = normalizedDenominadores[matchKey];
+        }
+        return acc + val;
       }, 0);
+      console.log(`[useResultadoFinal] Denominador GERAL calculado (soma das equipes): ${denomB1}`);
     }
 
     return [
