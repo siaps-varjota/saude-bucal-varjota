@@ -297,7 +297,7 @@ function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCal
 }
 
 function calcB4(tab5: Tab5Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab5.filter((r) => r.equipe === equipe) : tab5;
+  const source = equipe ? tab5.filter((r) => equipeMatch(r.equipe, equipe)) : tab5;
 
   if (quad === "todos") {
     let sumPrev = 0, sumTot = 0;
