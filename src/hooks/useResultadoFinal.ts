@@ -263,7 +263,7 @@ function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: st
 }
 
 function calcB3(tab3: Tab3Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab3.filter((r) => r.equipe === equipe) : tab3;
+  const source = equipe ? tab3.filter((r) => equipeMatch(r.equipe, equipe)) : tab3;
 
   if (quad === "todos") {
     let sumExo = 0, sumTot = 0;
