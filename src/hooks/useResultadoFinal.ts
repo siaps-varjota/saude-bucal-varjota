@@ -422,11 +422,21 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
+  // Helper to find denominadorB1 value trying both ESB and ESF variants
+  const findDenomB1 = (eq: string): number => {
+    if (denominadorB1.porEquipe[eq] !== undefined) return denominadorB1.porEquipe[eq];
+    const alt = eq.replace(/^ESB\b/i, "ESF");
+    if (denominadorB1.porEquipe[alt] !== undefined) return denominadorB1.porEquipe[alt];
+    const alt2 = eq.replace(/^ESF\b/i, "ESB");
+    if (denominadorB1.porEquipe[alt2] !== undefined) return denominadorB1.porEquipe[alt2];
+    return 0;
+  };
+
   const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
   const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
 
   const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-    const denomB1 = denominadorB1.porEquipe[equipe] ?? 0;
+    const denomB1 = findDenomB1(equipe);
     const indicadores = [
       buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
       buildIndicador("B2", calcB2(tratamento, quad, equipe)),
@@ -439,7 +449,7 @@ export function useResultadoFinal(
   });
 
   const buildGeral = (eq?: string) => {
-    const denomB1 = eq ? (denominadorB1.porEquipe[eq] ?? 0) : denominadorB1.total;
+    const denomB1 = eq ? findDenomB1(eq) : denominadorB1.total;
     return [
       buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
       buildIndicador("B2", calcB2(tratamento, quad, eq)),
