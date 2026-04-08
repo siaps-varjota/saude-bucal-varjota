@@ -221,7 +221,7 @@ function calcB1(
 }
 
 function calcB2(tratamento: TratamentoPatient[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tratamento.filter((p) => p.equipe === equipe) : tratamento;
+  const source = equipe ? tratamento.filter((p) => equipeMatch(p.equipe, equipe)) : tratamento;
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
