@@ -131,13 +131,18 @@ const Index = () => {
   );
 
   const equipeOptions = useMemo(() => {
+    const normalizeEquipeOption = (name: string) => {
+      const normalized = name.replace(/^ESF\b/i, "ESB").trim();
+      return normalized === "ESB SEDE 1" ? "ESB CENTRO" : normalized;
+    };
+
     const set = new Set<string>();
-    (patients || []).forEach(p => p.equipe && set.add(p.equipe));
-    (tratamentoPatients || []).forEach(p => p.equipe && set.add(p.equipe));
-    (tab4Patients || []).forEach(p => p.equipe && set.add(p.equipe));
-    (tab3Patients || []).forEach(r => r.equipe && set.add(r.equipe));
-    (tab5Patients || []).forEach(r => r.equipe && set.add(r.equipe));
-    (tab6Patients || []).forEach(r => r.equipe && set.add(r.equipe));
+    (patients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
+    (tratamentoPatients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
+    (tab4Patients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
+    (tab3Patients || []).forEach(r => r.equipe && set.add(normalizeEquipeOption(r.equipe)));
+    (tab5Patients || []).forEach(r => r.equipe && set.add(normalizeEquipeOption(r.equipe)));
+    (tab6Patients || []).forEach(r => r.equipe && set.add(normalizeEquipeOption(r.equipe)));
     return Array.from(set).sort();
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
 
