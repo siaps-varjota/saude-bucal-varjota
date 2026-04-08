@@ -422,13 +422,22 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number }
 ) {
-  // Helper to find denominadorB1 value trying both ESB and ESF variants
+  // Helper to find denominadorB1 value trying aliases and ESB/ESF variants
   const findDenomB1 = (eq: string): number => {
-    if (denominadorB1.porEquipe[eq] !== undefined) return denominadorB1.porEquipe[eq];
-    const alt = eq.replace(/^ESB\b/i, "ESF");
-    if (denominadorB1.porEquipe[alt] !== undefined) return denominadorB1.porEquipe[alt];
-    const alt2 = eq.replace(/^ESF\b/i, "ESB");
-    if (denominadorB1.porEquipe[alt2] !== undefined) return denominadorB1.porEquipe[alt2];
+    const normalized = normalizeEquipe(eq);
+    const aliases = [
+      normalized,
+      normalized.replace(/^ESB\b/i, "ESF"),
+      normalized.replace(/^ESB CENTRO$/i, "ESB SEDE 1"),
+      normalized.replace(/^ESF CENTRO$/i, "ESB SEDE 1"),
+      normalized.replace(/^ESB SEDE 1$/i, "ESB CENTRO"),
+      normalized.replace(/^ESB SEDE 1$/i, "ESF CENTRO"),
+    ];
+
+    for (const alias of aliases) {
+      if (denominadorB1.porEquipe[alias] !== undefined) return denominadorB1.porEquipe[alias];
+    }
+
     return 0;
   };
 
