@@ -377,7 +377,7 @@ function calcB5(allTab4: Tab4Patient[], quad: Quadrimestre, equipe?: string): Ra
 }
 
 function calcB6(tab6: Tab6Record[], quad: Quadrimestre, equipe?: string): RawCalc {
-  const source = equipe ? tab6.filter((r) => r.equipe === equipe) : tab6;
+  const source = equipe ? tab6.filter((r) => equipeMatch(r.equipe, equipe)) : tab6;
 
   if (quad === "todos") {
     let sumArt = 0, sumTot = 0;
