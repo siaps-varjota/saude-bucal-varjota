@@ -172,7 +172,7 @@ function calcB1(
   denominadorExterno: number,
   equipe?: string
 ): RawCalc {
-  const source = equipe ? allPatients.filter((p) => p.equipe === equipe) : allPatients;
+  const source = equipe ? allPatients.filter((p) => equipeMatch(p.equipe, equipe)) : allPatients;
   if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
 
   const now = new Date();
