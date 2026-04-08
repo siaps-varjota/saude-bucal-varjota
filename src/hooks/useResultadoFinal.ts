@@ -144,17 +144,25 @@ function buildIndicador(key: string, raw: RawCalc): IndicadorResult {
   };
 }
 
+/** Normaliza nomes de equipe: ESF → ESB para consistência */
+const normalizeEquipe = (name: string): string =>
+  name.replace(/^ESF\b/i, "ESB");
+
+/** Verifica se a equipe do registro corresponde ao filtro (ESF/ESB equivalentes) */
+const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
+  normalizeEquipe(recordEquipe) === normalizeEquipe(filterEquipe);
+
 function getAllEquipes(
   patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
   tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[]
 ): string[] {
   const set = new Set<string>();
-  patients.forEach((p) => p.equipe && set.add(p.equipe));
-  tratamento.forEach((p) => p.equipe && set.add(p.equipe));
-  tab3.forEach((r) => set.add(r.equipe));
-  tab4.forEach((p) => p.equipe && set.add(p.equipe));
-  tab5.forEach((r) => set.add(r.equipe));
-  tab6.forEach((r) => set.add(r.equipe));
+  patients.forEach((p) => p.equipe && set.add(normalizeEquipe(p.equipe)));
+  tratamento.forEach((p) => p.equipe && set.add(normalizeEquipe(p.equipe)));
+  tab3.forEach((r) => set.add(normalizeEquipe(r.equipe)));
+  tab4.forEach((p) => p.equipe && set.add(normalizeEquipe(p.equipe)));
+  tab5.forEach((r) => set.add(normalizeEquipe(r.equipe)));
+  tab6.forEach((r) => set.add(normalizeEquipe(r.equipe)));
   return Array.from(set).sort();
 }
 
