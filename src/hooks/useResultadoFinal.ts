@@ -144,11 +144,14 @@ function buildIndicador(key: string, raw: RawCalc): IndicadorResult {
   };
 }
 
-/** Normaliza nomes de equipe: ESF → ESB para consistência */
-const normalizeEquipe = (name: string): string =>
-  name.replace(/^ESF\b/i, "ESB");
+/** Normaliza nomes de equipe para consistência entre planilhas */
+const normalizeEquipe = (name: string): string => {
+  const normalized = name.replace(/^ESF\b/i, "ESB").trim();
+  if (normalized === "ESB CENTRO") return "ESB SEDE 1";
+  return normalized;
+};
 
-/** Verifica se a equipe do registro corresponde ao filtro (ESF/ESB equivalentes) */
+/** Verifica se a equipe do registro corresponde ao filtro após normalização */
 const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
   normalizeEquipe(recordEquipe) === normalizeEquipe(filterEquipe);
 
