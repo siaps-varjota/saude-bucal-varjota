@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { parse, isValid, format } from "date-fns";
 import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
