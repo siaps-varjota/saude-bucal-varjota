@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { parse, isValid, differenceInYears, format } from "date-fns";
+import { parse, isValid, differenceInYears } from "date-fns";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { FilterState } from "@/components/dashboard/PatientFilters";
 import { filterTratamentoByQuadrimestre } from "./useQuadrimesterFilter";
+import { dateToMMYYYY, matchesMesReferencia } from "@/lib/mesReferenciaUtils";
 
 const parseTratamentoDate = (tratamento: string): Date | null => {
   if (!tratamento || tratamento === "-" || tratamento.trim() === "") return null;
@@ -35,18 +36,12 @@ export const useFilteredTratamento = (patients: TratamentoPatient[], filters: Fi
         status === filters.status.toUpperCase().trim();
 
       // Filtro Mês de Referência — filtra pela data da 1ª Consulta
-      // Se o paciente não tem 1ª consulta, o filtro de mês não se aplica (mantém o paciente)
+      const selected = filters.mesReferencia || [];
       let matchesMesRef = true;
-      if (filters.mesReferencia && filters.mesReferencia !== "all") {
-        const d = parseTratamentoDate(patient.primeiraConsulta);
-        if (d) {
-          const mesAno = format(d, "MM/yyyy");
-          matchesMesRef = mesAno === filters.mesReferencia;
-        } else {
-          // Paciente sem data de 1ª consulta: mantém se o status filtrado é compatível
-          const hasNoConsulta = !patient.primeiraConsulta || patient.primeiraConsulta === "-" || patient.primeiraConsulta.trim() === "";
-          matchesMesRef = hasNoConsulta;
-        }
+      if (selected.length > 0) {
+        const mmyyyy = dateToMMYYYY(patient.primeiraConsulta);
+        const hasNoConsulta = !patient.primeiraConsulta || patient.primeiraConsulta === "-" || patient.primeiraConsulta.trim() === "";
+        matchesMesRef = hasNoConsulta || matchesMesReferencia(mmyyyy, selected);
       }
 
       return matchesEquipe && matchesMicroarea && matchesStatus && matchesMesRef;
