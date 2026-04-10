@@ -183,9 +183,10 @@ export const PatientFilters = ({
         {/* Ações — sempre à direita, nunca quebram linha */}
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
-              Limpar filtros
-            </Button>
+           <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 whitespace-normal text-center leading-tight h-auto max-w-[48px] text-xs px-1"
+        >
+       Limpar filtros
+       </Button>
           )}
           <PDFGenerator
             title={pdfTitle}
