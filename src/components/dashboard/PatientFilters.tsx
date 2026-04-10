@@ -175,22 +175,21 @@ export const PatientFilters = ({
         />
       )}
 
-      {hasActiveFilters && (
-        <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
-          Limpar filtros
-        </Button>
-      )}
-
-      <div className="ml-auto">
-        <PDFGenerator
-          title={pdfTitle}
-          filterInfo={filterInfo}
-          summaryCards={pdfSummaryCards}
-          columns={pdfColumns}
-          data={pdfData}
-          fileName={pdfFileName}
-        />
-      </div>
+     <div className="ml-auto flex items-center gap-2">
+  {hasActiveFilters && (
+    <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+      Limpar filtros
+    </Button>
+  )}
+  <PDFGenerator
+    title={pdfTitle}
+    filterInfo={filterInfo}
+    summaryCards={pdfSummaryCards}
+    columns={pdfColumns}
+    data={pdfData}
+    fileName={pdfFileName}
+  />
+</div>
     </div>
   );
 };
