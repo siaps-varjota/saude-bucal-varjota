@@ -3,33 +3,25 @@ import { parse, isValid, differenceInYears } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { FilterState } from "@/components/dashboard/PatientFilters";
 import { filterPatientsByQuadrimestre } from "./useQuadrimesterFilter";
+import { dateToMMYYYY, matchesMesReferencia } from "@/lib/mesReferenciaUtils";
 
 const parseConsultaDate = (consulta: string): Date | null => {
   if (!consulta || consulta === "-" || consulta.trim() === "") return null;
-  
   const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-  
   for (const fmt of formats) {
     try {
       const parsed = parse(consulta.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
-    } catch {
-      continue;
-    }
+    } catch { continue; }
   }
   return null;
 };
 
 export const isConsultaPendente = (primeiraConsulta: string): boolean => {
-  if (!primeiraConsulta || primeiraConsulta === "-" || primeiraConsulta.trim() === "") {
-    return true;
-  }
-  
+  if (!primeiraConsulta || primeiraConsulta === "-" || primeiraConsulta.trim() === "") return true;
   const consultaDate = parseConsultaDate(primeiraConsulta);
   if (!consultaDate) return true;
-  
-  const yearsAgo = differenceInYears(new Date(), consultaDate);
-  return yearsAgo >= 1;
+  return differenceInYears(new Date(), consultaDate) >= 1;
 };
 
 export const useFilteredPatients = (patients: Patient[], filters: FilterState) => {
@@ -43,8 +35,16 @@ export const useFilteredPatients = (patients: Patient[], filters: FilterState) =
         filters.status === "all" || 
         (filters.status === "pendente" && isPendente) ||
         (filters.status === "concluido" && !isPendente);
-      
-      return matchesEquipe && matchesMicroarea && matchesStatus;
+
+      const selected = filters.mesReferencia || [];
+      let matchesMesRef = true;
+      if (selected.length > 0) {
+        const mmyyyy = dateToMMYYYY(patient.primeiraConsulta);
+        const hasNoConsulta = !patient.primeiraConsulta || patient.primeiraConsulta === "-" || patient.primeiraConsulta.trim() === "";
+        matchesMesRef = hasNoConsulta || matchesMesReferencia(mmyyyy, selected);
+      }
+
+      return matchesEquipe && matchesMicroarea && matchesStatus && matchesMesRef;
     });
   }, [patients, filters]);
 };

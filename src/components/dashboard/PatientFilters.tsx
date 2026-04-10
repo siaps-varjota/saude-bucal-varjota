@@ -5,13 +5,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Patient } from "@/hooks/usePatientData";
 import { PDFGenerator } from "./PDFGenerator";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
+import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 
 export interface FilterState {
   equipe: string;
   microarea: string;
   status: string;
   quadrimestre: Quadrimestre;
-  mesReferencia?: string;
+  mesReferencia?: string[];
 }
 
 interface PDFSummaryCard {
@@ -85,7 +86,7 @@ export const PatientFilters = ({
   const resolvedStatusOptions = statusOptions ?? defaultStatusOptions;
 
   const clearFilters = () => {
-    onFiltersChange({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: "all" });
+    onFiltersChange({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   };
 
   const hasActiveFilters =
@@ -93,7 +94,7 @@ export const PatientFilters = ({
     filters.microarea !== "all" ||
     filters.status !== "all" ||
     filters.quadrimestre !== "todos" ||
-    (filters.mesReferencia && filters.mesReferencia !== "all");
+    (filters.mesReferencia && filters.mesReferencia.length > 0);
 
   const filterInfo = useMemo(() => {
     const parts = [];
@@ -104,7 +105,7 @@ export const PatientFilters = ({
       const opt = QUADRIMESTRE_OPTIONS.find(o => o.value === filters.quadrimestre);
       if (opt) parts.push(`período: ${opt.label}`);
     }
-    if (filters.mesReferencia && filters.mesReferencia !== "all") parts.push(`mês ref.: ${filters.mesReferencia}`);
+    if (filters.mesReferencia && filters.mesReferencia.length > 0) parts.push(`mês ref.: ${filters.mesReferencia.join(", ")}`);
     return parts.length > 0 ? parts.join(", ") : undefined;
   }, [filters]);
 
@@ -167,17 +168,11 @@ export const PatientFilters = ({
       </Select>
 
       {showMesReferencia && mesReferenciaOptions.length > 0 && (
-        <Select value={filters.mesReferencia || "all"} onValueChange={value => onFiltersChange({ ...filters, mesReferencia: value })}>
-          <SelectTrigger className="w-[200px] h-9">
-            <SelectValue placeholder="Mês de Referência" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Meses</SelectItem>
-            {mesReferenciaOptions.map(mes => (
-              <SelectItem key={mes} value={mes}>{mes}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MesReferenciaMultiSelect
+          value={filters.mesReferencia || []}
+          options={mesReferenciaOptions}
+          onChange={value => onFiltersChange({ ...filters, mesReferencia: value })}
+        />
       )}
 
       {hasActiveFilters && (
