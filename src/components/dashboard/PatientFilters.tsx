@@ -160,6 +160,14 @@ export const PatientFilters = ({
             </Select>
           )}
 
+          {showMesReferencia && mesReferenciaOptions.length > 0 && (
+            <MesReferenciaMultiSelect
+              value={filters.mesReferencia || []}
+              options={mesReferenciaOptions}
+              onChange={value => onFiltersChange({ ...filters, mesReferencia: value })}
+            />
+          )}
+
           <Select value={filters.quadrimestre} onValueChange={value => onFiltersChange({ ...filters, quadrimestre: value as Quadrimestre })}>
             <SelectTrigger className="w-[200px] h-9 shrink-0">
               <SelectValue placeholder="Quadrimestre" />
@@ -170,14 +178,6 @@ export const PatientFilters = ({
               ))}
             </SelectContent>
           </Select>
-
-          {showMesReferencia && mesReferenciaOptions.length > 0 && (
-            <MesReferenciaMultiSelect
-              value={filters.mesReferencia || []}
-              options={mesReferenciaOptions}
-              onChange={value => onFiltersChange({ ...filters, mesReferencia: value })}
-            />
-          )}
         </div>
 
         {/* Ações — sempre à direita, nunca quebram linha */}
