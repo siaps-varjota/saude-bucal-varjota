@@ -326,7 +326,7 @@ const Index = () => {
                   filters={filtersTratamento}
                   onFiltersChange={setFiltersTratamento}
                   showMesReferencia={true}
-                  mesReferenciaOptions={mesReferenciaOptions}
+                  mesReferenciaOptions={mesRefOptionsTratamento}
                   statusOptions={[
                     { value: "PENDENTE",        label: "PENDENTE" },
                     { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
