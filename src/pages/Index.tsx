@@ -317,6 +317,8 @@ const Index = () => {
                   patients={tratamentoPatients as any}
                   filters={filtersTratamento}
                   onFiltersChange={setFiltersTratamento}
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesReferenciaOptions}
                   statusOptions={[
                     { value: "PENDENTE",        label: "PENDENTE" },
                     { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
