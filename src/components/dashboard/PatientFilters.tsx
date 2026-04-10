@@ -110,86 +110,93 @@ export const PatientFilters = ({
   }, [filters]);
 
   return (
-    <div className="flex-wrap p-4 bg-card border-2 my-0 px-[16px] py-[16px] gap-[25px] shadow-xl rounded-xl mx-0 flex-row flex items-center justify-center">
-      <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+    <div className="w-full p-4 bg-card border-2 my-0 shadow-xl rounded-xl">
+      <div className="flex items-center gap-3 w-full">
+        {/* Ícone de filtro */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+        </div>
+
+        {/* Selects — crescem e encolhem juntos */}
+        <div className="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
+          <Select value={filters.equipe} onValueChange={value => onFiltersChange({ ...filters, equipe: value })}>
+            <SelectTrigger className="w-[220px] h-9 shrink-0">
+              <SelectValue placeholder="Equipe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Equipes</SelectItem>
+              {uniqueEquipes.map(equipe => (
+                <SelectItem key={equipe} value={equipe}>{equipe}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {!hideMicroarea && (
+            <Select value={filters.microarea} onValueChange={value => onFiltersChange({ ...filters, microarea: value })}>
+              <SelectTrigger className="w-[150px] h-9 shrink-0">
+                <SelectValue placeholder="Microárea" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Microáreas</SelectItem>
+                {uniqueMicroareas.map(microarea => (
+                  <SelectItem key={microarea} value={microarea}>Área {microarea}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {!hideStatus && (
+            <Select value={filters.status} onValueChange={value => onFiltersChange({ ...filters, status: value })}>
+              <SelectTrigger className="w-[140px] h-9 shrink-0">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Status</SelectItem>
+                {resolvedStatusOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Select value={filters.quadrimestre} onValueChange={value => onFiltersChange({ ...filters, quadrimestre: value as Quadrimestre })}>
+            <SelectTrigger className="w-[200px] h-9 shrink-0">
+              <SelectValue placeholder="Quadrimestre" />
+            </SelectTrigger>
+            <SelectContent>
+              {QUADRIMESTRE_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {showMesReferencia && mesReferenciaOptions.length > 0 && (
+            <MesReferenciaMultiSelect
+              value={filters.mesReferencia || []}
+              options={mesReferenciaOptions}
+              onChange={value => onFiltersChange({ ...filters, mesReferencia: value })}
+            />
+          )}
+        </div>
+
+        {/* Ações — sempre à direita, nunca quebram linha */}
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+              Limpar filtros
+            </Button>
+          )}
+          <PDFGenerator
+            title={pdfTitle}
+            filterInfo={filterInfo}
+            summaryCards={pdfSummaryCards}
+            columns={pdfColumns}
+            data={pdfData}
+            fileName={pdfFileName}
+          />
+        </div>
       </div>
-
-      <Select value={filters.equipe} onValueChange={value => onFiltersChange({ ...filters, equipe: value })}>
-        <SelectTrigger className="w-[280px] h-9">
-          <SelectValue placeholder="Equipe" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas Equipes</SelectItem>
-          {uniqueEquipes.map(equipe => (
-            <SelectItem key={equipe} value={equipe}>{equipe}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {!hideMicroarea && (
-        <Select value={filters.microarea} onValueChange={value => onFiltersChange({ ...filters, microarea: value })}>
-          <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="Microárea" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas Microáreas</SelectItem>
-            {uniqueMicroareas.map(microarea => (
-              <SelectItem key={microarea} value={microarea}>Área {microarea}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      {!hideStatus && (
-        <Select value={filters.status} onValueChange={value => onFiltersChange({ ...filters, status: value })}>
-          <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos Status</SelectItem>
-            {resolvedStatusOptions.map(opt => (
-              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-
-      <Select value={filters.quadrimestre} onValueChange={value => onFiltersChange({ ...filters, quadrimestre: value as Quadrimestre })}>
-        <SelectTrigger className="w-[250px] h-9">
-          <SelectValue placeholder="Quadrimestre" />
-        </SelectTrigger>
-        <SelectContent>
-          {QUADRIMESTRE_OPTIONS.map(opt => (
-            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {showMesReferencia && mesReferenciaOptions.length > 0 && (
-        <MesReferenciaMultiSelect
-          value={filters.mesReferencia || []}
-          options={mesReferenciaOptions}
-          onChange={value => onFiltersChange({ ...filters, mesReferencia: value })}
-        />
-      )}
-
-     <div className="ml-auto flex items-center gap-2">
-  {hasActiveFilters && (
-    <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
-      Limpar filtros
-    </Button>
-  )}
-  <PDFGenerator
-    title={pdfTitle}
-    filterInfo={filterInfo}
-    summaryCards={pdfSummaryCards}
-    columns={pdfColumns}
-    data={pdfData}
-    fileName={pdfFileName}
-  />
-</div>
     </div>
   );
 };
