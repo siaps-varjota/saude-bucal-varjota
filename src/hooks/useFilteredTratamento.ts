@@ -35,6 +35,7 @@ export const useFilteredTratamento = (patients: TratamentoPatient[], filters: Fi
         status === filters.status.toUpperCase().trim();
 
       // Filtro Mês de Referência — filtra pela data da 1ª Consulta
+      // Se o paciente não tem 1ª consulta, o filtro de mês não se aplica (mantém o paciente)
       let matchesMesRef = true;
       if (filters.mesReferencia && filters.mesReferencia !== "all") {
         const d = parseTratamentoDate(patient.primeiraConsulta);
@@ -42,7 +43,9 @@ export const useFilteredTratamento = (patients: TratamentoPatient[], filters: Fi
           const mesAno = format(d, "MM/yyyy");
           matchesMesRef = mesAno === filters.mesReferencia;
         } else {
-          matchesMesRef = false;
+          // Paciente sem data de 1ª consulta: mantém se o status filtrado é compatível
+          const hasNoConsulta = !patient.primeiraConsulta || patient.primeiraConsulta === "-" || patient.primeiraConsulta.trim() === "";
+          matchesMesRef = hasNoConsulta;
         }
       }
 
