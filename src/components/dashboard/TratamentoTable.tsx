@@ -139,8 +139,8 @@ export const TratamentoTable = ({ patients }: TratamentoTableProps) => {
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("primeiraConsulta")}>
                   <div className="flex items-center">1ª Consulta {getSortIcon("primeiraConsulta")}</div>
                 </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("tratamentoConcluido")}>
-                  <div className="flex items-center">Tratamento Concluído {getSortIcon("tratamentoConcluido")}</div>
+                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors whitespace-normal w-[110px]" onClick={() => handleSort("tratamentoConcluido")}>
+                <div className="flex items-center">Tratamento<br />Concluído {getSortIcon("tratamentoConcluido")}</div>
                 </TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
               </TableRow>
