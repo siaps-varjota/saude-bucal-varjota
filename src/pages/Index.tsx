@@ -275,6 +275,8 @@ const Index = () => {
                   filters={filtersConsulta}
                   onFiltersChange={setFiltersConsulta}
                   contentId="dashboard-content-consulta"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsConsulta}
                   pdfTitle="1ª Consulta Odontológica"
                   pdfFileName="1a-consulta-odontologica"
                   pdfSummaryCards={[
@@ -389,6 +391,8 @@ const Index = () => {
                   filters={filtersTab3}
                   onFiltersChange={setFiltersTab3}
                   contentId="dashboard-content-tab3"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab3}
                   pdfTitle="Taxa de Exodontias"
                   pdfFileName="taxa-exodontias"
                   pdfSummaryCards={[
@@ -437,6 +441,8 @@ const Index = () => {
                   filters={filtersTab4}
                   onFiltersChange={setFiltersTab4}
                   contentId="dashboard-content-tab4"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab4}
                   pdfTitle="Escovação Supervisionada"
                   pdfFileName="escovacao-supervisionada"
                   pdfSummaryCards={[
@@ -488,6 +494,8 @@ const Index = () => {
                   filters={filtersTab5}
                   onFiltersChange={setFiltersTab5}
                   contentId="dashboard-content-tab5"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab5}
                   pdfTitle="Procedimentos Odontológicos Preventivos"
                   pdfFileName="procedimentos-preventivos"
                   pdfSummaryCards={[
@@ -536,6 +544,8 @@ const Index = () => {
                   filters={filtersTab6}
                   onFiltersChange={setFiltersTab6}
                   contentId="dashboard-content-tab6"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab6}
                   pdfTitle="Tratamento Restaurador Atraumático"
                   pdfFileName="tratamento-restaurador"
                   pdfSummaryCards={[
