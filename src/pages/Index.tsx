@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { parse, isValid, format } from "date-fns";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { useTab3Data } from "@/hooks/useTab3Data";
@@ -109,7 +110,31 @@ const Index = () => {
   const { data: denominadorB1Data,   isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
+  const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: "all" });
+
+  // Gerar opções de meses a partir da coluna primeiraConsulta dos dados de tratamento
+  const mesReferenciaOptions = useMemo(() => {
+    if (!tratamentoPatients) return [];
+    const mesesSet = new Set<string>();
+    const fmts = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+    tratamentoPatients.forEach(p => {
+      if (!p.primeiraConsulta || p.primeiraConsulta === "-" || p.primeiraConsulta.trim() === "") return;
+      for (const fmt of fmts) {
+        try {
+          const parsed = parse(p.primeiraConsulta.trim(), fmt, new Date());
+          if (isValid(parsed)) {
+            mesesSet.add(format(parsed, "MM/yyyy"));
+            break;
+          }
+        } catch { continue; }
+      }
+    });
+    return Array.from(mesesSet).sort((a, b) => {
+      const [ma, ya] = a.split("/").map(Number);
+      const [mb, yb] = b.split("/").map(Number);
+      return ya !== yb ? ya - yb : ma - mb;
+    });
+  }, [tratamentoPatients]);
   const [filtersTab3,       setFiltersTab3]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTab4,       setFiltersTab4]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
   const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
@@ -292,6 +317,8 @@ const Index = () => {
                   patients={tratamentoPatients as any}
                   filters={filtersTratamento}
                   onFiltersChange={setFiltersTratamento}
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesReferenciaOptions}
                   statusOptions={[
                     { value: "PENDENTE",        label: "PENDENTE" },
                     { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
