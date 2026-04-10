@@ -122,9 +122,9 @@ export const Tab4Table = ({ patients }: Tab4TableProps) => {
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("sexo")}>
                   <div className="flex items-center">Sexo {getSortIcon("sexo")}</div>
                 </TableHead>
-                <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("primeiraConsulta")}>
-                  <div className="flex items-center">Escovação Supervisionada {getSortIcon("primeiraConsulta")}</div>
-                </TableHead>
+               <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors whitespace-normal w-[110px]" onClick={() => handleSort("primeiraConsulta")}>
+               <div className="flex items-center">Escovação<br />Supervisionada {getSortIcon("primeiraConsulta")}</div>
+               </TableHead>
                 <TableHead className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors" onClick={() => handleSort("comPrimeiraConsulta")}>
                   <div className="flex items-center">Status {getSortIcon("comPrimeiraConsulta")}</div>
                 </TableHead>
