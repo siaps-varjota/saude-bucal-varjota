@@ -109,36 +109,43 @@ const Index = () => {
   const { data: tab6Patients,        isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
   const { data: denominadorB1Data,   isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
 
-  const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: "all" });
+  const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+  const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+  const [filtersTab3,       setFiltersTab3]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+  const [filtersTab4,       setFiltersTab4]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+  const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+  const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
 
-  // Gerar opções de meses a partir da coluna primeiraConsulta dos dados de tratamento
-  const mesReferenciaOptions = useMemo(() => {
+  // Gerar opções de meses para cada aba
+  const mesRefOptionsConsulta = useMemo(() => {
+    if (!patients) return [];
+    return extractMesesFromDates(patients.map(p => p.primeiraConsulta));
+  }, [patients]);
+
+  const mesRefOptionsTratamento = useMemo(() => {
     if (!tratamentoPatients) return [];
-    const mesesSet = new Set<string>();
-    const fmts = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-    tratamentoPatients.forEach(p => {
-      if (!p.primeiraConsulta || p.primeiraConsulta === "-" || p.primeiraConsulta.trim() === "") return;
-      for (const fmt of fmts) {
-        try {
-          const parsed = parse(p.primeiraConsulta.trim(), fmt, new Date());
-          if (isValid(parsed)) {
-            mesesSet.add(format(parsed, "MM/yyyy"));
-            break;
-          }
-        } catch { continue; }
-      }
-    });
-    return Array.from(mesesSet).sort((a, b) => {
-      const [ma, ya] = a.split("/").map(Number);
-      const [mb, yb] = b.split("/").map(Number);
-      return ya !== yb ? ya - yb : ma - mb;
-    });
+    return extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta));
   }, [tratamentoPatients]);
-  const [filtersTab3,       setFiltersTab3]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTab4,       setFiltersTab4]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
-  const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos" });
+
+  const mesRefOptionsTab3 = useMemo(() => {
+    if (!tab3Patients) return [];
+    return extractMesesFromMesAno(tab3Patients.map(r => r.mesAno));
+  }, [tab3Patients]);
+
+  const mesRefOptionsTab4 = useMemo(() => {
+    if (!tab4Patients) return [];
+    return extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta));
+  }, [tab4Patients]);
+
+  const mesRefOptionsTab5 = useMemo(() => {
+    if (!tab5Patients) return [];
+    return extractMesesFromMesAno(tab5Patients.map(r => r.mesAno));
+  }, [tab5Patients]);
+
+  const mesRefOptionsTab6 = useMemo(() => {
+    if (!tab6Patients) return [];
+    return extractMesesFromMesAno(tab6Patients.map(r => r.mesAno));
+  }, [tab6Patients]);
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
