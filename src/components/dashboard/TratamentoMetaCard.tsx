@@ -243,7 +243,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                 </p>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Bom Trat. Cocluído (&gt;50%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Bom Trat. Concluído (&gt;50%)</p>
                     {simulations.tratNeedBomBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
@@ -251,7 +251,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                     )}
                   </div>
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Ótimo Trat. Cocluído (&gt;75%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Ótimo Trat. Concluído (&gt;75%)</p>
                     {simulations.tratNeedBomOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
@@ -268,7 +268,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                 </p>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Bom Trat. Cocluído (&gt;50%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Bom Trat. Concluído (&gt;50%)</p>
                     {simulations.tratNeedOtimoBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
@@ -276,7 +276,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                     )}
                   </div>
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Ótimo Trat. Cocluído (&gt;75%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Ótimo Trat. Concluído (&gt;75%)</p>
                     {simulations.tratNeedOtimoOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
