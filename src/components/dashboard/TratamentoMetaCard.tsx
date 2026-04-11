@@ -239,7 +239,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
               {/* Simulação Bom Tab 1 */}
               <div className="rounded-lg bg-emerald-50/80 border border-emerald-200 p-3">
                 <p className="text-xs font-semibold text-emerald-700 mb-2">
-                  Se 1ª Consulta Odont. atingir Bom (&gt;3%) → {simulations.consultasBom} consultas
+                  Se 1ª Consulta Odontológica atingir Bom (&gt;3%) → {simulations.consultasBom} consultas
                 </p>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
@@ -261,26 +261,26 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                 </div>
               </div>
 
-              {/* Simulação Ótimo 1ª Consulta Odont. */}
+              {/* Simulação Ótimo 1ª Consulta Odontologica. */}
               <div className="rounded-lg bg-blue-50/80 border border-blue-200 p-3">
                 <p className="text-xs font-semibold text-blue-700 mb-2">
-                  Se  1ª Consulta Odont. Ótimo (&gt;5%) → {simulations.consultasOtimo} consultas
+                  Se  1ª Consulta Odontolófica Ótimo (&gt;5%) → {simulations.consultasOtimo} consultas
                 </p>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Bom Trat. Concluído (&gt;50%)</p>
+                    <p className="text-xs text-muted-foreground">Para atingir Bom Tratamento Concluído (&gt;50%)</p>
                     {simulations.tratNeedOtimoBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedOtimoBom} <span className="text-xs font-normal">trat.</span></p>
+                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedOtimoBom} <span className="text-xs font-normal">Finalização de tratamento</span></p>
                     )}
                   </div>
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Ótimo Trat. Concluído (&gt;75%)</p>
+                    <p className="text-xs text-muted-foreground">Para atingir Ótimo Tratamento Concluído (&gt;75%)</p>
                     {simulations.tratNeedOtimoOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedOtimoOtimo} <span className="text-xs font-normal">trat.</span></p>
+                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedOtimoOtimo} <span className="text-xs font-normal">Finalização de tratamento</span></p>
                     )}
                   </div>
                 </div>
