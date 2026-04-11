@@ -243,7 +243,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                 </p>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Bom Trat. Concluído (&gt;50%)</p>
+                    <p className="text-xs text-muted-foreground">Para atingir Bom Tratamento Concluído (&gt;50%)</p>
                     {simulations.tratNeedBomBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
@@ -251,7 +251,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                     )}
                   </div>
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Ótimo Trat. Concluído (&gt;75%)</p>
+                    <p className="text-xs text-muted-foreground">Para atingir Ótimo Tratamento Concluído (&gt;75%)</p>
                     {simulations.tratNeedBomOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
