@@ -264,7 +264,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
               {/* Simulação Ótimo 1ª Consulta Odontologica. */}
               <div className="rounded-lg bg-blue-50/80 border border-blue-200 p-3">
                 <p className="text-xs font-semibold text-blue-700 mb-2">
-                  Se  1ª Consulta Odontolófica Ótimo (&gt;5%) → {simulations.consultasOtimo} consultas
+                  Se  1ª Consulta Odontológica Ótimo (&gt;5%) → {simulations.consultasOtimo} consultas
                 </p>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
