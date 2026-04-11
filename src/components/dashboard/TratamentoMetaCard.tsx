@@ -113,8 +113,8 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
       const denomMensal = denominadorB1 * meses;
 
       // Consultas totais simuladas para atingir Bom (>3%) e Ótimo (>5%) na Aba 1
-      const consultasBom   = Math.ceil(denomMensal * 0.031);
-      const consultasOtimo = Math.ceil(denomMensal * 0.051);
+     const consultasBom   = (Math.floor(denominadorB1 * 0.03) + 1) * meses;
+     const consultasOtimo = (Math.floor(denominadorB1 * 0.05) + 1) * meses;
 
       // Novas consultas adicionais além das já existentes no quadrimestre
       const novasConsultasBom   = Math.max(0, consultasBom   - consultasQuad);
