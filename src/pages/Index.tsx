@@ -373,6 +373,7 @@ const Index = () => {
                       patients={filteredTratamento}
                       allPatients={filteredTratamentoNoQuad}
                       quadrimestre={filtersTratamento.quadrimestre}
+                      denominadorB1={denominadorB1Data?.total || 0}
                     />
                   </>
                 )}

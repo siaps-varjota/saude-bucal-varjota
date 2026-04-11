@@ -8,6 +8,7 @@ interface TratamentoMetaCardProps {
   patients: TratamentoPatient[];
   allPatients: TratamentoPatient[];
   quadrimestre?: string;
+  denominadorB1?: number;
 }
 
 const parseDateStr = (str: string): Date | null => {
