@@ -52,7 +52,7 @@ import { Tab6Record } from "@/hooks/useTab6Data";
 const ResultadoFinalWrapper = ({
   patients, tratamentoPatients, tab3Patients, tab4Patients,
   tab5Patients, tab6Patients, quadrimestre, equipeResultado,
-  Data, equipeOptions, onQuadrimestreChange, onEquipeChange,
+  denominadorB1Data, equipeOptions, onQuadrimestreChange, onEquipeChange,
 }: {
   patients: Patient[];
   tratamentoPatients: TratamentoPatient[];
@@ -62,7 +62,7 @@ const ResultadoFinalWrapper = ({
   tab6Patients: Tab6Record[];
   quadrimestre: Quadrimestre;
   equipeResultado: string;
-  Data: { porEquipe: Record<string, number>; total: number };
+  denominadorB1Data: { porEquipe: Record<string, number>; total: number };
   equipeOptions: string[];
   onQuadrimestreChange: (q: Quadrimestre) => void;
   onEquipeChange: (e: string) => void;
@@ -70,7 +70,7 @@ const ResultadoFinalWrapper = ({
   const resultadoFinal = useResultadoFinal(
     patients, tratamentoPatients, tab3Patients,
     tab4Patients, tab5Patients, tab6Patients,
-    quadrimestre, equipeResultado, Data
+    quadrimestre, equipeResultado, denominadorB1Data
   );
 
   return (
@@ -102,13 +102,13 @@ const Index = () => {
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
-  const { data: tratamentoPatients,  isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
-  const { data: tab3Patients,        isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
-  const { data: tab4Patients,        isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
-  const { data: tab5Patients,        isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
-  const { data: tab6Patients,        isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
-  const { data: Data,   isLoading: isLoading } = use();
+  const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
+  const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
+  const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
+  const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
+  const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
+  const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
@@ -117,7 +117,6 @@ const Index = () => {
   const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
 
-  // Gerar opções de meses para cada aba
   const mesRefOptionsConsulta = useMemo(() => {
     if (!patients) return [];
     return extractMesesFromDates(patients.map(p => p.primeiraConsulta));
@@ -168,7 +167,6 @@ const Index = () => {
       const normalized = name.replace(/^ESF\b/i, "ESB").trim();
       return normalized === "ESB SEDE 1" ? "ESB CENTRO" : normalized;
     };
-
     const set = new Set<string>();
     (patients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
     (tratamentoPatients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
@@ -178,6 +176,17 @@ const Index = () => {
     (tab6Patients || []).forEach(r => r.equipe && set.add(normalizeEquipeOption(r.equipe)));
     return Array.from(set).sort();
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
+
+  // Mapeamento de nomes normalizados → nomes originais da planilha do denominador
+  const resolverDenominadorPorEquipe = (equipe: string): number => {
+    if (!denominadorB1Data) return 0;
+    if (equipe === "all") return denominadorB1Data.total;
+    // Tenta direto, depois tenta variações conhecidas
+    return denominadorB1Data.porEquipe[equipe]
+      ?? denominadorB1Data.porEquipe[equipe.replace("ESB CENTRO", "ESB SEDE 1")]
+      ?? denominadorB1Data.porEquipe[equipe.replace(/^ESB\b/i, "ESF")]
+      ?? 0;
+  };
 
   const refetchAll = () => {
     refetchPatients(); refetchTratamento(); refetchTab3();
@@ -193,7 +202,7 @@ const Index = () => {
       case "tab5":       return { isLoading: isLoadingTab5,       error: errorTab5,       isFetching: isFetchingTab5,       refetch: refetchTab5       };
       case "tab6":       return { isLoading: isLoadingTab6,       error: errorTab6,       isFetching: isFetchingTab6,       refetch: refetchTab6       };
       case "resultado":  return {
-        isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6 || isLoading,
+        isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6 || isLoadingDenominadorB1,
         error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
         isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
         refetch: refetchAll,
@@ -204,7 +213,6 @@ const Index = () => {
 
   const { error, isFetching, refetch } = getTabState();
 
-  // Stats calculations
   const totalPatients          = patientsByEquipe.length;
   const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
   const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
@@ -233,7 +241,7 @@ const Index = () => {
   const resultadoPronto =
     !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
     !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-    !isLoading && !!denominadorB1Data && !!patients?.length;
+    !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -370,23 +378,11 @@ const Index = () => {
                       totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
                     />
                     <TratamentoMetaCard
-                    patients={filteredTratamento}
-                    allPatients={filteredTratamentoNoQuad}
-                   quadrimestre={filtersTratamento.quadrimestre}
-                   denominadorB1={
-                  !denominadorB1Data
-                  ? 0
-                  : filtersTratamento.equipe === "all"
-                  ? denominadorB1Data.total
-                 : (() => {
-                const equipe = filtersTratamento.equipe;
-               // Tenta o nome direto, senão tenta o nome original antes da normalização
-                return denominadorB1Data.porEquipe[equipe]
-             ?? denominadorB1Data.porEquipe["ESB SEDE 1"]  // fallback para ESB CENTRO
-             ?? 0;
-      })()
-}
-             />
+                      patients={filteredTratamento}
+                      allPatients={filteredTratamentoNoQuad}
+                      quadrimestre={filtersTratamento.quadrimestre}
+                      denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
+                    />
                   </>
                 )}
               </div>
