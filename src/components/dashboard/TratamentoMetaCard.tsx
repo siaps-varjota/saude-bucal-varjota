@@ -247,7 +247,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                     {simulations.tratNeedBomBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedBomBom} <span className="text-xs font-normal">trat.</span></p>
+                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedBomBom} <span className="text-xs font-normal">Finalização(ões) de tratamento</span></p>
                     )}
                   </div>
                   <div className="text-center flex-1">
@@ -272,7 +272,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                     {simulations.tratNeedOtimoBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedOtimoBom} <span className="text-xs font-normal">Finalização de tratamento</span></p>
+                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedOtimoBom} <span className="text-xs font-normal">Finalização(ões) de tratamento</span></p>
                     )}
                   </div>
                   <div className="text-center flex-1">
@@ -280,7 +280,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                     {simulations.tratNeedOtimoOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedOtimoOtimo} <span className="text-xs font-normal">Finalização de tratamento</span></p>
+                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedOtimoOtimo} <span className="text-xs font-normal">Finalização(ões) de tratamento</span></p>
                     )}
                   </div>
                 </div>
