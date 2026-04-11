@@ -90,9 +90,28 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
     const needOtimo = Math.ceil(consultasQuad * 0.751) - tratamentosQuad;
     const faltamOtimo = Math.max(0, needOtimo);
 
-    // Cada nova consulta adiciona 0.5 ao denominador esperado de tratamentos
-    // Se tab1 chegar a Bom, mais consultas = mais tratamentos necessários
-    // Impacto: cada +1 consulta → precisa de +0.5 tratamento a mais para manter %
+    // Via 1ª Consulta: cada +1 consulta → +1 no denominador e +0.5 tratamento
+    // Fórmula: (T + 0.5X) / (C + X) > alvo
+    // Resolvendo: X < (T - alvo*C) / (alvo - 0.5)
+    // Se alvo = 0.5 → denominador (alvo-0.5)=0 → converge a 50%, nunca ultrapassa
+    // Se alvo > 0.5 (ex: 0.75) → precisa T > alvo*C, senão impossível
+    const calcViaConsulta = (target: number): number | null => {
+      if (target <= 0.5) {
+        // Converge a 50% mas nunca ultrapassa — impossível se abaixo
+        if (tratamentosQuad > target * consultasQuad) return 0; // já atingiu
+        return null; // impossível
+      }
+      // target > 0.5: X = (T - target*C) / (target - 0.5) — precisa ser positivo
+      const numerator = tratamentosQuad - target * consultasQuad;
+      const denominator = target - 0.5;
+      if (numerator >= 0) return 0; // já atingiu
+      const x = Math.abs(numerator) / denominator;
+      return Math.ceil(x);
+    };
+
+    // target 0.501 para >50%, 0.751 para >75%
+    const viaConsultaBom = calcViaConsulta(0.501);
+    const viaConsultaOtimo = calcViaConsulta(0.751);
 
     return {
       consultasQuad,
@@ -101,6 +120,8 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
       currentPct,
       faltamBom,
       faltamOtimo,
+      viaConsultaBom,
+      viaConsultaOtimo,
       alreadyBom: currentPct > 50,
       alreadyOtimo: currentPct > 75,
     };
