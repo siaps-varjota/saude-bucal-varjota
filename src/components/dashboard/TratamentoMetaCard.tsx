@@ -90,9 +90,28 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
     const needOtimo = Math.ceil(consultasQuad * 0.751) - tratamentosQuad;
     const faltamOtimo = Math.max(0, needOtimo);
 
-    // Cada nova consulta adiciona 0.5 ao denominador esperado de tratamentos
-    // Se tab1 chegar a Bom, mais consultas = mais tratamentos necessários
-    // Impacto: cada +1 consulta → precisa de +0.5 tratamento a mais para manter %
+    // Via 1ª Consulta: cada +1 consulta → +1 no denominador e +0.5 tratamento
+    // Fórmula: (T + 0.5X) / (C + X) > alvo
+    // Resolvendo: X < (T - alvo*C) / (alvo - 0.5)
+    // Se alvo = 0.5 → denominador (alvo-0.5)=0 → converge a 50%, nunca ultrapassa
+    // Se alvo > 0.5 (ex: 0.75) → precisa T > alvo*C, senão impossível
+    const calcViaConsulta = (target: number): number | null => {
+      if (target <= 0.5) {
+        // Converge a 50% mas nunca ultrapassa — impossível se abaixo
+        if (tratamentosQuad > target * consultasQuad) return 0; // já atingiu
+        return null; // impossível
+      }
+      // target > 0.5: X = (T - target*C) / (target - 0.5) — precisa ser positivo
+      const numerator = tratamentosQuad - target * consultasQuad;
+      const denominator = target - 0.5;
+      if (numerator >= 0) return 0; // já atingiu
+      const x = Math.abs(numerator) / denominator;
+      return Math.ceil(x);
+    };
+
+    // target 0.501 para >50%, 0.751 para >75%
+    const viaConsultaBom = calcViaConsulta(0.501);
+    const viaConsultaOtimo = calcViaConsulta(0.751);
 
     return {
       consultasQuad,
@@ -101,6 +120,8 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
       currentPct,
       faltamBom,
       faltamOtimo,
+      viaConsultaBom,
+      viaConsultaOtimo,
       alreadyBom: currentPct > 50,
       alreadyOtimo: currentPct > 75,
     };
@@ -108,7 +129,13 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
 
   if (!metaData) return null;
 
-  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, alreadyBom, alreadyOtimo } = metaData;
+  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, viaConsultaBom, viaConsultaOtimo, alreadyBom, alreadyOtimo } = metaData;
+
+  const renderViaConsulta = (valor: number | null) => {
+    if (valor === null) return <p className="text-xs text-red-500 font-medium mt-0.5">Impossível somente via 1ª Consulta</p>;
+    if (valor === 0) return null;
+    return <p className="text-xs text-violet-600 font-medium mt-0.5">ou {valor} via 1ª Consulta (×0,5)</p>;
+  };
 
   return (
     <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
@@ -151,9 +178,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
               <>
                 <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
                 <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
-                <p className="text-xs text-violet-600 font-medium mt-0.5">
-                  ou {faltamBom * 2} via 1ª Consulta (×0,5)
-                </p>
+                {renderViaConsulta(viaConsultaBom)}
               </>
             )}
           </div>
@@ -173,16 +198,14 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
               <>
                 <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
                 <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
-                <p className="text-xs text-violet-600 font-medium mt-0.5">
-                  ou {faltamOtimo * 2} via 1ª Consulta (×0,5)
-                </p>
+                {renderViaConsulta(viaConsultaOtimo)}
               </>
             )}
           </div>
         </div>
 
         <p className="text-xs text-muted-foreground mt-3 italic">
-          💡 Cada nova 1ª consulta odontológica realizada equivale a +0,5 tratamento concluído esperado na meta.
+          💡 Cada nova 1ª consulta aumenta o denominador (+1) e soma +0,5 tratamento esperado ao numerador.
         </p>
       </CardContent>
     </Card>
