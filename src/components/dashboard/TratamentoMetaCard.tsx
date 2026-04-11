@@ -151,6 +151,9 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
               <>
                 <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
                 <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                <p className="text-xs text-violet-600 font-medium mt-0.5">
+                  ou {faltamBom * 2} via 1ª Consulta (×0,5)
+                </p>
               </>
             )}
           </div>
@@ -170,6 +173,9 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
               <>
                 <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
                 <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                <p className="text-xs text-violet-600 font-medium mt-0.5">
+                  ou {faltamOtimo * 2} via 1ª Consulta (×0,5)
+                </p>
               </>
             )}
           </div>
