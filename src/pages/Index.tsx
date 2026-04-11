@@ -370,11 +370,17 @@ const Index = () => {
                       totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
                     />
                     <TratamentoMetaCard
-                      patients={filteredTratamento}
-                      allPatients={filteredTratamentoNoQuad}
-                      quadrimestre={filtersTratamento.quadrimestre}
-                      denominadorB1={denominadorB1Data?.total || 0}
-                    />
+                    patients={filteredTratamento}
+                    allPatients={filteredTratamentoNoQuad}
+                   quadrimestre={filtersTratamento.quadrimestre}
+                   denominadorB1={
+                  !denominadorB1Data
+                  ? 0
+                  : filtersTratamento.equipe === "all"
+                 ? denominadorB1Data.total
+                : denominadorB1Data.porEquipe[filtersTratamento.equipe] ?? 0
+               }
+             />
                   </>
                 )}
               </div>
