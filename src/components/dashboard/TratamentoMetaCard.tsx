@@ -53,7 +53,7 @@ const getQuadRange = (quadKey: string) => {
   };
 };
 
-export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todos" }: TratamentoMetaCardProps) => {
+export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todos", denominadorB1 = 0 }: TratamentoMetaCardProps) => {
   const metaData = useMemo(() => {
     const now = new Date();
     const currentQuad = getQuadrimesterInfo(now);
@@ -61,19 +61,16 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
     const range = getQuadRange(quadKey);
     if (!range) return null;
 
-    // Consultas no quadrimestre (denominador)
     const consultasQuad = allPatients.filter(p => {
       const d = parseDateStr(p.primeiraConsulta);
       return d ? isWithinInterval(d, { start: range.start, end: range.end }) : false;
     }).length;
 
-    // Tratamentos concluídos no quadrimestre (numerador)
     const tratamentosQuad = patients.filter(p => {
       const d = parseDateStr(p.tratamentoConcluido);
       return d ? isWithinInterval(d, { start: range.start, end: range.end }) : false;
     }).length;
 
-    // Pendentes: têm 1ª consulta no quad mas sem tratamento concluído
     const pendentes = allPatients.filter(p => {
       const dConsulta = parseDateStr(p.primeiraConsulta);
       if (!dConsulta || !isWithinInterval(dConsulta, { start: range.start, end: range.end })) return false;
@@ -83,54 +80,77 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
 
     const currentPct = consultasQuad > 0 ? (tratamentosQuad / consultasQuad) * 100 : 0;
 
-    // Para meta Bom (>50%): quantos tratamentos faltam
     const needBom = Math.ceil(consultasQuad * 0.501) - tratamentosQuad;
     const faltamBom = Math.max(0, needBom);
-
-    // Para meta Ótimo (>75%): quantos tratamentos faltam
     const needOtimo = Math.ceil(consultasQuad * 0.751) - tratamentosQuad;
     const faltamOtimo = Math.max(0, needOtimo);
 
-    // Via 1ª Consulta: cada +1 consulta → +1 no denominador e +0.5 tratamento
-    // Fórmula: (T + 0.5X) / (C + X) > alvo
-    // Resolvendo: X < (T - alvo*C) / (alvo - 0.5)
-    // Se alvo = 0.5 → denominador (alvo-0.5)=0 → converge a 50%, nunca ultrapassa
-    // Se alvo > 0.5 (ex: 0.75) → precisa T > alvo*C, senão impossível
     const calcViaConsulta = (target: number): number | null => {
       if (target <= 0.5) {
-        // Converge a 50% mas nunca ultrapassa — impossível se abaixo
-        if (tratamentosQuad > target * consultasQuad) return 0; // já atingiu
-        return null; // impossível
+        if (tratamentosQuad > target * consultasQuad) return 0;
+        return null;
       }
-      // target > 0.5: X = (T - target*C) / (target - 0.5) — precisa ser positivo
       const numerator = tratamentosQuad - target * consultasQuad;
       const denominator = target - 0.5;
-      if (numerator >= 0) return 0; // já atingiu
+      if (numerator >= 0) return 0;
       const x = Math.abs(numerator) / denominator;
       return Math.ceil(x);
     };
 
-    // target 0.501 para >50%, 0.751 para >75%
     const viaConsultaBom = calcViaConsulta(0.501);
     const viaConsultaOtimo = calcViaConsulta(0.751);
 
+    // Simulação: se Tab 1 atingir Bom (>3%) ou Ótimo (>5%)
+    // Quantas consultas teriam no quadrimestre e quantos tratamentos faltariam
+    const simulations = denominadorB1 > 0 ? (() => {
+      // Consultas necessárias para Bom na Tab 1: >3% do denominadorB1 por mês × meses do quad
+      // Tab 1 usa porcentagem mensal: consultas_mes / denominadorB1 > 3%
+      // No quadrimestre acumulado: consultas / (denominadorB1 * meses) > 3%
+      const match = quadKey.match(/Q(\d)-(\d{4})/);
+      if (!match) return null;
+      const q = parseInt(match[1]);
+      const y = parseInt(match[2]);
+      let startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
+      const currentQuadInfo = getQuadrimesterInfo(now);
+      const isCurrentQuad = `Q${currentQuadInfo.quad}-${currentQuadInfo.year}` === quadKey;
+      const endMonth = isCurrentQuad ? now.getMonth() : startMonth + 3;
+      const meses = endMonth - startMonth + 1;
+
+      // Tab 1 Bom: >3% → consultas > denominadorB1 * meses * 0.03
+      // Tab 1 Ótimo: >5% → consultas > denominadorB1 * meses * 0.05
+      const denomMensal = denominadorB1 * meses;
+      const consultasBom = Math.ceil(denomMensal * 0.031);
+      const consultasOtimo = Math.ceil(denomMensal * 0.051);
+
+      // Denominador do Tab 2 = max(consultasQuad, consultasSimuladas)
+      const denomBom = Math.max(consultasQuad, consultasBom);
+      const denomOtimo = Math.max(consultasQuad, consultasOtimo);
+
+      // Tratamentos necessários para atingir Bom/Ótimo no Tab 2
+      const tratNeedBomBom = Math.max(0, Math.ceil(denomBom * 0.501) - tratamentosQuad);
+      const tratNeedBomOtimo = Math.max(0, Math.ceil(denomBom * 0.751) - tratamentosQuad);
+      const tratNeedOtimoBom = Math.max(0, Math.ceil(denomOtimo * 0.501) - tratamentosQuad);
+      const tratNeedOtimoOtimo = Math.max(0, Math.ceil(denomOtimo * 0.751) - tratamentosQuad);
+
+      return {
+        consultasBom, consultasOtimo,
+        denomBom, denomOtimo,
+        tratNeedBomBom, tratNeedBomOtimo,
+        tratNeedOtimoBom, tratNeedOtimoOtimo,
+      };
+    })() : null;
+
     return {
-      consultasQuad,
-      tratamentosQuad,
-      pendentes,
-      currentPct,
-      faltamBom,
-      faltamOtimo,
-      viaConsultaBom,
-      viaConsultaOtimo,
-      alreadyBom: currentPct > 50,
-      alreadyOtimo: currentPct > 75,
+      consultasQuad, tratamentosQuad, pendentes, currentPct,
+      faltamBom, faltamOtimo, viaConsultaBom, viaConsultaOtimo,
+      alreadyBom: currentPct > 50, alreadyOtimo: currentPct > 75,
+      simulations,
     };
-  }, [patients, allPatients, quadrimestre]);
+  }, [patients, allPatients, quadrimestre, denominadorB1]);
 
   if (!metaData) return null;
 
-  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, viaConsultaBom, viaConsultaOtimo, alreadyBom, alreadyOtimo } = metaData;
+  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, viaConsultaBom, viaConsultaOtimo, alreadyBom, alreadyOtimo, simulations } = metaData;
 
   const renderViaConsulta = (valor: number | null) => {
     if (valor === null) return <p className="text-xs text-red-500 font-medium mt-0.5">Impossível somente via 1ª Consulta</p>;
@@ -204,6 +224,68 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
             )}
           </div>
         </div>
+
+        {/* Simulação: atingindo Bom/Ótimo na Aba 1 */}
+        {simulations && (
+          <div className="mt-4 pt-3 border-t border-violet-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="text-xs font-semibold text-indigo-700">Simulação — Se atingir meta na 1ª Consulta Odontológica (Aba 1)</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Simulação Bom Tab 1 */}
+              <div className="rounded-lg bg-emerald-50/80 border border-emerald-200 p-3">
+                <p className="text-xs font-semibold text-emerald-700 mb-2">
+                  Se Aba 1 atingir Bom (&gt;3%) → {simulations.consultasBom} consultas
+                </p>
+                <div className="flex gap-4">
+                  <div className="text-center flex-1">
+                    <p className="text-xs text-muted-foreground">p/ Bom Tab 2 (&gt;50%)</p>
+                    {simulations.tratNeedBomBom === 0 ? (
+                      <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
+                    ) : (
+                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedBomBom} <span className="text-xs font-normal">trat.</span></p>
+                    )}
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-xs text-muted-foreground">p/ Ótimo Tab 2 (&gt;75%)</p>
+                    {simulations.tratNeedBomOtimo === 0 ? (
+                      <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
+                    ) : (
+                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedBomOtimo} <span className="text-xs font-normal">trat.</span></p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Simulação Ótimo Tab 1 */}
+              <div className="rounded-lg bg-blue-50/80 border border-blue-200 p-3">
+                <p className="text-xs font-semibold text-blue-700 mb-2">
+                  Se Aba 1 atingir Ótimo (&gt;5%) → {simulations.consultasOtimo} consultas
+                </p>
+                <div className="flex gap-4">
+                  <div className="text-center flex-1">
+                    <p className="text-xs text-muted-foreground">p/ Bom Tab 2 (&gt;50%)</p>
+                    {simulations.tratNeedOtimoBom === 0 ? (
+                      <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
+                    ) : (
+                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedOtimoBom} <span className="text-xs font-normal">trat.</span></p>
+                    )}
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-xs text-muted-foreground">p/ Ótimo Tab 2 (&gt;75%)</p>
+                    {simulations.tratNeedOtimoOtimo === 0 ? (
+                      <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
+                    ) : (
+                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedOtimoOtimo} <span className="text-xs font-normal">trat.</span></p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground mt-3 italic">
           💡 Cada nova 1ª consulta aumenta o denominador (+1) e soma +0,5 tratamento esperado ao numerador.
