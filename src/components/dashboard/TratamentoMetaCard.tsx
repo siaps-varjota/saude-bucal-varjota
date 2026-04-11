@@ -129,7 +129,88 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
 
   if (!metaData) return null;
 
-  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, alreadyBom, alreadyOtimo } = metaData;
+  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, viaConsultaBom, viaConsultaOtimo, alreadyBom, alreadyOtimo } = metaData;
+
+  const renderViaConsulta = (valor: number | null) => {
+    if (valor === null) return <p className="text-xs text-red-500 font-medium mt-0.5">Impossível somente via 1ª Consulta</p>;
+    if (valor === 0) return null;
+    return <p className="text-xs text-violet-600 font-medium mt-0.5">ou {valor} via 1ª Consulta (×0,5)</p>;
+  };
+
+  return (
+    <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Target className="w-4 h-4 text-violet-600" />
+          <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Tratamento Concluído</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* Status atual */}
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground mb-1">Status Atual</p>
+            <p className="text-2xl font-bold text-violet-700">{currentPct.toFixed(1)}%</p>
+            <p className="text-xs text-muted-foreground">{tratamentosQuad} de {consultasQuad}</p>
+          </div>
+
+          {/* Pendentes */}
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <AlertCircle className="w-3 h-3 text-amber-600" />
+              <p className="text-xs text-muted-foreground">Pendentes</p>
+            </div>
+            <p className="text-2xl font-bold text-amber-600">{pendentes}</p>
+            <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão</p>
+          </div>
+
+          {/* Meta Bom */}
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <TrendingUp className="w-3 h-3 text-emerald-600" />
+              <p className="text-xs text-muted-foreground">Meta Bom (&gt;50%)</p>
+            </div>
+            {alreadyBom ? (
+              <>
+                <p className="text-2xl font-bold text-emerald-600">✓</p>
+                <p className="text-xs text-emerald-600 font-medium">Meta atingida!</p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
+                <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                {renderViaConsulta(viaConsultaBom)}
+              </>
+            )}
+          </div>
+
+          {/* Meta Ótimo */}
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <TrendingUp className="w-3 h-3 text-blue-600" />
+              <p className="text-xs text-muted-foreground">Meta Ótimo (&gt;75%)</p>
+            </div>
+            {alreadyOtimo ? (
+              <>
+                <p className="text-2xl font-bold text-blue-600">✓</p>
+                <p className="text-xs text-blue-600 font-medium">Meta atingida!</p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
+                <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                {renderViaConsulta(viaConsultaOtimo)}
+              </>
+            )}
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-3 italic">
+          💡 Cada nova 1ª consulta aumenta o denominador (+1) e soma +0,5 tratamento esperado ao numerador.
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
   return (
     <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
