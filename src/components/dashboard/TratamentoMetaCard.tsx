@@ -255,7 +255,7 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
                     {simulations.tratNeedBomOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedBomOtimo} <span className="text-xs font-normal">trat.</span></p>
+                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedBomOtimo} <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span></p>
                     )}
                   </div>
                 </div>
