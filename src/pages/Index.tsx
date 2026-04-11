@@ -52,7 +52,7 @@ import { Tab6Record } from "@/hooks/useTab6Data";
 const ResultadoFinalWrapper = ({
   patients, tratamentoPatients, tab3Patients, tab4Patients,
   tab5Patients, tab6Patients, quadrimestre, equipeResultado,
-  denominadorB1Data, equipeOptions, onQuadrimestreChange, onEquipeChange,
+  Data, equipeOptions, onQuadrimestreChange, onEquipeChange,
 }: {
   patients: Patient[];
   tratamentoPatients: TratamentoPatient[];
@@ -62,7 +62,7 @@ const ResultadoFinalWrapper = ({
   tab6Patients: Tab6Record[];
   quadrimestre: Quadrimestre;
   equipeResultado: string;
-  denominadorB1Data: { porEquipe: Record<string, number>; total: number };
+  Data: { porEquipe: Record<string, number>; total: number };
   equipeOptions: string[];
   onQuadrimestreChange: (q: Quadrimestre) => void;
   onEquipeChange: (e: string) => void;
@@ -70,7 +70,7 @@ const ResultadoFinalWrapper = ({
   const resultadoFinal = useResultadoFinal(
     patients, tratamentoPatients, tab3Patients,
     tab4Patients, tab5Patients, tab6Patients,
-    quadrimestre, equipeResultado, denominadorB1Data
+    quadrimestre, equipeResultado, Data
   );
 
   return (
@@ -108,7 +108,7 @@ const Index = () => {
   const { data: tab4Patients,        isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
   const { data: tab5Patients,        isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
   const { data: tab6Patients,        isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
-  const { data: denominadorB1Data,   isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
+  const { data: Data,   isLoading: isLoading } = use();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
@@ -193,7 +193,7 @@ const Index = () => {
       case "tab5":       return { isLoading: isLoadingTab5,       error: errorTab5,       isFetching: isFetchingTab5,       refetch: refetchTab5       };
       case "tab6":       return { isLoading: isLoadingTab6,       error: errorTab6,       isFetching: isFetchingTab6,       refetch: refetchTab6       };
       case "resultado":  return {
-        isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6 || isLoadingDenominadorB1,
+        isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6 || isLoading,
         error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
         isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
         refetch: refetchAll,
@@ -233,7 +233,7 @@ const Index = () => {
   const resultadoPronto =
     !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
     !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-    !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
+    !isLoading && !!denominadorB1Data && !!patients?.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -377,9 +377,15 @@ const Index = () => {
                   !denominadorB1Data
                   ? 0
                   : filtersTratamento.equipe === "all"
-                 ? denominadorB1Data.total
-                : denominadorB1Data.porEquipe[filtersTratamento.equipe] ?? 0
-               }
+                  ? denominadorB1Data.total
+                 : (() => {
+                const equipe = filtersTratamento.equipe;
+               // Tenta o nome direto, senão tenta o nome original antes da normalização
+                return denominadorB1Data.porEquipe[equipe]
+             ?? denominadorB1Data.porEquipe["ESB SEDE 1"]  // fallback para ESB CENTRO
+             ?? 0;
+      })()
+}
              />
                   </>
                 )}
