@@ -100,41 +100,43 @@ export const TratamentoMetaCard = ({ patients, allPatients, quadrimestre = "todo
     const viaConsultaBom = calcViaConsulta(0.501);
     const viaConsultaOtimo = calcViaConsulta(0.751);
 
-    // Simulação: se Tab 1 atingir Bom (>3%) ou Ótimo (>5%)
-    // Quantas consultas teriam no quadrimestre e quantos tratamentos faltariam
     const simulations = denominadorB1 > 0 ? (() => {
-      // Consultas necessárias para Bom na Tab 1: >3% do denominadorB1 por mês × meses do quad
-      // Tab 1 usa porcentagem mensal: consultas_mes / denominadorB1 > 3%
-      // No quadrimestre acumulado: consultas / (denominadorB1 * meses) > 3%
       const match = quadKey.match(/Q(\d)-(\d{4})/);
       if (!match) return null;
       const q = parseInt(match[1]);
-      const y = parseInt(match[2]);
       let startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
       const currentQuadInfo = getQuadrimesterInfo(now);
       const isCurrentQuad = `Q${currentQuadInfo.quad}-${currentQuadInfo.year}` === quadKey;
       const endMonth = isCurrentQuad ? now.getMonth() : startMonth + 3;
       const meses = endMonth - startMonth + 1;
 
-      // Tab 1 Bom: >3% → consultas > denominadorB1 * meses * 0.03
-      // Tab 1 Ótimo: >5% → consultas > denominadorB1 * meses * 0.05
       const denomMensal = denominadorB1 * meses;
-      const consultasBom = Math.ceil(denomMensal * 0.031);
+
+      // Consultas totais simuladas para atingir Bom (>3%) e Ótimo (>5%) na Aba 1
+      const consultasBom   = Math.ceil(denomMensal * 0.031);
       const consultasOtimo = Math.ceil(denomMensal * 0.051);
 
-      // Denominador do Tab 2 = max(consultasQuad, consultasSimuladas)
-      const denomBom = Math.max(consultasQuad, consultasBom);
-      const denomOtimo = Math.max(consultasQuad, consultasOtimo);
+      // Novas consultas adicionais além das já existentes no quadrimestre
+      const novasConsultasBom   = Math.max(0, consultasBom   - consultasQuad);
+      const novasConsultasOtimo = Math.max(0, consultasOtimo - consultasQuad);
 
-      // Tratamentos necessários para atingir Bom/Ótimo no Tab 2
-      const tratNeedBomBom = Math.max(0, Math.ceil(denomBom * 0.501) - tratamentosQuad);
-      const tratNeedBomOtimo = Math.max(0, Math.ceil(denomBom * 0.751) - tratamentosQuad);
-      const tratNeedOtimoBom = Math.max(0, Math.ceil(denomOtimo * 0.501) - tratamentosQuad);
-      const tratNeedOtimoOtimo = Math.max(0, Math.ceil(denomOtimo * 0.751) - tratamentosQuad);
+      // Cada nova 1ª consulta: +1 no denominador, +0,5 no numerador (esperado)
+      const denomSimBom   = consultasQuad + novasConsultasBom;
+      const denomSimOtimo = consultasQuad + novasConsultasOtimo;
+
+      const numeradorSimBom   = tratamentosQuad + novasConsultasBom   * 0.5;
+      const numeradorSimOtimo = tratamentosQuad + novasConsultasOtimo * 0.5;
+
+      // Tratamentos adicionais ainda necessários após o ganho automático das novas consultas
+      const tratNeedBomBom    = Math.max(0, Math.ceil(denomSimBom   * 0.501 - numeradorSimBom));
+      const tratNeedBomOtimo  = Math.max(0, Math.ceil(denomSimBom   * 0.751 - numeradorSimBom));
+      const tratNeedOtimoBom  = Math.max(0, Math.ceil(denomSimOtimo * 0.501 - numeradorSimOtimo));
+      const tratNeedOtimoOtimo = Math.max(0, Math.ceil(denomSimOtimo * 0.751 - numeradorSimOtimo));
 
       return {
         consultasBom, consultasOtimo,
-        denomBom, denomOtimo,
+        denomBom: denomSimBom, denomOtimo: denomSimOtimo,
+        numeradorSimBom, numeradorSimOtimo,
         tratNeedBomBom, tratNeedBomOtimo,
         tratNeedOtimoBom, tratNeedOtimoOtimo,
       };
