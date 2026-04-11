@@ -31,6 +31,7 @@ import { Tab4MonthlyCards } from "@/components/dashboard/Tab4MonthlyCards";
 import { Tab6MonthlyCards } from "@/components/dashboard/Tab6MonthlyCards";
 import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
+import { TratamentoMetaCard } from "@/components/dashboard/TratamentoMetaCard";
 import { Tab3QuadrimesterCards } from "@/components/dashboard/Tab3QuadrimesterCards";
 import { Tab4QuadrimesterCards } from "@/components/dashboard/Tab4QuadrimesterCards";
 import { Tab6QuadrimesterCards } from "@/components/dashboard/Tab6QuadrimesterCards";
@@ -367,6 +368,11 @@ const Index = () => {
                       patients={filteredTratamento}
                       allPatients={filteredTratamentoNoQuad}
                       totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                    />
+                    <TratamentoMetaCard
+                      patients={filteredTratamento}
+                      allPatients={filteredTratamentoNoQuad}
+                      quadrimestre={filtersTratamento.quadrimestre}
                     />
                   </>
                 )}
