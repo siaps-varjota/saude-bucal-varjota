@@ -553,6 +553,14 @@ const Index = () => {
                     <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab5QuadrimesterCards records={filteredTab5} />
+                    {!isLoadingPatients && !isLoadingTratamento && (
+                      <Tab5MetaCard
+                        records={tab5Patients || []}
+                        quadrimestre={filtersTab5.quadrimestre}
+                        pendentesTab1={pendentesTab1ForTab5}
+                        pendentesTab2={pendentesTab2ForTab5}
+                      />
+                    )}
                   </>
                 )}
               </div>
