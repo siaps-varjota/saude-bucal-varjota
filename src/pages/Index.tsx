@@ -32,6 +32,7 @@ import { Tab6MonthlyCards } from "@/components/dashboard/Tab6MonthlyCards";
 import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
 import { TratamentoMetaCard } from "@/components/dashboard/TratamentoMetaCard";
+import { Tab5MetaCard } from "@/components/dashboard/Tab5MetaCard";
 import { Tab3QuadrimesterCards } from "@/components/dashboard/Tab3QuadrimesterCards";
 import { Tab4QuadrimesterCards } from "@/components/dashboard/Tab4QuadrimesterCards";
 import { Tab6QuadrimesterCards } from "@/components/dashboard/Tab6QuadrimesterCards";
@@ -225,6 +226,22 @@ const Index = () => {
   const totalIndividuaisTab5   = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
   const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
+
+  // Pendentes para Tab5 MetaCard
+  const pendentesTab1ForTab5 = useMemo(() => {
+    return (patients || []).filter(p => {
+      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
+      return isConsultaPendente(p.primeiraConsulta);
+    }).length;
+  }, [patients, filtersTab5.equipe]);
+
+  const pendentesTab2ForTab5 = useMemo(() => {
+    return (tratamentoPatients || []).filter(p => {
+      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
+      const status = (p.comTratamentoConcluido || "").toUpperCase().trim();
+      return status !== "SIM";
+    }).length;
+  }, [tratamentoPatients, filtersTab5.equipe]);
 
   if (error) {
     return (
@@ -536,6 +553,14 @@ const Index = () => {
                     <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab5QuadrimesterCards records={filteredTab5} />
+                    {!isLoadingPatients && !isLoadingTratamento && (
+                      <Tab5MetaCard
+                        records={tab5Patients || []}
+                        quadrimestre={filtersTab5.quadrimestre}
+                        pendentesTab1={pendentesTab1ForTab5}
+                        pendentesTab2={pendentesTab2ForTab5}
+                      />
+                    )}
                   </>
                 )}
               </div>
