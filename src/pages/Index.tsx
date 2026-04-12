@@ -32,6 +32,7 @@ import { Tab6MonthlyCards } from "@/components/dashboard/Tab6MonthlyCards";
 import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
 import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
 import { TratamentoMetaCard } from "@/components/dashboard/TratamentoMetaCard";
+import { Tab5MetaCard } from "@/components/dashboard/Tab5MetaCard";
 import { Tab3QuadrimesterCards } from "@/components/dashboard/Tab3QuadrimesterCards";
 import { Tab4QuadrimesterCards } from "@/components/dashboard/Tab4QuadrimesterCards";
 import { Tab6QuadrimesterCards } from "@/components/dashboard/Tab6QuadrimesterCards";
