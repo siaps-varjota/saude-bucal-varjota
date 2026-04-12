@@ -555,9 +555,9 @@ const Index = () => {
                     {!isLoadingPatients && !isLoadingTratamento && (
                       <Tab5MetaCard
                         records={tab5Patients || []}
+                        allTratamentoPatients={tratamentoPatients || []}
                         quadrimestre={filtersTab5.quadrimestre}
                         pendentesTab1={pendentesTab1ForTab5}
-                        pendentesTab2={pendentesTab2ForTab5}
                       />
                     )}
                   </>
