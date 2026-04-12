@@ -130,10 +130,10 @@ export const Tab5MetaCard = ({ records, quadrimestre = "todos", pendentesTab1, p
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <AlertCircle className="w-3 h-3 text-orange-600" />
-              <p className="text-xs text-muted-foreground">Pendentes Tratamento</p>
+              <p className="text-xs text-muted-foreground">Tratamento Pendente</p>
             </div>
             <p className="text-2xl font-bold text-orange-600">{pendentesTab2}</p>
-            <p className="text-xs text-muted-foreground">sem conclusão (Aba 2)</p>
+            <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão (Aba 2)</p>
           </div>
 
           {/* Meta Bom */}
