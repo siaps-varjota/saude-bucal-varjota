@@ -156,6 +156,14 @@ const Index = () => {
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
   const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
+  // ← CORREÇÃO: pacientes de tratamento filtrados pela equipe selecionada na Aba 5
+  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], {
+    equipe: filtersTab5.equipe,
+    microarea: "all",
+    status: "all",
+    quadrimestre: "todos",
+    mesReferencia: [],
+  });
   const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
@@ -178,11 +186,9 @@ const Index = () => {
     return Array.from(set).sort();
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
 
-  // Mapeamento de nomes normalizados → nomes originais da planilha do denominador
   const resolverDenominadorPorEquipe = (equipe: string): number => {
     if (!denominadorB1Data) return 0;
     if (equipe === "all") return denominadorB1Data.total;
-    // Tenta direto, depois tenta variações conhecidas
     return denominadorB1Data.porEquipe[equipe]
       ?? denominadorB1Data.porEquipe[equipe.replace("ESB CENTRO", "ESB SEDE 1")]
       ?? denominadorB1Data.porEquipe[equipe.replace(/^ESB\b/i, "ESF")]
@@ -227,14 +233,12 @@ const Index = () => {
   const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
-  // Pendentes para Tab5 MetaCard
   const pendentesTab1ForTab5 = useMemo(() => {
     return (patients || []).filter(p => {
       if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
       return isConsultaPendente(p.primeiraConsulta);
     }).length;
   }, [patients, filtersTab5.equipe]);
-
 
   if (error) {
     return (
@@ -548,8 +552,8 @@ const Index = () => {
                     <Tab5QuadrimesterCards records={filteredTab5} />
                     {!isLoadingPatients && !isLoadingTratamento && (
                       <Tab5MetaCard
-                        records={tab5Patients || []}
-                        allTratamentoPatients={tratamentoPatients || []}
+                        records={filteredTab5}
+                        allTratamentoPatients={filteredTratamentoByTab5}
                         quadrimestre={filtersTab5.quadrimestre}
                         pendentesTab1={pendentesTab1ForTab5}
                       />
