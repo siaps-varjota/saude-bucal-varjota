@@ -235,12 +235,6 @@ const Index = () => {
     }).length;
   }, [patients, filtersTab5.equipe]);
 
-  const pendentesTab2ForTab5 = useMemo(() => {
-    return (tratamentoPatients || []).filter(p => {
-      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
-      return isTratamentoPendente(p.tratamentoConcluido);
-    }).length;
-  }, [tratamentoPatients, filtersTab5.equipe]);
 
   if (error) {
     return (
