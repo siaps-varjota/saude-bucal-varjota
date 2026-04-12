@@ -2,17 +2,31 @@ import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Target, TrendingUp, AlertCircle } from "lucide-react";
 import { Tab5Record } from "@/hooks/useTab5Data";
+import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
 interface Tab5MetaCardProps {
   records: Tab5Record[];
+  allTratamentoPatients: TratamentoPatient[];
   quadrimestre?: string;
   pendentesTab1: number;
-  pendentesTab2: number;
 }
 
 const MONTH_MAP: Record<string, number> = {
   janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
   julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
+};
+
+const parseDateStr = (str: string): Date | null => {
+  if (!str || str === "-" || str.trim() === "") return null;
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(str.trim(), fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    } catch { continue; }
+  }
+  return null;
 };
 
 const getQuadrimesterInfo = (date: Date) => {
@@ -29,7 +43,26 @@ const getQuadMonths = (q: number): number[] => {
   return [8, 9, 10, 11];
 };
 
-export const Tab5MetaCard = ({ records, quadrimestre = "todos", pendentesTab1, pendentesTab2 }: Tab5MetaCardProps) => {
+const getQuadRange = (quadKey: string) => {
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  if (!match) return null;
+  const q = parseInt(match[1]);
+  const y = parseInt(match[2]);
+  let startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
+  const endMonth = startMonth + 3;
+
+  const now = new Date();
+  const currentQuad = getQuadrimesterInfo(now);
+  const isCurrentQuad = `Q${currentQuad.quad}-${currentQuad.year}` === quadKey;
+  const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
+
+  return {
+    start: startOfMonth(new Date(y, startMonth, 1)),
+    end: endOfMonth(new Date(y, actualEndMonth, 1)),
+  };
+};
+
+export const Tab5MetaCard = ({ records, allTratamentoPatients, quadrimestre = "todos", pendentesTab1 }: Tab5MetaCardProps) => {
   const metaData = useMemo(() => {
     const now = new Date();
     const currentQuad = getQuadrimesterInfo(now);
@@ -40,8 +73,10 @@ export const Tab5MetaCard = ({ records, quadrimestre = "todos", pendentesTab1, p
     const q = parseInt(match[1]);
     const y = parseInt(match[2]);
     const quadMonths = getQuadMonths(q);
+    const range = getQuadRange(quadKey);
+    if (!range) return null;
 
-    // Aggregate records for the quadrimester
+    // Aggregate Tab5 records for the quadrimester
     let preventivos = 0;
     let totalIndividuais = 0;
 
@@ -57,12 +92,21 @@ export const Tab5MetaCard = ({ records, quadrimestre = "todos", pendentesTab1, p
 
     const currentPct = totalIndividuais > 0 ? (preventivos / totalIndividuais) * 100 : 0;
 
+    // Pendentes Aba 2: mesma lógica do TratamentoMetaCard
+    // Pacientes com 1ª consulta no quadrimestre e comTratamentoConcluido !== "SIM"
+    const pendentesTab2 = allTratamentoPatients.filter(p => {
+      const dConsulta = parseDateStr(p.primeiraConsulta);
+      if (!dConsulta || !isWithinInterval(dConsulta, { start: range.start, end: range.end })) return false;
+      const status = (p.comTratamentoConcluido || "").toUpperCase().trim();
+      return status !== "SIM";
+    }).length;
+
     // Each new 1ª consulta or tratamento concluído = +2 numerador, +2 denominador
     // Formula: (preventivos + 2X) / (totalIndividuais + 2X) > target
     // Solving: X > (target * totalIndividuais - preventivos) / (2 * (1 - target))
     const calcNeeded = (target: number): number => {
       if (totalIndividuais > 0 && (preventivos / totalIndividuais) >= target) return 0;
-      if (totalIndividuais === 0 && target <= 1) return 1; // edge case
+      if (totalIndividuais === 0 && target <= 1) return 1;
       const numerator = target * totalIndividuais - preventivos;
       const denominator = 2 * (1 - target);
       if (denominator <= 0) return 0;
@@ -73,31 +117,21 @@ export const Tab5MetaCard = ({ records, quadrimestre = "todos", pendentesTab1, p
     const faltamBom = calcNeeded(0.60);
     const faltamOtimo = calcNeeded(0.80);
 
-    const alreadyBom = currentPct >= 60;
-    const alreadyOtimo = currentPct >= 80;
-
-    const totalPendentes = pendentesTab1 + pendentesTab2;
-
     return {
-      preventivos,
-      totalIndividuais,
-      currentPct,
-      faltamBom,
-      faltamOtimo,
-      alreadyBom,
-      alreadyOtimo,
-      pendentesTab1,
+      preventivos, totalIndividuais, currentPct,
+      faltamBom, faltamOtimo,
+      alreadyBom: currentPct >= 60,
+      alreadyOtimo: currentPct >= 80,
       pendentesTab2,
-      totalPendentes,
     };
-  }, [records, quadrimestre, pendentesTab1, pendentesTab2]);
+  }, [records, allTratamentoPatients, quadrimestre]);
 
   if (!metaData) return null;
 
   const {
     preventivos, totalIndividuais, currentPct,
     faltamBom, faltamOtimo, alreadyBom, alreadyOtimo,
-    totalPendentes,
+    pendentesTab2,
   } = metaData;
 
   return (
@@ -130,10 +164,10 @@ export const Tab5MetaCard = ({ records, quadrimestre = "todos", pendentesTab1, p
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <AlertCircle className="w-3 h-3 text-orange-600" />
-              <p className="text-xs text-muted-foreground">Tratamento Pendente</p>
+              <p className="text-xs text-muted-foreground">Pendentes</p>
             </div>
             <p className="text-2xl font-bold text-orange-600">{pendentesTab2}</p>
-            <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão (Aba 2)</p>
+            <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão</p>
           </div>
 
           {/* Meta Bom */}
