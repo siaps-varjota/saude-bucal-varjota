@@ -239,6 +239,20 @@ const Index = () => {
     }).length;
   }, [patients, filtersTratamento.quadrimestre, filtersTratamento.equipe]);
 
+  // ── Consultas da Aba 1 já realizadas no quadrimestre do filtro da Aba 5 ──────
+  const consultasAba1QuadTab5 = useMemo(() => {
+    const quadKey = filtersTab5.quadrimestre !== "todos"
+      ? filtersTab5.quadrimestre
+      : getCurrentQuadKey();
+    const range = getQuadRangeFromKey(quadKey);
+    if (!range) return 0;
+    return (patients || []).filter(p => {
+      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
+      const d = parseDateFlexible(p.primeiraConsulta);
+      return d ? d >= range.start && d <= range.end : false;
+    }).length;
+  }, [patients, filtersTab5.quadrimestre, filtersTab5.equipe]);
+
   const refetchAll = () => {
     refetchPatients(); refetchTratamento(); refetchTab3();
     refetchTab4(); refetchTab5(); refetchTab6();
@@ -602,6 +616,7 @@ const Index = () => {
                         quadrimestre={filtersTab5.quadrimestre}
                         pendentesTab1={pendentesTab1ForTab5}
                         denominadorB1={resolverDenominadorPorEquipe(filtersTab5.equipe)}
+                        consultasAba1Quad={consultasAba1QuadTab5}
                       />
                     )}
                   </>
