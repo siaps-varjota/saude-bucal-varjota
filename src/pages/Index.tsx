@@ -556,6 +556,7 @@ const Index = () => {
                         allTratamentoPatients={filteredTratamentoByTab5}
                         quadrimestre={filtersTab5.quadrimestre}
                         pendentesTab1={pendentesTab1ForTab5}
+                        denominadorB1={resolverDenominadorPorEquipe(filtersTab5.equipe)}
                       />
                     )}
                   </>
