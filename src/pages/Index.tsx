@@ -238,11 +238,7 @@ const Index = () => {
   const pendentesTab2ForTab5 = useMemo(() => {
     return (tratamentoPatients || []).filter(p => {
       if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
-      // Tem 1ª consulta mas tratamento não concluído
-      const hasConsulta = p.primeiraConsulta && p.primeiraConsulta !== "-" && p.primeiraConsulta.trim() !== "";
-      if (!hasConsulta) return false;
-      const status = (p.comTratamentoConcluido || "").toUpperCase().trim();
-      return status !== "SIM";
+      return isTratamentoPendente(p.tratamentoConcluido);
     }).length;
   }, [tratamentoPatients, filtersTab5.equipe]);
 
