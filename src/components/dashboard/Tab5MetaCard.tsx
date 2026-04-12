@@ -10,7 +10,8 @@ interface Tab5MetaCardProps {
   allTratamentoPatients: TratamentoPatient[];
   quadrimestre?: string;
   pendentesTab1: number;
-  denominadorB1?: number; // denominador da Aba 1 (filtrado por equipe)
+  denominadorB1?: number;
+  consultasAba1Quad?: number;
 }
 
 const MONTH_MAP: Record<string, number> = {
@@ -69,6 +70,7 @@ export const Tab5MetaCard = ({
   quadrimestre = "todos",
   pendentesTab1,
   denominadorB1 = 0,
+  consultasAba1Quad = 0,
 }: Tab5MetaCardProps) => {
   const metaData = useMemo(() => {
     const now = new Date();
@@ -126,7 +128,6 @@ export const Tab5MetaCard = ({
     const faltamOtimo = calcNeeded(0.80);
 
     // ── Simulação: se Aba 1 atingir Bom (>3%) ou Ótimo (>5%) ──────────────────
-    // Cada nova consulta da Aba 1 ou tratamento concluído da Aba 2 = +2 no num e +2 no denom da Aba 5
     const simulations = denominadorB1 > 0 ? (() => {
       const isCurrentQuad = `Q${currentQuad.quad}-${currentQuad.year}` === quadKey;
       let startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
@@ -137,12 +138,16 @@ export const Tab5MetaCard = ({
       const consultasAlvo1Bom   = (Math.floor(denominadorB1 * 0.03) + 1) * meses;
       const consultasAlvo1Otimo = (Math.floor(denominadorB1 * 0.05) + 1) * meses;
 
+      // Progresso real da Aba 1 vs. metas
+      const aba1JaAtingiuBom   = consultasAba1Quad >= consultasAlvo1Bom;
+      const aba1JaAtingiuOtimo = consultasAba1Quad >= consultasAlvo1Otimo;
+      const faltamAba1Bom      = Math.max(0, consultasAlvo1Bom   - consultasAba1Quad);
+      const faltamAba1Otimo    = Math.max(0, consultasAlvo1Otimo - consultasAba1Quad);
+
       // Novas consultas além das já existentes na Aba 2
       const novasConsultasBom   = Math.max(0, consultasAlvo1Bom   - consultasTab2Quad);
       const novasConsultasOtimo = Math.max(0, consultasAlvo1Otimo - consultasTab2Quad);
 
-      // Consultas já realizadas na Aba 2 contribuem com +2 cada uma para a Aba 5
-      // Novas consultas simuladas também contribuem com +2 cada
       // Simulação Bom na Aba 1:
       const prevSimBom   = preventivos   + novasConsultasBom   * 2;
       const totalSimBom  = totalIndividuais + novasConsultasBom   * 2;
@@ -163,6 +168,10 @@ export const Tab5MetaCard = ({
       return {
         consultasAlvo1Bom,
         consultasAlvo1Otimo,
+        aba1JaAtingiuBom,
+        aba1JaAtingiuOtimo,
+        faltamAba1Bom,
+        faltamAba1Otimo,
         // Se Aba 1 atingir Bom:
         faltamBomBom:   calcNeededSim(prevSimBom,   totalSimBom,   0.60),
         faltamBomOtimo: calcNeededSim(prevSimBom,   totalSimBom,   0.80),
@@ -180,7 +189,7 @@ export const Tab5MetaCard = ({
       pendentesTab2,
       simulations,
     };
-  }, [records, allTratamentoPatients, quadrimestre, denominadorB1]);
+  }, [records, allTratamentoPatients, quadrimestre, denominadorB1, consultasAba1Quad]);
 
   if (!metaData) return null;
 
@@ -278,9 +287,18 @@ export const Tab5MetaCard = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Simulação: Aba 1 atinge Bom */}
               <div className="rounded-lg bg-emerald-50/80 border border-emerald-200 p-3">
-                <p className="text-xs font-semibold text-emerald-700 mb-2">
-                  Se Aba 1 atingir Bom (&gt;3%) → {simulations.consultasAlvo1Bom} consultas
-                </p>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <p className="text-xs font-semibold text-emerald-700">
+                    Se Aba 1 atingir Bom (&gt;3%) → {simulations.consultasAlvo1Bom} consultas
+                  </p>
+                  {simulations.aba1JaAtingiuBom ? (
+                    <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
+                  ) : (
+                    <span className="text-xs font-bold text-red-500">
+                      (faltam {simulations.faltamAba1Bom} na Aba 1)
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥60%)</p>
@@ -307,9 +325,18 @@ export const Tab5MetaCard = ({
 
               {/* Simulação: Aba 1 atinge Ótimo */}
               <div className="rounded-lg bg-blue-50/80 border border-blue-200 p-3">
-                <p className="text-xs font-semibold text-blue-700 mb-2">
-                  Se Aba 1 atingir Ótimo (&gt;5%) → {simulations.consultasAlvo1Otimo} consultas
-                </p>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <p className="text-xs font-semibold text-blue-700">
+                    Se Aba 1 atingir Ótimo (&gt;5%) → {simulations.consultasAlvo1Otimo} consultas
+                  </p>
+                  {simulations.aba1JaAtingiuOtimo ? (
+                    <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
+                  ) : (
+                    <span className="text-xs font-bold text-red-500">
+                      (faltam {simulations.faltamAba1Otimo} na Aba 1)
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥60%)</p>
