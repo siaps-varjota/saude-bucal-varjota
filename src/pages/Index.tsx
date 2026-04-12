@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { parse, isValid } from "date-fns";
 import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
@@ -87,20 +88,50 @@ const ResultadoFinalWrapper = ({
   );
 };
 
+// ── Helper: parseia data em vários formatos ───────────────────────────────────
+const parseDateFlexible = (str: string): Date | null => {
+  if (!str || str === "-" || str.trim() === "") return null;
+  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(str.trim(), fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    } catch { continue; }
+  }
+  return null;
+};
+
+// ── Helper: retorna quadKey atual ─────────────────────────────────────────────
+const getCurrentQuadKey = (): string => {
+  const now = new Date();
+  const m = now.getMonth();
+  const y = now.getFullYear();
+  if (m <= 3) return `Q1-${y}`;
+  if (m <= 7) return `Q2-${y}`;
+  return `Q3-${y}`;
+};
+
+// ── Helper: retorna range de datas de um quadKey ──────────────────────────────
+const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null => {
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  if (!match) return null;
+  const q = parseInt(match[1]);
+  const y = parseInt(match[2]);
+  const startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
+  const now = new Date();
+  const isCurrentQuad = quadKey === getCurrentQuadKey();
+  const endMonth = isCurrentQuad ? now.getMonth() : startMonth + 3;
+  return {
+    start: new Date(y, startMonth, 1),
+    end: new Date(y, endMonth + 1, 0, 23, 59, 59),
+  };
+};
+
 // ── Componente principal ──────────────────────────────────────────────────────
 const Index = () => {
   const [activeTab, setActiveTab] = useState("consulta");
 
-  const getCurrentQuadrimestre = (): Quadrimestre => {
-    const now = new Date();
-    const month = now.getMonth();
-    const year = now.getFullYear();
-    if (month <= 3) return `Q1-${year}` as Quadrimestre;
-    if (month <= 7) return `Q2-${year}` as Quadrimestre;
-    return `Q3-${year}` as Quadrimestre;
-  };
-
-  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadrimestre);
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey as unknown as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
   const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
@@ -156,7 +187,6 @@ const Index = () => {
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
   const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
-  // ← CORREÇÃO: pacientes de tratamento filtrados pela equipe selecionada na Aba 5
   const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], {
     equipe: filtersTab5.equipe,
     microarea: "all",
@@ -194,6 +224,20 @@ const Index = () => {
       ?? denominadorB1Data.porEquipe[equipe.replace(/^ESB\b/i, "ESF")]
       ?? 0;
   };
+
+  // ── Consultas da Aba 1 já realizadas no quadrimestre do filtro da Aba 2 ──────
+  const consultasAba1Quad = useMemo(() => {
+    const quadKey = filtersTratamento.quadrimestre !== "todos"
+      ? filtersTratamento.quadrimestre
+      : getCurrentQuadKey();
+    const range = getQuadRangeFromKey(quadKey);
+    if (!range) return 0;
+    return (patients || []).filter(p => {
+      if (filtersTratamento.equipe !== "all" && p.equipe !== filtersTratamento.equipe) return false;
+      const d = parseDateFlexible(p.primeiraConsulta);
+      return d ? d >= range.start && d <= range.end : false;
+    }).length;
+  }, [patients, filtersTratamento.quadrimestre, filtersTratamento.equipe]);
 
   const refetchAll = () => {
     refetchPatients(); refetchTratamento(); refetchTab3();
