@@ -227,6 +227,22 @@ const Index = () => {
   const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
+  // Pendentes para Tab5 MetaCard
+  const pendentesTab1ForTab5 = useMemo(() => {
+    return (patients || []).filter(p => {
+      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
+      return isConsultaPendente(p.primeiraConsulta);
+    }).length;
+  }, [patients, filtersTab5.equipe]);
+
+  const pendentesTab2ForTab5 = useMemo(() => {
+    return (tratamentoPatients || []).filter(p => {
+      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
+      const status = (p.comTratamentoConcluido || "").toUpperCase().trim();
+      return status !== "SIM";
+    }).length;
+  }, [tratamentoPatients, filtersTab5.equipe]);
+
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
