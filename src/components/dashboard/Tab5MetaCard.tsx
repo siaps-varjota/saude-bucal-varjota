@@ -250,7 +250,7 @@ export const Tab5MetaCard = ({
               <>
                 <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
                 <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos</p>
-                <p className="text-xs text-muted-foreground">a concluir</p>
+                <p className="text-xs text-muted-foreground">concluídos</p>
               </>
             )}
           </div>
@@ -270,7 +270,7 @@ export const Tab5MetaCard = ({
               <>
                 <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
                 <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos</p>
-                <p className="text-xs text-muted-foreground">a concluir</p>
+                <p className="text-xs text-muted-foreground">concluídos</p>
               </>
             )}
           </div>
@@ -289,7 +289,7 @@ export const Tab5MetaCard = ({
               <div className="rounded-lg bg-emerald-50/80 border border-emerald-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-emerald-700">
-                    Se Aba 1 atingir Bom (&gt;3%) → {simulations.consultasAlvo1Bom} consultas
+                    Se Aba 1 atingir Bom (&gt;3%) → {simulations.consultasAlvo1Bom} Consultas
                   </p>
                   {simulations.aba1JaAtingiuBom ? (
                     <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
@@ -306,7 +306,7 @@ export const Tab5MetaCard = ({
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
                       <p className="text-lg font-bold text-emerald-700">
-                        {simulations.faltamBomBom} <span className="text-xs font-normal">consult./trat.</span>
+                        {simulations.faltamBomBom} <span className="text-xs font-normal">1ª Consultas ou Finalização(ões) de tratamento</span>
                       </p>
                     )}
                   </div>
@@ -316,7 +316,7 @@ export const Tab5MetaCard = ({
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
                       <p className="text-lg font-bold text-blue-700">
-                        {simulations.faltamBomOtimo} <span className="text-xs font-normal">consult./trat.</span>
+                        {simulations.faltamBomOtimo} <span className="text-xs font-normal">1ª Consultas ou Finalização(ões) de tratamento</span>
                       </p>
                     )}
                   </div>
@@ -327,7 +327,7 @@ export const Tab5MetaCard = ({
               <div className="rounded-lg bg-blue-50/80 border border-blue-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-blue-700">
-                    Se Aba 1 atingir Ótimo (&gt;5%) → {simulations.consultasAlvo1Otimo} consultas
+                    Se Aba 1 atingir Ótimo (&gt;5%) → {simulations.consultasAlvo1Otimo} Consultas
                   </p>
                   {simulations.aba1JaAtingiuOtimo ? (
                     <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
@@ -344,7 +344,7 @@ export const Tab5MetaCard = ({
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
                       <p className="text-lg font-bold text-emerald-700">
-                        {simulations.faltamOtimoBom} <span className="text-xs font-normal">consult./trat.</span>
+                        {simulations.faltamOtimoBom} <span className="text-xs font-normal">1ª Consultas ou Finalização(ões) de tratamento</span>
                       </p>
                     )}
                   </div>
@@ -354,7 +354,7 @@ export const Tab5MetaCard = ({
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
                       <p className="text-lg font-bold text-blue-700">
-                        {simulations.faltamOtimoOtimo} <span className="text-xs font-normal">consult./trat.</span>
+                        {simulations.faltamOtimoOtimo} <span className="text-xs font-normal">1ª Consultas ou Finalização(ões) de tratamento</span>
                       </p>
                     )}
                   </div>
