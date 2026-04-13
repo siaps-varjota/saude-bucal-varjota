@@ -162,7 +162,7 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
   return (
     <>
       {visibleCards.map(quad => {
-        const percentage = denominador > 0 ? (quad.total / denominador) * 100 : 0;
+        const percentage = denominador > 0 ? ((quad.total / denominador) * 100) / 4 : 0;
         const category = getScoreCategory(percentage);
         const styles   = getScoreStyles(category);
         return (
