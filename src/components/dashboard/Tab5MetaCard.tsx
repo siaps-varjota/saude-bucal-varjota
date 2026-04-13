@@ -232,7 +232,7 @@ export const Tab5MetaCard = ({
               <p className="text-xs text-muted-foreground">Tratamentos Pendentes</p>
             </div>
             <p className="text-2xl font-bold text-orange-600">{pendentesTab2}</p>
-            <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão</p>
+            <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão (Aba 2)</p>
           </div>
 
           {/* Meta Bom */}
