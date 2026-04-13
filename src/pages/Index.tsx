@@ -278,7 +278,7 @@ const Index = () => {
 
   const { error, isFetching, refetch } = getTabState();
 
-  const totalPatients          = patientsByEquipe.length;
+  const totalPatients          = resolverDenominadorPorEquipe(filtersConsulta.equipe) || patientsByEquipe.length;
   const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
   const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
   const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
