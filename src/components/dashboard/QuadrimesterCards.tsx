@@ -65,14 +65,13 @@ const getQuadrimesterMonths = (quadNum: number): number[] => {
   }
 };
 
-export const QuadrimesterCards = ({ patients, quadFiltered = "todos" }: QuadrimesterCardsProps) => {
+export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "todos" }: QuadrimesterCardsProps) => {
   const now = new Date();
   const currentMonth = getMonth(now);
   const currentYear  = getYear(now);
   const currentQuad  = getQuadrimesterForMonth(currentMonth);
 
-  const totalCadastrados = patients.length;
-  const denominador = totalCadastrados * 4;
+  const denominador = totalPatients;
 
   // Metas B1: Bom > 3%, Ótimo > 5%
   const metaBom   = Math.ceil(denominador * 0.03) + 1;
