@@ -73,11 +73,21 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
 
   const denominador = totalPatients;
 
-  // Metas B1: Bom > 3%, Ótimo > 5%
-  const metaBom   = Math.ceil(denominador * 0.03) + 1;
-  const metaOtimo = Math.ceil(denominador * 0.05) + 1;
-  const mediaMensalBom   = metaBom / 4;
-  const mediaMensalOtimo = metaOtimo / 4;
+  // Número de meses com dados no quadrimestre atual
+  const currentQuadMonths = getQuadrimesterMonths(currentQuad);
+  let mesesComDados = 0;
+  currentQuadMonths.forEach(m => {
+    if (m <= currentMonth) mesesComDados++;
+  });
+  if (mesesComDados === 0) mesesComDados = 1;
+
+  // Metas B1: Bom > 3%, Ótimo > 5% — por mês × nº de meses
+  const metaBomMensal   = Math.floor(denominador * 0.03) + 1;
+  const metaOtimoMensal = Math.floor(denominador * 0.05) + 1;
+  const metaBom   = metaBomMensal * mesesComDados;
+  const metaOtimo = metaOtimoMensal * mesesComDados;
+  const mediaMensalBom   = metaBomMensal;
+  const mediaMensalOtimo = metaOtimoMensal;
 
   // Gera apenas os 2 últimos quadrimestres
   const quadrimesters: Quadrimester[] = [];
