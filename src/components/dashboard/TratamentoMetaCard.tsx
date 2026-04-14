@@ -92,20 +92,6 @@ export const TratamentoMetaCard = ({
     const needOtimo = Math.ceil(consultasQuad * 0.751) - tratamentosQuad;
     const faltamOtimo = Math.max(0, needOtimo);
 
-    const calcViaConsulta = (target: number): number | null => {
-      if (target <= 0.5) {
-        if (tratamentosQuad > target * consultasQuad) return 0;
-        return null;
-      }
-      const numerator = tratamentosQuad - target * consultasQuad;
-      const denominator = target - 0.5;
-      if (numerator >= 0) return 0;
-      const x = Math.abs(numerator) / denominator;
-      return Math.ceil(x);
-    };
-
-    const viaConsultaBom = calcViaConsulta(0.501);
-    const viaConsultaOtimo = calcViaConsulta(0.751);
 
     const simulations = denominadorB1 > 0 ? (() => {
       const match = quadKey.match(/Q(\d)-(\d{4})/);
@@ -153,7 +139,7 @@ export const TratamentoMetaCard = ({
 
     return {
       consultasQuad, tratamentosQuad, pendentes, currentPct,
-      faltamBom, faltamOtimo, viaConsultaBom, viaConsultaOtimo,
+      faltamBom, faltamOtimo,
       alreadyBom: currentPct > 50, alreadyOtimo: currentPct > 75,
       simulations,
     };
@@ -161,13 +147,7 @@ export const TratamentoMetaCard = ({
 
   if (!metaData) return null;
 
-  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, viaConsultaBom, viaConsultaOtimo, alreadyBom, alreadyOtimo, simulations } = metaData;
-
-  const renderViaConsulta = (valor: number | null) => {
-    if (valor === null) return <p className="text-xs text-red-500 font-medium mt-0.5">Impossível somente via 1ª Consulta</p>;
-    if (valor === 0) return null;
-    return <p className="text-xs text-violet-600 font-medium mt-0.5">ou {valor} via 1ª Consulta (×0,5)</p>;
-  };
+  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, simulations } = metaData;
 
   return (
     <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
@@ -210,7 +190,7 @@ export const TratamentoMetaCard = ({
               <>
                 <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
                 <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
-                {renderViaConsulta(viaConsultaBom)}
+                
               </>
             )}
           </div>
@@ -230,7 +210,7 @@ export const TratamentoMetaCard = ({
               <>
                 <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
                 <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
-                {renderViaConsulta(viaConsultaOtimo)}
+                
               </>
             )}
           </div>
