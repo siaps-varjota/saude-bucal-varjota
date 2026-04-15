@@ -133,7 +133,7 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
           <span className="text-sm font-medium text-purple-700">Meta do Quadrimestre</span>
           <span className="text-xs text-muted-foreground ml-1">de {denominador}</span>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 place-items-center">
           {/* Bom */}
           <div className="border-r pr-4">
             <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 3%)</p>
