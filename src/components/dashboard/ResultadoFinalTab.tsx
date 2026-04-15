@@ -62,6 +62,11 @@ const META_THRESHOLDS: Partial<Record<string, {
     labelOtimo: "> 75%", thresholdOtimo: 0.751,
     unit: "trat.",
   },
+  "Proced. Odont. Preventivos": {
+    labelBom: "> 60%",   thresholdBom: 0.601,
+    labelOtimo: "> 80%", thresholdOtimo: 0.801,
+    unit: "prev.",
+  },
   "Escovação Supervisionada": {
     labelBom: "> 0,5%",  thresholdBom: 0.005,
     labelOtimo: "> 1%",  thresholdOtimo: 0.01,
