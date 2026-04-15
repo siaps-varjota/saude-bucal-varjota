@@ -200,85 +200,90 @@ export const Tab5MetaCard = ({
   } = metaData;
 
   return (
-    <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-violet-600" />
-          <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Proced. Odont. Preventivos</span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          {/* Status atual */}
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Status Atual</p>
-            <p className="text-2xl font-bold text-violet-700">{currentPct.toFixed(1)}%</p>
-            <p className="text-xs text-muted-foreground">{preventivos} de {totalIndividuais}</p>
+    <>
+      {/* Meta do Quadrimestre */}
+      <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Target className="w-4 h-4 text-violet-600" />
+            <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Proced. Odont. Preventivos</span>
           </div>
 
-          {/* Pendentes Tab 1 */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <AlertCircle className="w-3 h-3 text-amber-600" />
-              <p className="text-xs text-muted-foreground">Pendentes 1ª Consulta</p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 place-items-center">
+            {/* Status atual */}
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Status Atual</p>
+              <p className="text-2xl font-bold text-violet-700">{currentPct.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">{preventivos} de {totalIndividuais}</p>
             </div>
-            <p className="text-2xl font-bold text-amber-600">{pendentesTab1}</p>
-            <p className="text-xs text-muted-foreground">sem 1ª consulta (Aba 1)</p>
-          </div>
 
-          {/* Pendentes Tab 2 */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <AlertCircle className="w-3 h-3 text-orange-600" />
-              <p className="text-xs text-muted-foreground">Tratamentos Pendentes</p>
+            {/* Pendentes Tab 1 */}
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <AlertCircle className="w-3 h-3 text-amber-600" />
+                <p className="text-xs text-muted-foreground">Pendentes 1ª Consulta</p>
+              </div>
+              <p className="text-2xl font-bold text-amber-600">{pendentesTab1}</p>
+              <p className="text-xs text-muted-foreground">sem 1ª consulta (Aba 1)</p>
             </div>
-            <p className="text-2xl font-bold text-orange-600">{pendentesTab2}</p>
-            <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão (Aba 2)</p>
-          </div>
 
-          {/* Meta Bom */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <TrendingUp className="w-3 h-3 text-emerald-600" />
-              <p className="text-xs text-muted-foreground">Meta Bom (≥60%)</p>
+            {/* Pendentes Tab 2 */}
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <AlertCircle className="w-3 h-3 text-orange-600" />
+                <p className="text-xs text-muted-foreground">Tratamentos Pendentes</p>
+              </div>
+              <p className="text-2xl font-bold text-orange-600">{pendentesTab2}</p>
+              <p className="text-xs text-muted-foreground">com 1ª consulta sem conclusão (Aba 2)</p>
             </div>
-            {alreadyBom ? (
-              <>
-                <p className="text-2xl font-bold text-emerald-600">✓</p>
-                <p className="text-xs text-emerald-600 font-medium">Meta atingida!</p>
-              </>
-            ) : (
-              <>
-                <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
-                <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos</p>
-                <p className="text-xs text-muted-foreground">concluídos</p>
-              </>
-            )}
-          </div>
 
-          {/* Meta Ótimo */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <TrendingUp className="w-3 h-3 text-blue-600" />
-              <p className="text-xs text-muted-foreground">Meta Ótimo (≥80%)</p>
+            {/* Meta Bom */}
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <TrendingUp className="w-3 h-3 text-emerald-600" />
+                <p className="text-xs text-muted-foreground">Meta Bom (≥60%)</p>
+              </div>
+              {alreadyBom ? (
+                <>
+                  <p className="text-2xl font-bold text-emerald-600">✓</p>
+                  <p className="text-xs text-emerald-600 font-medium">Meta atingida!</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
+                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos</p>
+                  <p className="text-xs text-muted-foreground">concluídos</p>
+                </>
+              )}
             </div>
-            {alreadyOtimo ? (
-              <>
-                <p className="text-2xl font-bold text-blue-600">✓</p>
-                <p className="text-xs text-blue-600 font-medium">Meta atingida!</p>
-              </>
-            ) : (
-              <>
-                <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
-                <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos</p>
-                <p className="text-xs text-muted-foreground">concluídos</p>
-              </>
-            )}
-          </div>
-        </div>
 
-        {/* Simulação: atingindo Bom/Ótimo na Aba 1 */}
-        {simulations && (
-          <div className="mt-4 pt-3 border-t border-violet-200">
+            {/* Meta Ótimo */}
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <TrendingUp className="w-3 h-3 text-blue-600" />
+                <p className="text-xs text-muted-foreground">Meta Ótimo (≥80%)</p>
+              </div>
+              {alreadyOtimo ? (
+                <>
+                  <p className="text-2xl font-bold text-blue-600">✓</p>
+                  <p className="text-xs text-blue-600 font-medium">Meta atingida!</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
+                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos</p>
+                  <p className="text-xs text-muted-foreground">concluídos</p>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Simulação — Card separado */}
+      {simulations && (
+        <Card className="border-0 shadow-md bg-gradient-to-br from-indigo-50 to-purple-50 border-l-4 border-l-indigo-500 col-span-2 lg:col-span-full">
+          <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Target className="w-3.5 h-3.5 text-indigo-600" />
               <span className="text-xs font-semibold text-indigo-700">Simulação — Se atingir meta na 1ª Consulta Odontológica (Aba 1)</span>
@@ -361,13 +366,13 @@ export const Tab5MetaCard = ({
                 </div>
               </div>
             </div>
-          </div>
-        )}
 
-        <p className="text-xs text-muted-foreground mt-3 italic">
-          💡 Cada nova 1ª consulta ou tratamento pendente concluído equivale a +2 Proced. Odont. Preventivos esperado (+2 no numerador e +2 no denominador).
-        </p>
-      </CardContent>
-    </Card>
+            <p className="text-xs text-muted-foreground mt-3 italic">
+              💡 Cada nova 1ª consulta ou tratamento pendente concluído equivale a +2 Proced. Odont. Preventivos esperado (+2 no numerador e +2 no denominador).
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </>
   );
 };
