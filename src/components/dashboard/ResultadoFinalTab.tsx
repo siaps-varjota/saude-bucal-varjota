@@ -45,16 +45,22 @@ const NOTA_SCORE: Record<Conceito, string> = {
   regular: "0,25", suficiente: "0,50", bom: "0,75", otimo: "1,00", none: "0,00",
 };
 
-// ── Thresholds para Meta do Quadrimestre (B1 e B5) ───────────────────────────
+// ── Thresholds para Meta do Quadrimestre ─────────────────────────────────────
 const META_THRESHOLDS: Partial<Record<string, {
   labelBom: string;
   thresholdBom: number;
   labelOtimo: string;
   thresholdOtimo: number;
+  unit?: string; // unidade exibida (default "atend.")
 }>> = {
   "1ª Consulta Odontológica": {
     labelBom: "> 3%",    thresholdBom: 0.03,
     labelOtimo: "> 5%",  thresholdOtimo: 0.05,
+  },
+  "Tratamento Concluído": {
+    labelBom: "> 50%",   thresholdBom: 0.501,
+    labelOtimo: "> 75%", thresholdOtimo: 0.751,
+    unit: "trat.",
   },
   "Escovação Supervisionada": {
     labelBom: "> 0,5%",  thresholdBom: 0.005,
@@ -90,10 +96,11 @@ const MetaQuadrimestreCard = ({
   numerador: number;
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
 }) => {
-  const metaBom   = Math.floor(denominador * thresholds.thresholdBom)   + 1;
-  const metaOtimo = Math.floor(denominador * thresholds.thresholdOtimo) + 1;
+  const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
+  const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
   const faltamBom   = Math.max(0, metaBom   - numerador);
   const faltamOtimo = Math.max(0, metaOtimo - numerador);
+  const unit = thresholds.unit || "atend.";
 
   return (
     <div className="flex flex-col justify-between bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm min-w-[260px]">
@@ -117,12 +124,12 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xl font-bold font-mono text-emerald-700 leading-tight">
             {metaBom.toLocaleString("pt-BR")}{" "}
-            <span className="text-sm font-normal">atend.</span>
+            <span className="text-sm font-normal">{unit}</span>
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / 4).toFixed(1)}</p>
           {faltamBom > 0 ? (
             <p className="text-xs font-medium text-red-600">
-              Faltam: {faltamBom.toLocaleString("pt-BR")} atend.
+              Faltam: {faltamBom.toLocaleString("pt-BR")} {unit}
             </p>
           ) : (
             <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>
@@ -136,12 +143,12 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xl font-bold font-mono text-blue-700 leading-tight">
             {metaOtimo.toLocaleString("pt-BR")}{" "}
-            <span className="text-sm font-normal">atend.</span>
+            <span className="text-sm font-normal">{unit}</span>
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / 4).toFixed(1)}</p>
           {faltamOtimo > 0 ? (
             <p className="text-xs font-medium text-red-600">
-              Faltam: {faltamOtimo.toLocaleString("pt-BR")} atend.
+              Faltam: {faltamOtimo.toLocaleString("pt-BR")} {unit}
             </p>
           ) : (
             <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>
