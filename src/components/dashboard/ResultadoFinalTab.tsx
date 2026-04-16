@@ -91,7 +91,7 @@ function fmtNum(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-// ── Card Meta — flex item inline com os cards de meses ───────────────────────
+// ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
 const MetaQuadrimestreCard = ({
   denominador,
   numerador,
@@ -164,13 +164,7 @@ const MetaQuadrimestreCard = ({
   );
 };
 
-// Indicadores que devem ter Meta e Simulação em cards separados lado a lado
-const SPLIT_META_INDICATORS = new Set([
-  "Tratamento Concluído",
-  "Proced. Odont. Preventivos",
-]);
-
-// ── Row de detalhe compartilhado ─────────────────────────────────────────────
+// ── Row de detalhe — layout unificado para todos os indicadores ───────────────
 const DetalheRow = ({
   ind,
   colSpan,
@@ -182,80 +176,44 @@ const DetalheRow = ({
 }) => {
   const metaThresholds = META_THRESHOLDS[ind.indicador];
   const hasMeses = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
-  const isSplit = SPLIT_META_INDICATORS.has(ind.indicador);
 
-  // Para indicadores com split: Detalhamento à esquerda, Meta à direita
-  if (isSplit && metaThresholds) {
-    return (
-      <TableRow className="bg-muted/20 border-t-0">
-        <TableCell colSpan={colSpan} className="pt-0 pb-3 px-4">
-          <<div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start">
-
-            {/* Card Detalhamento Mensal — à esquerda */}
-            {hasMeses && (
-              <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm w-full max-w-md">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                  <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
-                    Detalhamento Mensal
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-stretch justify-center gap-3">
-                  {ind.mesesDetalhe.map((mes) => (
-                    <div
-                      key={mes.mes}
-                      className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
-                      style={{ minWidth: cardMinWidth }}
-                    >
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                        {mes.mes}
-                      </span>
-                      <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-                      <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-                      <span className="text-xs font-medium text-primary mt-0.5">
-                        {mes.porcentagem.toFixed(1)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Card Meta do Quadrimestre — à direita */}
-            <MetaQuadrimestreCard
-              denominador={ind.denominador}
-              numerador={ind.numerador}
-              thresholds={metaThresholds}
-            />
-
-          </div>
-        </TableCell>
-      </TableRow>
-    );
-  }
-
-  // Layout padrão para os demais indicadores
   return (
     <TableRow className="bg-muted/20 border-t-0">
       <TableCell colSpan={colSpan} className="pt-0 pb-3 px-4">
-        <div className="flex flex-wrap items-stretch justify-center gap-3">
-          {hasMeses && ind.mesesDetalhe.map((mes) => (
-            <div
-              key={mes.mes}
-              className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
-              style={{ minWidth: cardMinWidth }}
-            >
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                {mes.mes}
-              </span>
-              <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-              <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-              <span className="text-xs font-medium text-primary mt-0.5">
-                {mes.porcentagem.toFixed(1)}%
-              </span>
-            </div>
-          ))}
+        {/* Flex row: container indigo de meses + card Meta lado a lado */}
+        <div className="flex flex-wrap items-start gap-3">
 
+          {/* Container indigo — Detalhamento Mensal (igual ao Tratamento Concluído) */}
+          {hasMeses && (
+            <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
+                  Detalhamento Mensal
+                </span>
+              </div>
+              <div className="flex flex-wrap items-stretch justify-center gap-3">
+                {ind.mesesDetalhe.map((mes) => (
+                  <div
+                    key={mes.mes}
+                    className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+                    style={{ minWidth: cardMinWidth }}
+                  >
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                      {mes.mes}
+                    </span>
+                    <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+                    <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
+                    <span className="text-xs font-medium text-primary mt-0.5">
+                      {mes.porcentagem.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Card Meta do Quadrimestre — alinhado ao container de meses */}
           {metaThresholds && (
             <MetaQuadrimestreCard
               denominador={ind.denominador}
@@ -263,6 +221,7 @@ const DetalheRow = ({
               thresholds={metaThresholds}
             />
           )}
+
         </div>
       </TableCell>
     </TableRow>
@@ -454,7 +413,7 @@ const IndicadorComparativo = ({
                 <DetalheRow ind={geralInd} colSpan={7} cardMinWidth="80px" />
               )}
 
-              {/* Linhas por equipe — cada uma com seu próprio detalhe + meta */}
+              {/* Linhas por equipe */}
               {equipeRows.map(({ equipe, ind }, idx) => (
                 <>
                   <TableRow key={equipe}>
