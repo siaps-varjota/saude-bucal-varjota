@@ -188,8 +188,8 @@ const DetalheRow = ({
   if (isSplit && metaThresholds) {
     return (
       <TableRow className="bg-muted/20 border-t-0">
-        <TableCell colSpan={colSpan} className="p-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 place-items-center -mt-2 pb-3 px-4">
+        <TableCell colSpan={colSpan} className="pt-0 pb-3 px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 place-items-center">
 
             {/* Card Detalhamento Mensal — à esquerda */}
             {hasMeses && (
@@ -237,8 +237,8 @@ const DetalheRow = ({
   // Layout padrão para os demais indicadores
   return (
     <TableRow className="bg-muted/20 border-t-0">
-      <TableCell colSpan={colSpan} className="p-0">
-        <div className="flex flex-wrap items-stretch justify-center gap-3 -mt-2 pb-3">
+      <TableCell colSpan={colSpan} className="pt-0 pb-3 px-4">
+        <div className="flex flex-wrap items-stretch justify-center gap-3">
           {hasMeses && ind.mesesDetalhe.map((mes) => (
             <div
               key={mes.mes}
