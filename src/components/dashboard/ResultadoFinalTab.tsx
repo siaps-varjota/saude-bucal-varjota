@@ -51,7 +51,7 @@ const META_THRESHOLDS: Partial<Record<string, {
   thresholdBom: number;
   labelOtimo: string;
   thresholdOtimo: number;
-  unit?: string; // unidade exibida (default "atend.")
+  unit?: string;
 }>> = {
   "1ª Consulta Odontológica": {
     labelBom: "> 3%",    thresholdBom: 0.03,
@@ -184,20 +184,14 @@ const DetalheRow = ({
   const hasMeses = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
   const isSplit = SPLIT_META_INDICATORS.has(ind.indicador);
 
-  // Para indicadores com split: Meta à esquerda, Simulação (meses) à direita
+  // Para indicadores com split: Detalhamento à esquerda, Meta à direita
   if (isSplit && metaThresholds) {
     return (
       <TableRow className="bg-muted/20">
         <TableCell colSpan={colSpan} className="py-2 px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 place-items-center">
-            {/* Card Meta do Quadrimestre */}
-            <MetaQuadrimestreCard
-              denominador={ind.denominador}
-              numerador={ind.numerador}
-              thresholds={metaThresholds}
-            />
 
-            {/* Card Simulação (meses) */}
+            {/* Card Detalhamento Mensal — à esquerda */}
             {hasMeses && (
               <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm w-full max-w-md">
                 <div className="flex items-center gap-1.5 mb-2">
@@ -226,6 +220,14 @@ const DetalheRow = ({
                 </div>
               </div>
             )}
+
+            {/* Card Meta do Quadrimestre — à direita */}
+            <MetaQuadrimestreCard
+              denominador={ind.denominador}
+              numerador={ind.numerador}
+              thresholds={metaThresholds}
+            />
+
           </div>
         </TableCell>
       </TableRow>
@@ -630,8 +632,8 @@ export const ResultadoFinalTab = ({
           didParseCell: (data: any) => {
             if (data.section === "body" && data.column.dataKey === "conceito") {
               const conceito = data.cell.raw as string;
-              if (conceito === "Ótimo")       data.cell.styles.textColor = [29, 78, 216];
-              else if (conceito === "Bom")    data.cell.styles.textColor = [4, 120, 87];
+              if (conceito === "Ótimo")           data.cell.styles.textColor = [29, 78, 216];
+              else if (conceito === "Bom")        data.cell.styles.textColor = [4, 120, 87];
               else if (conceito === "Suficiente") data.cell.styles.textColor = [180, 83, 9];
               else if (conceito === "Regular")    data.cell.styles.textColor = [185, 28, 28];
             }
