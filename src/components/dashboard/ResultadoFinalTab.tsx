@@ -189,7 +189,7 @@ const DetalheRow = ({
     return (
       <TableRow className="bg-muted/20 border-t-0">
         <TableCell colSpan={colSpan} className="pt-0 pb-3 px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-1 place-items-center">
+          <<div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start">
 
             {/* Card Detalhamento Mensal — à esquerda */}
             {hasMeses && (
