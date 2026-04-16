@@ -164,7 +164,13 @@ const MetaQuadrimestreCard = ({
   );
 };
 
-// ── Row de detalhe compartilhado (meses + meta numa só linha flex) ────────────
+// Indicadores que devem ter Meta e Simulação em cards separados lado a lado
+const SPLIT_META_INDICATORS = new Set([
+  "Tratamento Concluído",
+  "Proced. Odont. Preventivos",
+]);
+
+// ── Row de detalhe compartilhado ─────────────────────────────────────────────
 const DetalheRow = ({
   ind,
   colSpan,
@@ -176,11 +182,60 @@ const DetalheRow = ({
 }) => {
   const metaThresholds = META_THRESHOLDS[ind.indicador];
   const hasMeses = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+  const isSplit = SPLIT_META_INDICATORS.has(ind.indicador);
 
+  // Para indicadores com split: Meta à esquerda, Simulação (meses) à direita
+  if (isSplit && metaThresholds) {
+    return (
+      <TableRow className="bg-muted/20">
+        <TableCell colSpan={colSpan} className="py-2 px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 place-items-center">
+            {/* Card Meta do Quadrimestre */}
+            <MetaQuadrimestreCard
+              denominador={ind.denominador}
+              numerador={ind.numerador}
+              thresholds={metaThresholds}
+            />
+
+            {/* Card Simulação (meses) */}
+            {hasMeses && (
+              <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm w-full max-w-md">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                  <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
+                    Detalhamento Mensal
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-stretch justify-center gap-3">
+                  {ind.mesesDetalhe.map((mes) => (
+                    <div
+                      key={mes.mes}
+                      className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+                      style={{ minWidth: cardMinWidth }}
+                    >
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                        {mes.mes}
+                      </span>
+                      <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+                      <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
+                      <span className="text-xs font-medium text-primary mt-0.5">
+                        {mes.porcentagem.toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  // Layout padrão para os demais indicadores
   return (
     <TableRow className="bg-muted/20">
       <TableCell colSpan={colSpan} className="py-2 px-4">
-        {/* Um único flex: cards de mês + card meta na mesma altura */}
         <div className="flex flex-wrap items-stretch justify-center gap-3">
           {hasMeses && ind.mesesDetalhe.map((mes) => (
             <div
