@@ -119,19 +119,45 @@ const MetaQuadrimestreCard = ({
   denominador,
   numerador,
   thresholds,
+  deltaNum,
+  deltaDenom,
+  faltaUnit: faltaUnitProp,
 }: {
   denominador: number;
   numerador: number;
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
+  /** Quanto cada ação adiciona ao numerador (padrão: 1) */
+  deltaNum?: number;
+  /** Quanto cada ação adiciona ao denominador (padrão: 0) */
+  deltaDenom?: number;
+  /** Unidade exibida no "Faltam" quando deltaDenom > 0 */
+  faltaUnit?: string;
 }) => {
   const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
   const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  const faltamBom   = denominador > 0 && numerador / denominador >= thresholds.thresholdBom
-    ? 0 : Math.max(0, metaBom - numerador);
-  const faltamOtimo = denominador > 0 && numerador / denominador >= thresholds.thresholdOtimo
-    ? 0 : Math.max(0, metaOtimo - numerador);
+  /**
+   * Quando cada ação muda num (+dn) E denom (+dd):
+   *   (num + dn·X) / (denom + dd·X) > t  →  X = ceil((t·denom − num) / (dn − dd·t))
+   * Quando só o numerador cresce (dd = 0):
+   *   X = ceil(t·denom − num)
+   */
+  const calcFaltam = (threshold: number): number => {
+    if (denominador > 0 && numerador / denominador >= threshold) return 0;
+    const dn = deltaNum  ?? 1;
+    const dd = deltaDenom ?? 0;
+    if (dd > 0) {
+      const den = dn - dd * threshold;
+      if (den <= 0) return 0;
+      return Math.max(0, Math.ceil((threshold * denominador - numerador) / den));
+    }
+    return Math.max(0, Math.ceil(denominador * threshold) - numerador);
+  };
+
+  const faltamBom   = calcFaltam(thresholds.thresholdBom);
+  const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
+  const exibeUnit   = faltaUnitProp ?? unit;
 
   return (
     <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm min-w-[260px]">
@@ -154,7 +180,7 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / 4).toFixed(1)}</p>
           {faltamBom > 0
-            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {unit}</p>
+            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {exibeUnit}</p>
             : <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>}
         </div>
         <div>
@@ -165,7 +191,7 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / 4).toFixed(1)}</p>
           {faltamOtimo > 0
-            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {unit}</p>
+            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {exibeUnit}</p>
             : <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>}
         </div>
       </div>
@@ -413,6 +439,11 @@ const DetalheRow = ({
                     denominador={ind.denominador}
                     numerador={ind.numerador}
                     thresholds={metaThresholds}
+                    {...(ind.indicador === "Proced. Odont. Preventivos" && {
+                      deltaNum: 2,
+                      deltaDenom: 2,
+                      faltaUnit: "consultas",
+                    })}
                   />
                 )}
 
