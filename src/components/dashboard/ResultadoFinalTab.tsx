@@ -27,8 +27,8 @@ const INDICADOR_OPTIONS = [
   { value: "1ª Consulta Odontológica",       label: "B1 — 1ª Consulta Odontológica" },
   { value: "Tratamento Concluído",           label: "B2 — Tratamento Concluído" },
   { value: "Taxa de Exodontias",             label: "B3 — Taxa de Exodontias" },
-  { value: "Proced. Odont. Preventivos",     label: "B4 — Proced. Odont. Preventivos" },
-  { value: "Escovação Supervisionada",       label: "B5 — Escovação Supervisionada" },
+  { value: "Escovação Supervisionada",       label: "B4 — Escovação Supervisionada" },
+  { value: "Proced. Odont. Preventivos",     label: "B5 — Proced. Odont. Preventivos" },
   { value: "Trat. Restaurador Atraumático",  label: "B6 — Trat. Restaurador Atraumático" },
 ];
 
