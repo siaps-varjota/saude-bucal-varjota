@@ -199,6 +199,94 @@ const MetaQuadrimestreCard = ({
   );
 };
 
+// ── ProjecaoBloco — bloco de projeção individual (fora do SimulacaoCard!) ──────
+const ProjecaoBloco = ({
+  titulo,
+  descricao,
+  novoNum,
+  novoDenom,
+  novaPct,
+  pctAtual,
+  anyInput,
+  conceitoInfo,
+}: {
+  titulo: string;
+  descricao: string;
+  novoNum: number;
+  novoDenom: number;
+  novaPct: number;
+  pctAtual: number;
+  anyInput: boolean;
+  conceitoInfo: ReturnType<typeof derivaConceito>;
+}) => {
+  const ganho = novaPct - pctAtual;
+  return (
+    <div className="flex flex-col gap-1 min-w-[130px]">
+      <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">{titulo}</p>
+      <p className="text-[9px] text-muted-foreground leading-snug">{descricao}</p>
+      <p className="text-sm font-mono font-bold leading-tight mt-0.5">
+        {Number.isInteger(novoNum) ? novoNum.toLocaleString("pt-BR") : novoNum.toFixed(1)}
+        <span className="text-xs font-normal text-muted-foreground"> / {novoDenom.toLocaleString("pt-BR")}</span>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {novaPct.toFixed(1)}%
+        {anyInput && (
+          <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
+          </span>
+        )}
+      </p>
+      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit ${conceitoInfo.bgBorder} ${conceitoInfo.textColor}`}>
+        {conceitoInfo.label}
+        <span className="font-normal opacity-60">({conceitoInfo.nota})</span>
+      </div>
+    </div>
+  );
+};
+
+// ── InputStepper — input numérico com botões +/− (fora do SimulacaoCard!) ──────
+const InputStepper = ({
+  label,
+  sublabel,
+  rawValue,
+  onRawChange,
+  onDecrement,
+  onIncrement,
+}: {
+  label: string;
+  sublabel: string;
+  rawValue: string;
+  onRawChange: (v: string) => void;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}) => (
+  <div className="flex flex-col items-center gap-0.5">
+    <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
+    <div className="flex items-center gap-1">
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onDecrement(); }}
+        className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+      >−</button>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={rawValue}
+        onChange={(e) => {
+          const v = e.target.value.replace(/\D/g, "");
+          onRawChange(v === "" ? "0" : v);
+        }}
+        onFocus={(e) => e.target.select()}
+        className="w-16 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+      />
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onIncrement(); }}
+        className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+      >+</button>
+    </div>
+    <span className="text-[10px] text-muted-foreground">{sublabel}</span>
+  </div>
+);
+
 // ── Card de Simulação — inputs de 1ªs consultas + trat. concluídos ────────────
 // Projeções: B1, B2, B5 (Proced. Odont. Preventivos)
 const SimulacaoCard = ({
@@ -248,92 +336,6 @@ const SimulacaoCard = ({
   const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
-  // ── Sub-componente de bloco de projeção ────────────────────────────────────
-  const ProjecaoBloco = ({
-    titulo,
-    descricao,
-    novoNum,
-    novoDenom,
-    novaPct,
-    pctAtual,
-    conceitoInfo,
-  }: {
-    titulo: string;
-    descricao: string;
-    novoNum: number;
-    novoDenom: number;
-    novaPct: number;
-    pctAtual: number;
-    conceitoInfo: ReturnType<typeof derivaConceito>;
-  }) => {
-    const ganho = novaPct - pctAtual;
-    return (
-      <div className="flex flex-col gap-1 min-w-[130px]">
-        <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">{titulo}</p>
-        <p className="text-[9px] text-muted-foreground leading-snug">{descricao}</p>
-        <p className="text-sm font-mono font-bold leading-tight mt-0.5">
-          {Number.isInteger(novoNum) ? novoNum.toLocaleString("pt-BR") : novoNum.toFixed(1)}
-          <span className="text-xs font-normal text-muted-foreground"> / {novoDenom.toLocaleString("pt-BR")}</span>
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {novaPct.toFixed(1)}%
-          {anyInput && (
-            <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-              ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
-            </span>
-          )}
-        </p>
-        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit ${conceitoInfo.bgBorder} ${conceitoInfo.textColor}`}>
-          {conceitoInfo.label}
-          <span className="font-normal opacity-60">({conceitoInfo.nota})</span>
-        </div>
-      </div>
-    );
-  };
-
-  // ── Sub-componente de input ─────────────────────────────────────────────────
-  const InputStepper = ({
-    label,
-    sublabel,
-    rawValue,
-    onRawChange,
-    onDecrement,
-    onIncrement,
-  }: {
-    label: string;
-    sublabel: string;
-    rawValue: string;
-    onRawChange: (v: string) => void;
-    onDecrement: () => void;
-    onIncrement: () => void;
-  }) => (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
-      <div className="flex items-center gap-1">
-        <button
-          onMouseDown={(e) => { e.preventDefault(); onDecrement(); }}
-          className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-        >−</button>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={rawValue}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "");
-            onRawChange(v === "" ? "0" : v);
-          }}
-          onFocus={(e) => e.target.select()}
-          className="w-16 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
-        />
-        <button
-          onMouseDown={(e) => { e.preventDefault(); onIncrement(); }}
-          className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-        >+</button>
-      </div>
-      <span className="text-[10px] text-muted-foreground">{sublabel}</span>
-    </div>
-  );
-
   return (
     <div className="flex flex-col h-full bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 shadow-sm">
 
@@ -375,6 +377,7 @@ const SimulacaoCard = ({
           novoDenom={b1NovaDenom}
           novaPct={b1NovaPct}
           pctAtual={b1PctAtual}
+          anyInput={anyInput}
           conceitoInfo={b1Conceito}
         />
         <div className="w-px self-stretch bg-orange-200" />
@@ -385,6 +388,7 @@ const SimulacaoCard = ({
           novoDenom={b2NovaDenom}
           novaPct={b2NovaPct}
           pctAtual={b2PctAtual}
+          anyInput={anyInput}
           conceitoInfo={b2Conceito}
         />
         <div className="w-px self-stretch bg-orange-200" />
@@ -395,6 +399,7 @@ const SimulacaoCard = ({
           novoDenom={b5NovaDenom}
           novaPct={b5NovaPct}
           pctAtual={b5PctAtual}
+          anyInput={anyInput}
           conceitoInfo={b5Conceito}
         />
       </div>
