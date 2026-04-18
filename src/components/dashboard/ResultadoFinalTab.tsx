@@ -437,6 +437,7 @@ const SimulacaoCard = ({
     </div>
   );
 };
+
 // ── Row de detalhe compartilhado ─────────────────────────────────────────────
 const DetalheRow = ({
   ind,
@@ -459,50 +460,57 @@ const DetalheRow = ({
   return (
     <TableRow className="bg-muted/20">
       <TableCell colSpan={colSpan} className="py-4 px-4">
-        <div className="flex flex-wrap items-start gap-3">
+        <div className="flex items-start gap-3">
 
-          {/* Detalhamento Mensal */}
-          {hasMeses && (
-            <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
-                  Detalhamento Mensal
-                </span>
-              </div>
-              <div className="flex flex-wrap items-stretch justify-center gap-3">
-                {ind.mesesDetalhe.map((mes) => (
-                  <div
-                    key={mes.mes}
-                    className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
-                    style={{ minWidth: cardMinWidth }}
-                  >
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                      {mes.mes}
-                    </span>
-                    <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-                    <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-                    <span className="text-xs font-medium text-primary mt-0.5">
-                      {mes.porcentagem.toFixed(1)}%
+          {/* Coluna esquerda: Meta do Quadrimestre em cima + Detalhamento Mensal embaixo */}
+          {(metaThresholds || hasMeses) && (
+            <div className="flex flex-col gap-3">
+
+              {/* Meta do Quadrimestre */}
+              {metaThresholds && (
+                <MetaQuadrimestreCard
+                  denominador={ind.denominador}
+                  numerador={ind.numerador}
+                  thresholds={metaThresholds}
+                  simConfig={simulacaoConfig}
+                />
+              )}
+
+              {/* Detalhamento Mensal */}
+              {hasMeses && (
+                <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                    <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
+                      Detalhamento Mensal
                     </span>
                   </div>
-                ))}
-              </div>
+                  <div className="flex flex-wrap items-stretch justify-center gap-3">
+                    {ind.mesesDetalhe.map((mes) => (
+                      <div
+                        key={mes.mes}
+                        className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+                        style={{ minWidth: cardMinWidth }}
+                      >
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                          {mes.mes}
+                        </span>
+                        <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+                        <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
+                        <span className="text-xs font-medium text-primary mt-0.5">
+                          {mes.porcentagem.toFixed(1)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
-          {/* Meta do Quadrimestre */}
-          {metaThresholds && (
-            <MetaQuadrimestreCard
-              denominador={ind.denominador}
-              numerador={ind.numerador}
-              thresholds={metaThresholds}
-              simConfig={simulacaoConfig}
-            />
-          )}
-
-          {/* Simulação — B1, B2 e B4 (apenas quando indicador é B4) */}
-         {metaThresholds && simulacaoConfig && (
+          {/* Coluna direita: Simulação */}
+          {metaThresholds && simulacaoConfig && (
             <SimulacaoCard
               numerador={ind.numerador}
               denominador={ind.denominador}
