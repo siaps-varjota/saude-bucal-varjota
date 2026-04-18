@@ -263,7 +263,7 @@ const SimulacaoCard = ({
   // ── B2: consulta → +1 denom / +0,5 num; conclusão → +1 num ────────────────
   const showB2      = b2Numerador !== undefined && b2Denominador !== undefined;
   const b2NovoNum   = (b2Numerador  ?? 0) + extraConsultas * 0.5 + extraConclusoes;
-  const b2NovaDenom = (b2Denominador ?? 0) + extraConsultas + extraConclusoes;
+  const b2NovaDenom = (b2Denominador ?? 0) + extraConsultas;
   const b2NovaPct   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
   const b2PctAtual  = (b2Denominador ?? 0) > 0
     ? ((b2Numerador ?? 0) / (b2Denominador ?? 0)) * 100 : 0;
@@ -424,7 +424,7 @@ const SimulacaoCard = ({
             <div className="w-px self-stretch bg-orange-200" />
             <ProjecaoBloco
               titulo="Projeção B2"
-              descricao="consulta → +0,5 num / +1 den · trat. → +1 num / +1 den"
+              descricao="consulta → +0,5 num / +1 den · trat. → +1 num"
               novoNum={b2NovoNum}
               novoDenom={b2NovaDenom}
               novaPct={b2NovaPct}
