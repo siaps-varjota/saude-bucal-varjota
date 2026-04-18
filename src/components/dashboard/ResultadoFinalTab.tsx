@@ -77,7 +77,6 @@ const META_THRESHOLDS: Partial<Record<string, {
 };
 
 // ── Indicadores que exibem o card de Simulação ────────────────────────────────
-// Todos os três mostram o mesmo card com inputs de 1ªs consultas + trat. concluídos
 const INDICADORES_COM_SIMULACAO = new Set([
   "1ª Consulta Odontológica",
   "Tratamento Concluído",
@@ -107,12 +106,12 @@ function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHO
   label: string; textColor: string; bgBorder: string; nota: string;
 } {
   if (pct > thresholds.thresholdOtimo * 100)
-    return { label: "Ótimo",      textColor: "text-blue-700",    bgBorder: "bg-blue-50 border-blue-200",       nota: "100%" };
+    return { label: "Ótimo",      textColor: "text-blue-700",    bgBorder: "bg-blue-50 border-blue-200",       nota: "1,00" };
   if (pct > thresholds.thresholdBom * 100)
-    return { label: "Bom",        textColor: "text-emerald-700", bgBorder: "bg-emerald-50 border-emerald-200", nota: "75%" };
+    return { label: "Bom",        textColor: "text-emerald-700", bgBorder: "bg-emerald-50 border-emerald-200", nota: "0,75" };
   if (pct > 0)
-    return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "50%" };
-  return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "25%" };
+    return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "0,50" };
+  return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
 }
 
 // ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
@@ -129,9 +128,9 @@ const MetaQuadrimestreCard = ({
   const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  const faltamBom   = numerador / denominador >= thresholds.thresholdBom
+  const faltamBom   = denominador > 0 && numerador / denominador >= thresholds.thresholdBom
     ? 0 : Math.max(0, metaBom - numerador);
-  const faltamOtimo = numerador / denominador >= thresholds.thresholdOtimo
+  const faltamOtimo = denominador > 0 && numerador / denominador >= thresholds.thresholdOtimo
     ? 0 : Math.max(0, metaOtimo - numerador);
 
   return (
@@ -174,25 +173,23 @@ const MetaQuadrimestreCard = ({
   );
 };
 
-// ── Card de Simulação — mesmo modelo para B1, B2 e B4 ────────────────────────
-// Inputs: 1ªs consultas + trat. concluídos
-// Projeções exibidas na ordem: B1, B2, B4
+// ── Card de Simulação — inputs de 1ªs consultas + trat. concluídos ────────────
+// Projeções: B1, B2, B5 (Proced. Odont. Preventivos)
 const SimulacaoCard = ({
   b1Numerador,
   b1Denominador,
   b2Numerador,
   b2Denominador,
-  b4Numerador,
-  b4Denominador,
+  b5Numerador,
+  b5Denominador,
 }: {
   b1Numerador: number;
   b1Denominador: number;
   b2Numerador: number;
   b2Denominador: number;
-  b4Numerador: number;
-  b4Denominador: number;
+  b5Numerador: number;
+  b5Denominador: number;
 }) => {
-  // Estado como string para permitir digitação livre sem perda de cursor
   const [rawConsultas,  setRawConsultas]  = useState("0");
   const [rawConclusoes, setRawConclusoes] = useState("0");
 
@@ -202,7 +199,7 @@ const SimulacaoCard = ({
 
   const b1Thresh = META_THRESHOLDS["1ª Consulta Odontológica"]!;
   const b2Thresh = META_THRESHOLDS["Tratamento Concluído"]!;
-  const b4Thresh = META_THRESHOLDS["Escovação Supervisionada"]!;
+  const b5Thresh = META_THRESHOLDS["Proced. Odont. Preventivos"]!;
 
   // ── B1: consulta → +1 num (denominador fixo) ─────────────────────────────
   const b1NovoNum   = b1Numerador + extraConsultas;
@@ -221,8 +218,8 @@ const SimulacaoCard = ({
   // ── B5: consulta ou trat. concluído → +2 num / +2 den ────────────────────
   const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
   const b5NovaDenom = b5Denominador + (extraConsultas + extraConclusoes) * 2;
-  const b5NovaPct   = b5NovaDenom > 0 ? (b5NovoNum / b4NovaDenom) * 100 : 0;
-  const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b4Denominador) * 100 : 0;
+  const b5NovaPct   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
+  const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
   // ── Sub-componente de bloco de projeção ────────────────────────────────────
@@ -268,7 +265,7 @@ const SimulacaoCard = ({
     );
   };
 
-  // ── Sub-componente de input — estado de string, sem perda de cursor ─────────
+  // ── Sub-componente de input ─────────────────────────────────────────────────
   const InputStepper = ({
     label,
     sublabel,
@@ -343,7 +340,7 @@ const SimulacaoCard = ({
       {/* Divisor */}
       <div className="w-full h-px bg-orange-200 mb-3" />
 
-      {/* Projeções na ordem: B1, B2, B4 */}
+      {/* Projeções: B1, B2, B5 */}
       <div className="flex flex-wrap gap-x-5 gap-y-3 flex-grow content-start">
         <ProjecaoBloco
           titulo="Projeção B1"
@@ -366,13 +363,13 @@ const SimulacaoCard = ({
         />
         <div className="w-px self-stretch bg-orange-200" />
         <ProjecaoBloco
-          titulo="Projeção B4"
+          titulo="Projeção B5"
           descricao="consulta ou trat. → +2 num / +2 den"
-          novoNum={b4NovoNum}
-          novoDenom={b4NovaDenom}
-          novaPct={b4NovaPct}
-          pctAtual={b4PctAtual}
-          conceitoInfo={b4Conceito}
+          novoNum={b5NovoNum}
+          novoDenom={b5NovaDenom}
+          novaPct={b5NovaPct}
+          pctAtual={b5PctAtual}
+          conceitoInfo={b5Conceito}
         />
       </div>
     </div>
@@ -397,18 +394,17 @@ const DetalheRow = ({
 
   const b1 = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
   const b2 = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
-  const b4 = todosIndicadores?.find(i => i.indicador === "Escovação Supervisionada");
+  const b5 = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
   const hasLeftCol = metaThresholds || hasMeses;
 
   return (
     <TableRow className="bg-muted/20">
       <TableCell colSpan={colSpan} className="py-4 px-4">
-        {/* Centraliza horizontal e verticalmente */}
         <div className="flex items-center justify-center">
           <div className="flex items-stretch gap-3">
 
-            {/* Coluna esquerda: Meta do Quadrimestre (cima) + Detalhamento Mensal (baixo) */}
+            {/* Coluna esquerda: Meta do Quadrimestre + Detalhamento Mensal */}
             {hasLeftCol && (
               <div className="flex flex-col gap-3">
 
@@ -452,7 +448,7 @@ const DetalheRow = ({
               </div>
             )}
 
-            {/* Coluna direita: Simulação — mesma altura da coluna esquerda */}
+            {/* Coluna direita: Simulação */}
             {hasSimCard && (
               <div className="self-stretch flex flex-col">
                 <SimulacaoCard
@@ -460,8 +456,8 @@ const DetalheRow = ({
                   b1Denominador={b1?.denominador ?? 0}
                   b2Numerador={b2?.numerador ?? 0}
                   b2Denominador={b2?.denominador ?? 0}
-                  b4Numerador={b4?.numerador ?? 0}
-                  b4Denominador={b4?.denominador ?? 0}
+                  b5Numerador={b5?.numerador ?? 0}
+                  b5Denominador={b5?.denominador ?? 0}
                 />
               </div>
             )}
@@ -654,7 +650,12 @@ const IndicadorComparativo = ({
               </TableRow>
 
               {showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard) && (
-                <DetalheRow ind={geralInd} colSpan={7} cardMinWidth="80px" todosIndicadores={geral.indicadores} />
+                <DetalheRow
+                  ind={geralInd}
+                  colSpan={7}
+                  cardMinWidth="80px"
+                  todosIndicadores={geral.indicadores}
+                />
               )}
 
               {equipeRows.map(({ equipe, ind }, idx) => (
@@ -947,16 +948,16 @@ export const ResultadoFinalTab = ({
       <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
         <span className="font-medium text-muted-foreground">Conceito no Indicador:</span>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
-          <span className="text-red-700 font-medium">Regular</span><span className="text-red-600 text-xs">= 25%</span>
+          <span className="text-red-700 font-medium">Regular</span><span className="text-red-600 text-xs">= 0,25</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
-          <span className="text-amber-700 font-medium">Suficiente</span><span className="text-amber-600 text-xs">= 50%</span>
+          <span className="text-amber-700 font-medium">Suficiente</span><span className="text-amber-600 text-xs">= 0,50</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
-          <span className="text-emerald-700 font-medium">Bom</span><span className="text-emerald-600 text-xs">= 75%</span>
+          <span className="text-emerald-700 font-medium">Bom</span><span className="text-emerald-600 text-xs">= 0,75</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
-          <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">= 100%</span>
+          <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">= 1,00</span>
         </div>
         {showMeses && (
           <span className="text-muted-foreground text-xs ml-2">· Clique na linha para expandir detalhes</span>
