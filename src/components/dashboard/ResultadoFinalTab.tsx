@@ -77,10 +77,9 @@ const META_THRESHOLDS: Partial<Record<string, {
 };
 
 // ── Configuração do card Simulação por indicador ──────────────────────────────
-// deltaNum / deltaDenom: quanto cada unidade simulada adiciona ao numerador e denominador
 const SIMULACAO_CONFIG: Partial<Record<string, {
-  inputLabel: string;  // unidade exibida no input
-  hint: string;        // dica no rodapé do card
+  inputLabel: string;
+  hint: string;
   deltaNum: number;
   deltaDenom: number;
 }>> = {
@@ -142,9 +141,6 @@ const MetaQuadrimestreCard = ({
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
   simConfig?: NonNullable<typeof SIMULACAO_CONFIG[string]>;
 }) => {
-  // Quando cada acao muda tanto num (+dn) quanto denom (+dd):
-  // resolve (num + dn*X) / (denom + dd*X) > t -> X = ceil((t*denom - num) / (dn - dd*t))
-  // Quando apenas o numerador cresce (dd=0), reduz a X = ceil(t*denom - num)
   const calcFaltam = (threshold: number): number => {
     if (denominador > 0 && numerador / denominador >= threshold) return 0;
     if (simConfig && simConfig.deltaDenom > 0) {
@@ -221,28 +217,110 @@ const SimulacaoCard = ({
   denominador,
   thresholds,
   config,
+  numeradorB1,
+  denominadorB1,
+  thresholdsB1,
+  numeradorB2,
+  denominadorB2,
+  thresholdsB2,
 }: {
   numerador: number;
   denominador: number;
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
   config: NonNullable<typeof SIMULACAO_CONFIG[string]>;
+  numeradorB1?: number;
+  denominadorB1?: number;
+  thresholdsB1?: NonNullable<typeof META_THRESHOLDS[string]>;
+  numeradorB2?: number;
+  denominadorB2?: number;
+  thresholdsB2?: NonNullable<typeof META_THRESHOLDS[string]>;
 }) => {
-  const [extra, setExtra] = useState(0);
+  const [extraConsultas, setExtraConsultas] = useState(0);
+  const [extraTrat, setExtraTrat]           = useState(0);
 
-  const novoNum   = numerador   + extra * config.deltaNum;
-  const novoDenom = denominador + extra * config.deltaDenom;
-  const novaPct   = novoDenom > 0 ? (novoNum / novoDenom) * 100 : 0;
-  const pctAtual  = denominador > 0 ? (numerador / denominador) * 100 : 0;
-  const ganho     = novaPct - pctAtual;
-  const conceito  = derivaConceito(novaPct, thresholds);
+  // ── B4: Proced. Odont. Preventivos ───────────────────────────────────────
+  const novoNumB4   = numerador   + extraConsultas * config.deltaNum;
+  const novoDenomB4 = denominador + extraConsultas * config.deltaDenom;
+  const novaPctB4   = novoDenomB4 > 0 ? (novoNumB4 / novoDenomB4) * 100 : 0;
+  const pctAtualB4  = denominador > 0 ? (numerador / denominador) * 100 : 0;
+  const ganhoB4     = novaPctB4 - pctAtualB4;
+  const conceitoB4  = thresholds ? derivaConceito(novaPctB4, thresholds) : null;
 
-  const handleInput = (val: string) => {
+  // ── B1: 1ª Consulta (+1 numerador por nova 1ª consulta) ──────────────────
+  const novoNumB1   = (numeradorB1  ?? 0) + extraConsultas;
+  const novoDenomB1 = denominadorB1 ?? 0;
+  const novaPctB1   = novoDenomB1 > 0 ? (novoNumB1 / novoDenomB1) * 100 : 0;
+  const pctAtualB1  = novoDenomB1  > 0 ? ((numeradorB1 ?? 0) / novoDenomB1) * 100 : 0;
+  const ganhoB1     = novaPctB1 - pctAtualB1;
+  const conceitoB1  = thresholdsB1 ? derivaConceito(novaPctB1, thresholdsB1) : null;
+
+  // ── B2: Tratamento Concluído ──────────────────────────────────────────────
+  // Cada nova 1ª consulta: denom +1, num +0,5 (tratamento esperado)
+  // Cada conclusão de tratamento: num +1, denom fixo
+  const novoNumB2   = (numeradorB2  ?? 0) + extraConsultas * 0.5 + extraTrat;
+  const novoDenomB2 = (denominadorB2 ?? 0) + extraConsultas;
+  const novaPctB2   = novoDenomB2 > 0 ? (novoNumB2 / novoDenomB2) * 100 : 0;
+  const pctAtualB2  = (denominadorB2 ?? 0) > 0
+    ? ((numeradorB2 ?? 0) / (denominadorB2 ?? 0)) * 100
+    : 0;
+  const ganhoB2     = novaPctB2 - pctAtualB2;
+  const conceitoB2  = thresholdsB2 ? derivaConceito(novaPctB2, thresholdsB2) : null;
+
+  const handleConsultas = (val: string) => {
     const n = parseInt(val.replace(/\D/g, ""), 10);
-    setExtra(isNaN(n) ? 0 : Math.max(0, n));
+    setExtraConsultas(isNaN(n) ? 0 : Math.max(0, n));
+  };
+  const handleTrat = (val: string) => {
+    const n = parseInt(val.replace(/\D/g, ""), 10);
+    setExtraTrat(isNaN(n) ? 0 : Math.max(0, n));
   };
 
+  // ── Sub-componente bloco de projeção ──────────────────────────────────────
+  const ProjecaoBloco = ({
+    label,
+    novoNum,
+    novoDenom,
+    novaPct,
+    ganho,
+    conceito,
+    extraAtivo,
+    isFloat = false,
+  }: {
+    label: string;
+    novoNum: number;
+    novoDenom: number;
+    novaPct: number;
+    ganho: number;
+    conceito: ReturnType<typeof derivaConceito> | null;
+    extraAtivo: number;
+    isFloat?: boolean;
+  }) => (
+    <div className="flex flex-col min-w-[115px]">
+      <p className="text-xs font-semibold text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-sm font-mono font-bold leading-tight">
+        {isFloat ? novoNum.toFixed(1) : Math.round(novoNum).toLocaleString("pt-BR")}
+        <span className="text-xs font-normal text-muted-foreground">
+          {" "}/ {Math.round(novoDenom).toLocaleString("pt-BR")}
+        </span>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {novaPct.toFixed(1)}%
+        {extraAtivo > 0 && (
+          <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
+          </span>
+        )}
+      </p>
+      {conceito && (
+        <div className={`mt-1 px-2 py-0.5 rounded border font-bold text-xs self-start ${conceito.bgBorder} ${conceito.textColor}`}>
+          {conceito.label} <span className="font-normal opacity-70">({conceito.nota})</span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col justify-center bg-orange-50 border border-orange-200 rounded-lg px-4 py-2 shadow-sm min-w-[280px]">
+    <div className="flex flex-col justify-center bg-orange-50 border border-orange-200 rounded-lg px-4 py-2 shadow-sm min-w-[440px]">
       {/* Cabeçalho */}
       <div className="flex items-center gap-1.5 mb-3">
         <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
@@ -251,70 +329,104 @@ const SimulacaoCard = ({
         </span>
       </div>
 
-      {/* Input + Projeção + Conceito — tudo na mesma linha */}
-      <div className="flex items-center gap-3 mb-2 flex-wrap">
-        {/* Controles */}
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">+ adicionar</span>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setExtra(Math.max(0, extra - 1))}
-              className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-            >
-              −
-            </button>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={extra}
-              onChange={(e) => handleInput(e.target.value)}
-              className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+      {/* Inputs + Projeções na mesma linha */}
+      <div className="flex items-start gap-4 mb-2 flex-wrap">
+
+        {/* Inputs lado a lado */}
+        <div className="flex gap-3">
+
+          {/* Input: 1ª Consultas */}
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">+ 1ª consultas</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setExtraConsultas(Math.max(0, extraConsultas - 1))}
+                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+              >−</button>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={extraConsultas}
+                onChange={(e) => handleConsultas(e.target.value)}
+                className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              />
+              <button
+                onClick={() => setExtraConsultas(extraConsultas + 1)}
+                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+              >+</button>
+            </div>
+            <span className="text-xs text-muted-foreground">consultas</span>
+          </div>
+
+          {/* Input: Conclusões de tratamento */}
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">+ conclusões</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setExtraTrat(Math.max(0, extraTrat - 1))}
+                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+              >−</button>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={extraTrat}
+                onChange={(e) => handleTrat(e.target.value)}
+                className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+              />
+              <button
+                onClick={() => setExtraTrat(extraTrat + 1)}
+                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+              >+</button>
+            </div>
+            <span className="text-xs text-muted-foreground">trat.</span>
+          </div>
+        </div>
+
+        {/* Separador */}
+        <div className="w-px self-stretch bg-orange-200 shrink-0" />
+
+        {/* Projeções */}
+        <div className="flex gap-4 flex-wrap">
+          {conceitoB1 && thresholdsB1 && (
+            <ProjecaoBloco
+              label="Projeção B1"
+              novoNum={novoNumB1}
+              novoDenom={novoDenomB1}
+              novaPct={novaPctB1}
+              ganho={ganhoB1}
+              conceito={conceitoB1}
+              extraAtivo={extraConsultas}
             />
-            <button
-              onClick={() => setExtra(extra + 1)}
-              className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-            >
-              +
-            </button>
-          </div>
-          <span className="text-xs text-muted-foreground">{config.inputLabel}</span>
-        </div>
-
-        {/* Separador visual */}
-        <div className="w-px h-8 bg-orange-200 shrink-0" />
-
-        {/* Projeção */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-0.5">Projeção</p>
-          <p className="text-sm font-mono font-bold leading-tight">
-            {novoNum.toLocaleString("pt-BR")}
-            <span className="text-xs font-normal text-muted-foreground">
-              {" "}/ {novoDenom.toLocaleString("pt-BR")}
-            </span>
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {novaPct.toFixed(1)}%
-            {extra > 0 && (
-              <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
-              </span>
-            )}
-          </p>
-        </div>
-
-        {/* Conceito projetado */}
-        <div className="flex flex-col items-center">
-          <p className="text-xs text-muted-foreground mb-0.5">Conceito</p>
-          <div className={`px-3 py-1 rounded border font-bold text-sm ${conceito.bgBorder} ${conceito.textColor}`}>
-            {conceito.label}
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">nota {conceito.nota}</p>
+          )}
+          {conceitoB2 && thresholdsB2 && (
+            <ProjecaoBloco
+              label="Projeção B2"
+              novoNum={novoNumB2}
+              novoDenom={novoDenomB2}
+              novaPct={novaPctB2}
+              ganho={ganhoB2}
+              conceito={conceitoB2}
+              extraAtivo={extraConsultas + extraTrat}
+              isFloat
+            />
+          )}
+          {conceitoB4 && (
+            <ProjecaoBloco
+              label="Projeção B4"
+              novoNum={novoNumB4}
+              novoDenom={novoDenomB4}
+              novaPct={novaPctB4}
+              ganho={ganhoB4}
+              conceito={conceitoB4}
+              extraAtivo={extraConsultas}
+            />
+          )}
         </div>
       </div>
 
       {/* Dica */}
       <p className="text-[10px] text-muted-foreground leading-snug italic">
-        💡 {config.hint}
+        💡 B1: cada consulta +1 numerador · B2: cada consulta +0,5 num / +1 denom; cada conclusão +1 num · B4: cada consulta +{config.deltaNum} num / +{config.deltaDenom} denom
       </p>
     </div>
   );
@@ -379,13 +491,19 @@ const DetalheRow = ({
             />
           )}
 
-          {/* Simulação — apenas B2 e B4 */}
+          {/* Simulação — B1, B2 e B4 (apenas quando indicador é B4) */}
           {metaThresholds && simulacaoConfig && (
             <SimulacaoCard
               numerador={ind.numerador}
               denominador={ind.denominador}
               thresholds={metaThresholds}
               config={simulacaoConfig}
+              numeradorB1={ind.b1Numerador}
+              denominadorB1={ind.b1Denominador}
+              thresholdsB1={META_THRESHOLDS["1ª Consulta Odontológica"]}
+              numeradorB2={ind.b2Numerador}
+              denominadorB2={ind.b2Denominador}
+              thresholdsB2={META_THRESHOLDS["Tratamento Concluído"]}
             />
           )}
 
