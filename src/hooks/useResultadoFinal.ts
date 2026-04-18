@@ -51,6 +51,11 @@ export interface IndicadorResult {
   nota: number;
   notaFinal: number;
   mesesDetalhe: MesDetalhe[];
+  // Campos auxiliares usados pela simulação do B4
+  b1Numerador?: number;
+  b1Denominador?: number;
+  b2Numerador?: number;
+  b2Denominador?: number;
 }
 
 export interface EquipeResult {
@@ -127,7 +132,16 @@ interface RawCalc {
   mesesDetalhe: MesDetalhe[];
 }
 
-function buildIndicador(key: string, raw: RawCalc): IndicadorResult {
+function buildIndicador(
+  key: string,
+  raw: RawCalc,
+  extras?: {
+    b1Numerador?: number;
+    b1Denominador?: number;
+    b2Numerador?: number;
+    b2Denominador?: number;
+  }
+): IndicadorResult {
   const config = INDICADORES.find((i) => i.key === key)!;
   const conceito = config.getConceito(raw.porcentagem);
   const nota = CONCEITO_SCORES[conceito];
@@ -141,6 +155,7 @@ function buildIndicador(key: string, raw: RawCalc): IndicadorResult {
     nota,
     notaFinal: nota * config.peso,
     mesesDetalhe: raw.mesesDetalhe,
+    ...extras,
   };
 }
 
@@ -446,12 +461,19 @@ export function useResultadoFinal(
 
   const porEquipe: EquipeResult[] = equipes.map((equipe) => {
     const denomB1 = findDenomB1(equipe);
+    const rawB1 = calcB1(patients, quad, denomB1, equipe);
+    const rawB2 = calcB2(tratamento, quad, equipe);
     const indicadores = [
-      buildIndicador("B1", calcB1(patients, quad, denomB1, equipe)),
-      buildIndicador("B2", calcB2(tratamento, quad, equipe)),
+      buildIndicador("B1", rawB1),
+      buildIndicador("B2", rawB2),
       buildIndicador("B3", calcB3(tab3, quad, equipe)),
       buildIndicador("B5", calcB5(tab4, quad, equipe)),
-      buildIndicador("B4", calcB4(tab5, quad, equipe)),
+      buildIndicador("B4", calcB4(tab5, quad, equipe), {
+        b1Numerador:   Math.round(rawB1.numerador),
+        b1Denominador: Math.round(rawB1.denominador),
+        b2Numerador:   Math.round(rawB2.numerador),
+        b2Denominador: Math.round(rawB2.denominador),
+      }),
       buildIndicador("B6", calcB6(tab6, quad, equipe)),
     ];
     return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
@@ -459,12 +481,19 @@ export function useResultadoFinal(
 
   const buildGeral = (eq?: string) => {
     const denomB1 = eq ? findDenomB1(eq) : denominadorB1.total;
+    const rawB1 = calcB1(patients, quad, denomB1, eq);
+    const rawB2 = calcB2(tratamento, quad, eq);
     return [
-      buildIndicador("B1", calcB1(patients, quad, denomB1, eq)),
-      buildIndicador("B2", calcB2(tratamento, quad, eq)),
+      buildIndicador("B1", rawB1),
+      buildIndicador("B2", rawB2),
       buildIndicador("B3", calcB3(tab3, quad, eq)),
       buildIndicador("B5", calcB5(tab4, quad, eq)),
-      buildIndicador("B4", calcB4(tab5, quad, eq)),
+      buildIndicador("B4", calcB4(tab5, quad, eq), {
+        b1Numerador:   Math.round(rawB1.numerador),
+        b1Denominador: Math.round(rawB1.denominador),
+        b2Numerador:   Math.round(rawB2.numerador),
+        b2Denominador: Math.round(rawB2.denominador),
+      }),
       buildIndicador("B6", calcB6(tab6, quad, eq)),
     ];
   };
