@@ -135,16 +135,34 @@ const MetaQuadrimestreCard = ({
   denominador,
   numerador,
   thresholds,
+  simConfig,
 }: {
   denominador: number;
   numerador: number;
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
+  simConfig?: NonNullable<typeof SIMULACAO_CONFIG[string]>;
 }) => {
-  const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
-  const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
-  const faltamBom   = Math.max(0, metaBom   - numerador);
-  const faltamOtimo = Math.max(0, metaOtimo - numerador);
-  const unit = thresholds.unit || "atend.";
+  // Quando cada acao muda tanto num (+dn) quanto denom (+dd):
+  // resolve (num + dn*X) / (denom + dd*X) > t -> X = ceil((t*denom - num) / (dn - dd*t))
+  // Quando apenas o numerador cresce (dd=0), reduz a X = ceil(t*denom - num)
+  const calcFaltam = (threshold: number): number => {
+    if (denominador > 0 && numerador / denominador >= threshold) return 0;
+    if (simConfig && simConfig.deltaDenom > 0) {
+      const dn  = simConfig.deltaNum;
+      const dd  = simConfig.deltaDenom;
+      const den = dn - dd * threshold;
+      if (den <= 0) return 0;
+      return Math.max(0, Math.ceil((threshold * denominador - numerador) / den));
+    }
+    return Math.max(0, Math.ceil(denominador * threshold) - numerador);
+  };
+
+  const metaBom     = Math.ceil(denominador * thresholds.thresholdBom);
+  const metaOtimo   = Math.ceil(denominador * thresholds.thresholdOtimo);
+  const faltamBom   = calcFaltam(thresholds.thresholdBom);
+  const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
+  const unit        = thresholds.unit || "atend.";
+  const faltaUnit   = simConfig && simConfig.deltaDenom > 0 ? simConfig.inputLabel : unit;
 
   return (
     <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm min-w-[260px]">
@@ -169,7 +187,7 @@ const MetaQuadrimestreCard = ({
           <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / 4).toFixed(1)}</p>
           {faltamBom > 0 ? (
             <p className="text-xs font-medium text-red-600">
-              Faltam: {faltamBom.toLocaleString("pt-BR")} {unit}
+              Faltam: {faltamBom.toLocaleString("pt-BR")} {faltaUnit}
             </p>
           ) : (
             <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>
@@ -186,7 +204,7 @@ const MetaQuadrimestreCard = ({
           <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / 4).toFixed(1)}</p>
           {faltamOtimo > 0 ? (
             <p className="text-xs font-medium text-red-600">
-              Faltam: {faltamOtimo.toLocaleString("pt-BR")} {unit}
+              Faltam: {faltamOtimo.toLocaleString("pt-BR")} {faltaUnit}
             </p>
           ) : (
             <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>
@@ -355,6 +373,7 @@ const DetalheRow = ({
               denominador={ind.denominador}
               numerador={ind.numerador}
               thresholds={metaThresholds}
+              simConfig={simulacaoConfig}
             />
           )}
 
