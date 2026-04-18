@@ -107,12 +107,12 @@ function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHO
   label: string; textColor: string; bgBorder: string; nota: string;
 } {
   if (pct > thresholds.thresholdOtimo * 100)
-    return { label: "Ótimo",      textColor: "text-blue-700",    bgBorder: "bg-blue-50 border-blue-200",       nota: "1,00" };
+    return { label: "Ótimo",      textColor: "text-blue-700",    bgBorder: "bg-blue-50 border-blue-200",       nota: "100%" };
   if (pct > thresholds.thresholdBom * 100)
-    return { label: "Bom",        textColor: "text-emerald-700", bgBorder: "bg-emerald-50 border-emerald-200", nota: "0,75" };
+    return { label: "Bom",        textColor: "text-emerald-700", bgBorder: "bg-emerald-50 border-emerald-200", nota: "75%" };
   if (pct > 0)
-    return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "0,50" };
-  return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
+    return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "50%" };
+  return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "25%" };
 }
 
 // ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
@@ -218,12 +218,12 @@ const SimulacaoCard = ({
   const b2PctAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
   const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
-  // ── B4: consulta ou trat. concluído → +2 num / +2 den ────────────────────
-  const b4NovoNum   = b4Numerador + (extraConsultas + extraConclusoes) * 2;
-  const b4NovaDenom = b4Denominador + (extraConsultas + extraConclusoes) * 2;
-  const b4NovaPct   = b4NovaDenom > 0 ? (b4NovoNum / b4NovaDenom) * 100 : 0;
-  const b4PctAtual  = b4Denominador > 0 ? (b4Numerador / b4Denominador) * 100 : 0;
-  const b4Conceito  = derivaConceito(b4NovaPct, b4Thresh);
+  // ── B5: consulta ou trat. concluído → +2 num / +2 den ────────────────────
+  const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
+  const b5NovaDenom = b5Denominador + (extraConsultas + extraConclusoes) * 2;
+  const b5NovaPct   = b5NovaDenom > 0 ? (b5NovoNum / b4NovaDenom) * 100 : 0;
+  const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b4Denominador) * 100 : 0;
+  const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
   // ── Sub-componente de bloco de projeção ────────────────────────────────────
   const ProjecaoBloco = ({
@@ -947,16 +947,16 @@ export const ResultadoFinalTab = ({
       <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
         <span className="font-medium text-muted-foreground">Conceito no Indicador:</span>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
-          <span className="text-red-700 font-medium">Regular</span><span className="text-red-600 text-xs">= 0,25</span>
+          <span className="text-red-700 font-medium">Regular</span><span className="text-red-600 text-xs">= 25%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
-          <span className="text-amber-700 font-medium">Suficiente</span><span className="text-amber-600 text-xs">= 0,50</span>
+          <span className="text-amber-700 font-medium">Suficiente</span><span className="text-amber-600 text-xs">= 50%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
-          <span className="text-emerald-700 font-medium">Bom</span><span className="text-emerald-600 text-xs">= 0,75</span>
+          <span className="text-emerald-700 font-medium">Bom</span><span className="text-emerald-600 text-xs">= 75%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
-          <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">= 1,00</span>
+          <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">= 100%</span>
         </div>
         {showMeses && (
           <span className="text-muted-foreground text-xs ml-2">· Clique na linha para expandir detalhes</span>
