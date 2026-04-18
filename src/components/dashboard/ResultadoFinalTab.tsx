@@ -254,27 +254,29 @@ const SimulacaoCard = ({
       {/* Input + Projeção + Conceito — tudo na mesma linha */}
       <div className="flex items-center gap-3 mb-2 flex-wrap">
         {/* Controles */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-col items-center gap-0.5">
           <span className="text-xs text-muted-foreground whitespace-nowrap">+ adicionar</span>
-          <button
-            onClick={() => setExtra(Math.max(0, extra - 1))}
-            className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-          >
-            −
-          </button>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={extra}
-            onChange={(e) => handleInput(e.target.value)}
-            className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
-          />
-          <button
-            onClick={() => setExtra(extra + 1)}
-            className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-          >
-            +
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setExtra(Math.max(0, extra - 1))}
+              className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+            >
+              −
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={extra}
+              onChange={(e) => handleInput(e.target.value)}
+              className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+            />
+            <button
+              onClick={() => setExtra(extra + 1)}
+              className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+            >
+              +
+            </button>
+          </div>
           <span className="text-xs text-muted-foreground">{config.inputLabel}</span>
         </div>
 
