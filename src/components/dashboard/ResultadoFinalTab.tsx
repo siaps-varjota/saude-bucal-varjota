@@ -211,116 +211,158 @@ const MetaQuadrimestreCard = ({
   );
 };
 
-// ── Card de Simulação interativa ──────────────────────────────────────────────
+// ── Card de Simulação interativa (B4 + B1 + B2 vinculados) ───────────────────
 const SimulacaoCard = ({
   numerador,
   denominador,
   thresholds,
   config,
-  numeradorB1,
-  denominadorB1,
-  thresholdsB1,
-  numeradorB2,
-  denominadorB2,
-  thresholdsB2,
+  b1Numerador,
+  b1Denominador,
+  b2Numerador,
+  b2Denominador,
 }: {
   numerador: number;
   denominador: number;
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
   config: NonNullable<typeof SIMULACAO_CONFIG[string]>;
-  numeradorB1?: number;
-  denominadorB1?: number;
-  thresholdsB1?: NonNullable<typeof META_THRESHOLDS[string]>;
-  numeradorB2?: number;
-  denominadorB2?: number;
-  thresholdsB2?: NonNullable<typeof META_THRESHOLDS[string]>;
+  b1Numerador?: number;
+  b1Denominador?: number;
+  b2Numerador?: number;
+  b2Denominador?: number;
 }) => {
-  const [extraConsultas, setExtraConsultas] = useState(0);
-  const [extraTrat, setExtraTrat]           = useState(0);
+  const [extraConsultas,  setExtraConsultas]  = useState(0);
+  const [extraConclusoes, setExtraConclusoes] = useState(0);
 
-  // ── B4: Proced. Odont. Preventivos ───────────────────────────────────────
-  const novoNumB4   = numerador   + extraConsultas * config.deltaNum;
-  const novoDenomB4 = denominador + extraConsultas * config.deltaDenom;
-  const novaPctB4   = novoDenomB4 > 0 ? (novoNumB4 / novoDenomB4) * 100 : 0;
-  const pctAtualB4  = denominador > 0 ? (numerador / denominador) * 100 : 0;
-  const ganhoB4     = novaPctB4 - pctAtualB4;
-  const conceitoB4  = thresholds ? derivaConceito(novaPctB4, thresholds) : null;
-
-  // ── B1: 1ª Consulta (+1 numerador por nova 1ª consulta) ──────────────────
-  const novoNumB1   = (numeradorB1  ?? 0) + extraConsultas;
-  const novoDenomB1 = denominadorB1 ?? 0;
-  const novaPctB1   = novoDenomB1 > 0 ? (novoNumB1 / novoDenomB1) * 100 : 0;
-  const pctAtualB1  = novoDenomB1  > 0 ? ((numeradorB1 ?? 0) / novoDenomB1) * 100 : 0;
-  const ganhoB1     = novaPctB1 - pctAtualB1;
-  const conceitoB1  = thresholdsB1 ? derivaConceito(novaPctB1, thresholdsB1) : null;
-
-  // ── B2: Tratamento Concluído ──────────────────────────────────────────────
-  // Cada nova 1ª consulta: denom +1, num +0,5 (tratamento esperado)
-  // Cada conclusão de tratamento: num +1, denom fixo
-  const novoNumB2   = (numeradorB2  ?? 0) + extraConsultas * 0.5 + extraTrat;
-  const novoDenomB2 = (denominadorB2 ?? 0) + extraConsultas;
-  const novaPctB2   = novoDenomB2 > 0 ? (novoNumB2 / novoDenomB2) * 100 : 0;
-  const pctAtualB2  = (denominadorB2 ?? 0) > 0
-    ? ((numeradorB2 ?? 0) / (denominadorB2 ?? 0)) * 100
-    : 0;
-  const ganhoB2     = novaPctB2 - pctAtualB2;
-  const conceitoB2  = thresholdsB2 ? derivaConceito(novaPctB2, thresholdsB2) : null;
-
-  const handleConsultas = (val: string) => {
+  const handleInput = (
+    val: string,
+    setter: React.Dispatch<React.SetStateAction<number>>
+  ) => {
     const n = parseInt(val.replace(/\D/g, ""), 10);
-    setExtraConsultas(isNaN(n) ? 0 : Math.max(0, n));
-  };
-  const handleTrat = (val: string) => {
-    const n = parseInt(val.replace(/\D/g, ""), 10);
-    setExtraTrat(isNaN(n) ? 0 : Math.max(0, n));
+    setter(isNaN(n) ? 0 : Math.max(0, n));
   };
 
-  // ── Sub-componente bloco de projeção ──────────────────────────────────────
+  const anyInput = extraConsultas > 0 || extraConclusoes > 0;
+
+  // ── B4: cada consulta ou trat. concluído → +2 num / +2 denom ───────────────
+  const b4NovoNum   = numerador   + (extraConsultas + extraConclusoes) * 2;
+  const b4NovoDenom = denominador + (extraConsultas + extraConclusoes) * 2;
+  const b4NovaPct   = b4NovoDenom > 0 ? (b4NovoNum / b4NovoDenom) * 100 : 0;
+  const b4PctAtual  = denominador  > 0 ? (numerador  / denominador)  * 100 : 0;
+  const b4Conceito  = derivaConceito(b4NovaPct, thresholds);
+
+  // ── B1: cada consulta → +1 num; denominador fixo ───────────────────────────
+  const showB1      = b1Numerador !== undefined && b1Denominador !== undefined;
+  const b1NovoNum   = (b1Numerador  ?? 0) + extraConsultas;
+  const b1NovaDenom = (b1Denominador ?? 0);
+  const b1NovaPct   = b1NovaDenom > 0 ? (b1NovoNum / b1NovaDenom) * 100 : 0;
+  const b1PctAtual  = b1NovaDenom > 0 ? ((b1Numerador ?? 0) / b1NovaDenom) * 100 : 0;
+  const b1Thresholds = META_THRESHOLDS["1ª Consulta Odontológica"];
+  const b1Conceito  = b1Thresholds ? derivaConceito(b1NovaPct, b1Thresholds) : null;
+
+  // ── B2: consulta → +1 denom / +0,5 num; conclusão → +1 num ────────────────
+  const showB2      = b2Numerador !== undefined && b2Denominador !== undefined;
+  const b2NovoNum   = (b2Numerador  ?? 0) + extraConsultas * 0.5 + extraConclusoes;
+  const b2NovaDenom = (b2Denominador ?? 0) + extraConsultas + extraConclusoes;
+  const b2NovaPct   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
+  const b2PctAtual  = (b2Denominador ?? 0) > 0
+    ? ((b2Numerador ?? 0) / (b2Denominador ?? 0)) * 100 : 0;
+  const b2Thresholds = META_THRESHOLDS["Tratamento Concluído"];
+  const b2Conceito  = b2Thresholds ? derivaConceito(b2NovaPct, b2Thresholds) : null;
+
+  // ── Sub-componente de bloco de projeção ────────────────────────────────────
   const ProjecaoBloco = ({
-    label,
+    titulo,
+    descricao,
     novoNum,
     novoDenom,
     novaPct,
-    ganho,
-    conceito,
-    extraAtivo,
-    isFloat = false,
+    pctAtual,
+    conceitoInfo,
   }: {
-    label: string;
+    titulo: string;
+    descricao: string;
     novoNum: number;
     novoDenom: number;
     novaPct: number;
-    ganho: number;
-    conceito: ReturnType<typeof derivaConceito> | null;
-    extraAtivo: number;
-    isFloat?: boolean;
-  }) => (
-    <div className="flex flex-col min-w-[115px]">
-      <p className="text-xs font-semibold text-muted-foreground mb-0.5">{label}</p>
-      <p className="text-sm font-mono font-bold leading-tight">
-        {isFloat ? novoNum.toFixed(1) : Math.round(novoNum).toLocaleString("pt-BR")}
-        <span className="text-xs font-normal text-muted-foreground">
-          {" "}/ {Math.round(novoDenom).toLocaleString("pt-BR")}
-        </span>
-      </p>
-      <p className="text-xs text-muted-foreground">
-        {novaPct.toFixed(1)}%
-        {extraAtivo > 0 && (
-          <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-            ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
+    pctAtual: number;
+    conceitoInfo: ReturnType<typeof derivaConceito> | null;
+  }) => {
+    const ganho = novaPct - pctAtual;
+    return (
+      <div className="flex flex-col gap-1 min-w-[130px]">
+        <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">
+          {titulo}
+        </p>
+        <p className="text-[9px] text-muted-foreground leading-snug">{descricao}</p>
+        <p className="text-sm font-mono font-bold leading-tight mt-0.5">
+          {Number.isInteger(novoNum)
+            ? novoNum.toLocaleString("pt-BR")
+            : novoNum.toFixed(1)}
+          <span className="text-xs font-normal text-muted-foreground">
+            {" "}/ {novoDenom.toLocaleString("pt-BR")}
           </span>
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {novaPct.toFixed(1)}%
+          {anyInput && (
+            <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
+            </span>
+          )}
+        </p>
+        {conceitoInfo && (
+          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit ${conceitoInfo.bgBorder} ${conceitoInfo.textColor}`}>
+            {conceitoInfo.label}
+            <span className="font-normal opacity-60">({conceitoInfo.nota})</span>
+          </div>
         )}
-      </p>
-      {conceito && (
-        <div className={`mt-1 px-2 py-0.5 rounded border font-bold text-xs self-start ${conceito.bgBorder} ${conceito.textColor}`}>
-          {conceito.label} <span className="font-normal opacity-70">({conceito.nota})</span>
-        </div>
-      )}
+      </div>
+    );
+  };
+
+  // ── Sub-componente de input ─────────────────────────────────────────────────
+  const InputStepper = ({
+    label,
+    sublabel,
+    value,
+    onDecrement,
+    onIncrement,
+    onChange,
+  }: {
+    label: string;
+    sublabel: string;
+    value: number;
+    onDecrement: () => void;
+    onIncrement: () => void;
+    onChange: (val: string) => void;
+  }) => (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={onDecrement}
+          className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+        >−</button>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+        />
+        <button
+          onClick={onIncrement}
+          className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+        >+</button>
+      </div>
+      <span className="text-[10px] text-muted-foreground">{sublabel}</span>
     </div>
   );
 
   return (
-    <div className="flex flex-col justify-center bg-orange-50 border border-orange-200 rounded-lg px-4 py-2 shadow-sm min-w-[440px]">
+    <div className="flex flex-col bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 shadow-sm">
+
       {/* Cabeçalho */}
       <div className="flex items-center gap-1.5 mb-3">
         <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
@@ -329,122 +371,90 @@ const SimulacaoCard = ({
         </span>
       </div>
 
-      {/* Inputs + Projeções na mesma linha */}
-      <div className="flex items-start gap-4 mb-2 flex-wrap">
-
-        {/* Inputs lado a lado */}
-        <div className="flex gap-3">
-
-          {/* Input: 1ª Consultas */}
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">+ 1ª consultas</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setExtraConsultas(Math.max(0, extraConsultas - 1))}
-                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-              >−</button>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={extraConsultas}
-                onChange={(e) => handleConsultas(e.target.value)}
-                className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
-              />
-              <button
-                onClick={() => setExtraConsultas(extraConsultas + 1)}
-                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-              >+</button>
-            </div>
-            <span className="text-xs text-muted-foreground">consultas</span>
-          </div>
-
-          {/* Input: Conclusões de tratamento */}
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">+ conclusões</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setExtraTrat(Math.max(0, extraTrat - 1))}
-                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-              >−</button>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={extraTrat}
-                onChange={(e) => handleTrat(e.target.value)}
-                className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
-              />
-              <button
-                onClick={() => setExtraTrat(extraTrat + 1)}
-                className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
-              >+</button>
-            </div>
-            <span className="text-xs text-muted-foreground">trat.</span>
-          </div>
-        </div>
-
-        {/* Separador */}
-        <div className="w-px self-stretch bg-orange-200 shrink-0" />
-
-        {/* Projeções */}
-        <div className="flex gap-4 flex-wrap">
-          {conceitoB1 && thresholdsB1 && (
-            <ProjecaoBloco
-              label="Projeção B1"
-              novoNum={novoNumB1}
-              novoDenom={novoDenomB1}
-              novaPct={novaPctB1}
-              ganho={ganhoB1}
-              conceito={conceitoB1}
-              extraAtivo={extraConsultas}
-            />
-          )}
-          {conceitoB2 && thresholdsB2 && (
-            <ProjecaoBloco
-              label="Projeção B2"
-              novoNum={novoNumB2}
-              novoDenom={novoDenomB2}
-              novaPct={novaPctB2}
-              ganho={ganhoB2}
-              conceito={conceitoB2}
-              extraAtivo={extraConsultas + extraTrat}
-              isFloat
-            />
-          )}
-          {conceitoB4 && (
-            <ProjecaoBloco
-              label="Projeção B4"
-              novoNum={novoNumB4}
-              novoDenom={novoDenomB4}
-              novaPct={novaPctB4}
-              ganho={ganhoB4}
-              conceito={conceitoB4}
-              extraAtivo={extraConsultas}
-            />
-          )}
-        </div>
+      {/* Inputs */}
+      <div className="flex items-start gap-5 mb-3 flex-wrap">
+        <InputStepper
+          label="+ adicionar"
+          sublabel="1ªs consultas"
+          value={extraConsultas}
+          onDecrement={() => setExtraConsultas(Math.max(0, extraConsultas - 1))}
+          onIncrement={() => setExtraConsultas(extraConsultas + 1)}
+          onChange={(v) => handleInput(v, setExtraConsultas)}
+        />
+        <InputStepper
+          label="+ adicionar"
+          sublabel="trat. concluídos"
+          value={extraConclusoes}
+          onDecrement={() => setExtraConclusoes(Math.max(0, extraConclusoes - 1))}
+          onIncrement={() => setExtraConclusoes(extraConclusoes + 1)}
+          onChange={(v) => handleInput(v, setExtraConclusoes)}
+        />
       </div>
 
-      {/* Dica */}
-      <p className="text-[10px] text-muted-foreground leading-snug italic">
-        💡 B1: cada consulta +1 numerador · B2: cada consulta +0,5 num / +1 denom; cada conclusão +1 num · B4: cada consulta +{config.deltaNum} num / +{config.deltaDenom} denom
-      </p>
+      {/* Divisor */}
+      <div className="w-full h-px bg-orange-200 mb-3" />
+
+      {/* Projeções */}
+      <div className="flex flex-wrap gap-x-5 gap-y-3">
+        <ProjecaoBloco
+          titulo="Projeção B4"
+          descricao="consulta ou trat. → +2 num / +2 den"
+          novoNum={b4NovoNum}
+          novoDenom={b4NovoDenom}
+          novaPct={b4NovaPct}
+          pctAtual={b4PctAtual}
+          conceitoInfo={b4Conceito}
+        />
+        {showB1 && b1Conceito && (
+          <>
+            <div className="w-px self-stretch bg-orange-200" />
+            <ProjecaoBloco
+              titulo="Projeção B1"
+              descricao="consulta → +1 num (den fixo)"
+              novoNum={b1NovoNum}
+              novoDenom={b1NovaDenom}
+              novaPct={b1NovaPct}
+              pctAtual={b1PctAtual}
+              conceitoInfo={b1Conceito}
+            />
+          </>
+        )}
+        {showB2 && b2Conceito && (
+          <>
+            <div className="w-px self-stretch bg-orange-200" />
+            <ProjecaoBloco
+              titulo="Projeção B2"
+              descricao="consulta → +0,5 num / +1 den · trat. → +1 num / +1 den"
+              novoNum={b2NovoNum}
+              novoDenom={b2NovaDenom}
+              novaPct={b2NovaPct}
+              pctAtual={b2PctAtual}
+              conceitoInfo={b2Conceito}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 };
-
 // ── Row de detalhe compartilhado ─────────────────────────────────────────────
 const DetalheRow = ({
   ind,
   colSpan,
   cardMinWidth = "90px",
+  todosIndicadores,
 }: {
   ind: IndicadorResult;
   colSpan: number;
   cardMinWidth?: string;
+  todosIndicadores?: IndicadorResult[];
 }) => {
   const metaThresholds  = META_THRESHOLDS[ind.indicador];
   const simulacaoConfig = SIMULACAO_CONFIG[ind.indicador];
   const hasMeses        = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+
+  const b1 = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
+  const b2 = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
 
   return (
     <TableRow className="bg-muted/20">
@@ -492,18 +502,16 @@ const DetalheRow = ({
           )}
 
           {/* Simulação — B1, B2 e B4 (apenas quando indicador é B4) */}
-          {metaThresholds && simulacaoConfig && (
+         {metaThresholds && simulacaoConfig && (
             <SimulacaoCard
               numerador={ind.numerador}
               denominador={ind.denominador}
               thresholds={metaThresholds}
               config={simulacaoConfig}
-              numeradorB1={ind.b1Numerador}
-              denominadorB1={ind.b1Denominador}
-              thresholdsB1={META_THRESHOLDS["1ª Consulta Odontológica"]}
-              numeradorB2={ind.b2Numerador}
-              denominadorB2={ind.b2Denominador}
-              thresholdsB2={META_THRESHOLDS["Tratamento Concluído"]}
+              b1Numerador={b1?.numerador}
+              b1Denominador={b1?.denominador}
+              b2Numerador={b2?.numerador}
+              b2Denominador={b2?.denominador}
             />
           )}
 
@@ -601,6 +609,7 @@ const ResultTable = ({
                         key={`${idx}-detail`}
                         ind={ind}
                         colSpan={showMeses ? 9 : 8}
+                        todosIndicadores={result.indicadores}
                       />
                     )}
                   </>
@@ -693,7 +702,7 @@ const IndicadorComparativo = ({
               </TableRow>
 
               {showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard) && (
-                <DetalheRow ind={geralInd} colSpan={7} cardMinWidth="80px" />
+                <DetalheRow ind={geralInd} colSpan={7} cardMinWidth="80px" todosIndicadores={geral.indicadores} />
               )}
 
               {equipeRows.map(({ equipe, ind }, idx) => (
@@ -720,6 +729,7 @@ const IndicadorComparativo = ({
                       ind={ind}
                       colSpan={7}
                       cardMinWidth="80px"
+                      todosIndicadores={porEquipe.find(e => e.equipe === equipe)?.indicadores}
                     />
                   )}
                 </>
