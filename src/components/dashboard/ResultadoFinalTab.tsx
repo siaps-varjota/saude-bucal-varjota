@@ -4,7 +4,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Trophy, Award, Filter, ChevronDown, ChevronRight, BarChart2, Target, FileDown } from "lucide-react";
+import {
+  Trophy, Award, Filter, ChevronDown, ChevronRight,
+  BarChart2, Target, FileDown, FlaskConical,
+} from "lucide-react";
 import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
@@ -24,8 +27,8 @@ const INDICADOR_OPTIONS = [
   { value: "1ª Consulta Odontológica",       label: "B1 — 1ª Consulta Odontológica" },
   { value: "Tratamento Concluído",           label: "B2 — Tratamento Concluído" },
   { value: "Taxa de Exodontias",             label: "B3 — Taxa de Exodontias" },
-  { value: "Escovação Supervisionada",       label: "B4 — Escovação Supervisionada" },
-  { value: "Proced. Odont. Preventivos",     label: "B5 — Proced. Odont. Preventivos" },
+  { value: "Proced. Odont. Preventivos",     label: "B4 — Proced. Odont. Preventivos" },
+  { value: "Escovação Supervisionada",       label: "B5 — Escovação Supervisionada" },
   { value: "Trat. Restaurador Atraumático",  label: "B6 — Trat. Restaurador Atraumático" },
 ];
 
@@ -73,6 +76,29 @@ const META_THRESHOLDS: Partial<Record<string, {
   },
 };
 
+// ── Configuração do card Simulação por indicador ──────────────────────────────
+// deltaNum / deltaDenom: quanto cada unidade simulada adiciona ao numerador e denominador
+const SIMULACAO_CONFIG: Partial<Record<string, {
+  inputLabel: string;  // unidade exibida no input
+  hint: string;        // dica no rodapé do card
+  deltaNum: number;
+  deltaDenom: number;
+}>> = {
+  "Tratamento Concluído": {
+    inputLabel: "trat.",
+    hint: "Simule a conclusão de tratamentos já em andamento. O denominador (1ª consultas) permanece fixo.",
+    deltaNum: 1,
+    deltaDenom: 0,
+  },
+  "Proced. Odont. Preventivos": {
+    inputLabel: "consultas",
+    hint: "Cada nova 1ª consulta ou trat. concluído equivale a +2 no numerador e +2 no denominador.",
+    deltaNum: 2,
+    deltaDenom: 2,
+  },
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getNotaFinalColor(nota: number): string {
   if (nota > 7.5)  return "text-blue-700";
   if (nota >= 5)   return "text-emerald-700";
@@ -91,7 +117,20 @@ function fmtNum(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-// ── Card Meta — flex item inline com os cards de meses ───────────────────────
+/** Deriva o conceito a partir da porcentagem e dos thresholds do indicador */
+function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHOLDS[string]>): {
+  label: string; textColor: string; bgBorder: string; nota: string;
+} {
+  if (pct > thresholds.thresholdOtimo * 100)
+    return { label: "Ótimo",      textColor: "text-blue-700",    bgBorder: "bg-blue-50 border-blue-200",       nota: "1,00" };
+  if (pct > thresholds.thresholdBom * 100)
+    return { label: "Bom",        textColor: "text-emerald-700", bgBorder: "bg-emerald-50 border-emerald-200", nota: "0,75" };
+  if (pct > 0)
+    return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "0,50" };
+  return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
+}
+
+// ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
 const MetaQuadrimestreCard = ({
   denominador,
   numerador,
@@ -109,7 +148,6 @@ const MetaQuadrimestreCard = ({
 
   return (
     <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm min-w-[260px]">
-      {/* Cabeçalho */}
       <div className="flex items-center gap-1.5 mb-2">
         <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
         <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
@@ -120,13 +158,10 @@ const MetaQuadrimestreCard = ({
         </span>
       </div>
 
-      {/* Colunas Bom / Ótimo lado a lado */}
       <div className="flex gap-6">
         {/* Bom */}
         <div>
-          <p className="text-xs font-semibold text-emerald-700">
-            Bom ({thresholds.labelBom})
-          </p>
+          <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
           <p className="text-xl font-bold font-mono text-emerald-700 leading-tight">
             {metaBom.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
@@ -143,9 +178,7 @@ const MetaQuadrimestreCard = ({
 
         {/* Ótimo */}
         <div>
-          <p className="text-xs font-semibold text-blue-700">
-            Ótimo ({thresholds.labelOtimo})
-          </p>
+          <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
           <p className="text-xl font-bold font-mono text-blue-700 leading-tight">
             {metaOtimo.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
@@ -164,11 +197,105 @@ const MetaQuadrimestreCard = ({
   );
 };
 
-// Indicadores que devem ter Meta e Simulação em cards separados lado a lado
-const SPLIT_META_INDICATORS = new Set([
-  "Tratamento Concluído",
-  "Proced. Odont. Preventivos",
-]);
+// ── Card de Simulação interativa ──────────────────────────────────────────────
+const SimulacaoCard = ({
+  numerador,
+  denominador,
+  thresholds,
+  config,
+}: {
+  numerador: number;
+  denominador: number;
+  thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
+  config: NonNullable<typeof SIMULACAO_CONFIG[string]>;
+}) => {
+  const [extra, setExtra] = useState(0);
+
+  const novoNum   = numerador   + extra * config.deltaNum;
+  const novoDenom = denominador + extra * config.deltaDenom;
+  const novaPct   = novoDenom > 0 ? (novoNum / novoDenom) * 100 : 0;
+  const pctAtual  = denominador > 0 ? (numerador / denominador) * 100 : 0;
+  const ganho     = novaPct - pctAtual;
+  const conceito  = derivaConceito(novaPct, thresholds);
+
+  const handleInput = (val: string) => {
+    const n = parseInt(val.replace(/\D/g, ""), 10);
+    setExtra(isNaN(n) ? 0 : Math.max(0, n));
+  };
+
+  return (
+    <div className="flex flex-col justify-center bg-orange-50 border border-orange-200 rounded-lg px-4 py-2 shadow-sm min-w-[280px]">
+      {/* Cabeçalho */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
+        <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">
+          Simulação
+        </span>
+      </div>
+
+      {/* Input */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">+ adicionar</span>
+        <button
+          onClick={() => setExtra(Math.max(0, extra - 1))}
+          className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+        >
+          −
+        </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={extra}
+          onChange={(e) => handleInput(e.target.value)}
+          className="w-14 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+        />
+        <button
+          onClick={() => setExtra(extra + 1)}
+          className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+        >
+          +
+        </button>
+        <span className="text-xs text-muted-foreground">{config.inputLabel}</span>
+      </div>
+
+      {/* Resultado projetado */}
+      <div className="flex items-start gap-4 mb-2">
+        {/* Numerador / Denominador projetados */}
+        <div>
+          <p className="text-xs text-muted-foreground mb-0.5">Projeção</p>
+          <p className="text-sm font-mono font-bold leading-tight">
+            {novoNum.toLocaleString("pt-BR")}
+            <span className="text-xs font-normal text-muted-foreground">
+              {" "}/ {novoDenom.toLocaleString("pt-BR")}
+            </span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {novaPct.toFixed(1)}%
+            {extra > 0 && (
+              <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* Conceito projetado */}
+        <div className="flex flex-col items-center">
+          <p className="text-xs text-muted-foreground mb-0.5">Conceito</p>
+          <div className={`px-3 py-1 rounded border font-bold text-sm ${conceito.bgBorder} ${conceito.textColor}`}>
+            {conceito.label}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">nota {conceito.nota}</p>
+        </div>
+      </div>
+
+      {/* Dica */}
+      <p className="text-[10px] text-muted-foreground leading-snug italic">
+        💡 {config.hint}
+      </p>
+    </div>
+  );
+};
 
 // ── Row de detalhe compartilhado ─────────────────────────────────────────────
 const DetalheRow = ({
@@ -180,67 +307,16 @@ const DetalheRow = ({
   colSpan: number;
   cardMinWidth?: string;
 }) => {
-  const metaThresholds = META_THRESHOLDS[ind.indicador];
-  const hasMeses = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
-  const isSplit = SPLIT_META_INDICATORS.has(ind.indicador);
+  const metaThresholds  = META_THRESHOLDS[ind.indicador];
+  const simulacaoConfig = SIMULACAO_CONFIG[ind.indicador];
+  const hasMeses        = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
 
-  // Para indicadores com split: Detalhamento à esquerda, Meta à direita
-  if (isSplit && metaThresholds) {
-    return (
-      <TableRow className="bg-muted/20">
-        <TableCell colSpan={colSpan} className="py-4 px-4">
-          <div className="flex flex-wrap items-center justify-center gap-4">
-
-            {/* Card Detalhamento Mensal — à esquerda */}
-            {hasMeses && (
-              <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
-                  <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
-                    Detalhamento Mensal
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-stretch justify-center gap-3">
-                  {ind.mesesDetalhe.map((mes) => (
-                    <div
-                      key={mes.mes}
-                      className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
-                      style={{ minWidth: cardMinWidth }}
-                    >
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                        {mes.mes}
-                      </span>
-                      <span className="text-sm font-mono font-bold">{mes.numerador}</span>
-                      <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
-                      <span className="text-xs font-medium text-primary mt-0.5">
-                        {mes.porcentagem.toFixed(1)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Card Meta do Quadrimestre — à direita */}
-            <MetaQuadrimestreCard
-              denominador={ind.denominador}
-              numerador={ind.numerador}
-              thresholds={metaThresholds}
-            />
-
-          </div>
-        </TableCell>
-      </TableRow>
-    );
-  }
-
-  // Layout padrão para os demais indicadores
   return (
     <TableRow className="bg-muted/20">
       <TableCell colSpan={colSpan} className="py-4 px-4">
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <div className="flex flex-wrap items-start gap-3">
 
-          {/* Container Detalhamento Mensal */}
+          {/* Detalhamento Mensal */}
           {hasMeses && (
             <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm">
               <div className="flex items-center gap-1.5 mb-2">
@@ -270,12 +346,22 @@ const DetalheRow = ({
             </div>
           )}
 
-          {/* Card Meta do Quadrimestre */}
+          {/* Meta do Quadrimestre */}
           {metaThresholds && (
             <MetaQuadrimestreCard
               denominador={ind.denominador}
               numerador={ind.numerador}
               thresholds={metaThresholds}
+            />
+          )}
+
+          {/* Simulação — apenas B2 e B4 */}
+          {metaThresholds && simulacaoConfig && (
+            <SimulacaoCard
+              numerador={ind.numerador}
+              denominador={ind.denominador}
+              thresholds={metaThresholds}
+              config={simulacaoConfig}
             />
           )}
 
@@ -331,9 +417,9 @@ const ResultTable = ({
             </TableHeader>
             <TableBody>
               {result.indicadores.map((ind, idx) => {
-                const isExpanded = expandedRows.has(idx);
-                const hasMeses = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
-                const hasMetaCard = showMeses && !!META_THRESHOLDS[ind.indicador];
+                const isExpanded   = expandedRows.has(idx);
+                const hasMeses     = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+                const hasMetaCard  = showMeses && !!META_THRESHOLDS[ind.indicador];
                 const isExpandable = hasMeses || hasMetaCard;
 
                 return (
@@ -448,7 +534,6 @@ const IndicadorComparativo = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* Linha Geral */}
               <TableRow className="bg-muted/30 font-semibold">
                 <TableCell>🏆 Geral</TableCell>
                 <TableCell className="text-center font-mono text-sm">{fmtNum(geralInd.numerador)}</TableCell>
@@ -465,12 +550,10 @@ const IndicadorComparativo = ({
                 </TableCell>
               </TableRow>
 
-              {/* Detalhe Geral */}
               {showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard) && (
                 <DetalheRow ind={geralInd} colSpan={7} cardMinWidth="80px" />
               )}
 
-              {/* Linhas por equipe — cada uma com seu próprio detalhe + meta */}
               {equipeRows.map(({ equipe, ind }, idx) => (
                 <>
                   <TableRow key={equipe}>
@@ -548,7 +631,6 @@ export const ResultadoFinalTab = ({
         .filter(Boolean)
         .join(" · ");
 
-      // Cabeçalho
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
@@ -561,7 +643,6 @@ export const ResultadoFinalTab = ({
       doc.text(`Filtros: ${filterText}`, 14, y);
       y += 8;
 
-      // Cards de ranking de notas finais
       const rankEquipes = [
         { label: "Geral", nota: geral.notaFinal },
         ...[...porEquipe]
@@ -587,7 +668,6 @@ export const ResultadoFinalTab = ({
       });
       y += cardH + 8;
 
-      // Tabelas por equipe (respeitando filtros)
       const equipesList =
         equipe !== "all"
           ? porEquipe.filter(e => e.equipe === equipe)
@@ -608,14 +688,14 @@ export const ResultadoFinalTab = ({
         const rows = result.indicadores
           .filter(ind => indicadorFiltro === "todos" || ind.indicador === indicadorFiltro)
           .map(ind => ({
-            indicador:    ind.indicador,
-            peso:         String(ind.peso),
-            numerador:    fmtNum(ind.numerador),
-            denominador:  fmtNum(ind.denominador),
-            porcentagem:  `${ind.porcentagem.toFixed(2)}%`,
-            conceito:     CONCEITO_LABELS[ind.conceito],
-            nota:         NOTA_SCORE[ind.conceito],
-            axb:          ind.notaFinal.toFixed(2).replace(".", ","),
+            indicador:   ind.indicador,
+            peso:        String(ind.peso),
+            numerador:   fmtNum(ind.numerador),
+            denominador: fmtNum(ind.denominador),
+            porcentagem: `${ind.porcentagem.toFixed(2)}%`,
+            conceito:    CONCEITO_LABELS[ind.conceito],
+            nota:        NOTA_SCORE[ind.conceito],
+            axb:         ind.notaFinal.toFixed(2).replace(".", ","),
           }));
 
         (doc as any).autoTable({
@@ -632,13 +712,7 @@ export const ResultadoFinalTab = ({
           ],
           body: rows,
           theme: "grid",
-          headStyles: {
-            fillColor: [245, 245, 245],
-            textColor: [30, 30, 30],
-            fontStyle: "bold",
-            fontSize: 8,
-            halign: "center",
-          },
+          headStyles: { fillColor: [245, 245, 245], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 8, halign: "center" },
           bodyStyles: { fontSize: 8, halign: "center" },
           columnStyles: { 0: { halign: "left" } },
           showHead: "everyPage",
@@ -647,11 +721,11 @@ export const ResultadoFinalTab = ({
           styles: { overflow: "linebreak", cellPadding: 2 },
           didParseCell: (data: any) => {
             if (data.section === "body" && data.column.dataKey === "conceito") {
-              const conceito = data.cell.raw as string;
-              if (conceito === "Ótimo")           data.cell.styles.textColor = [29, 78, 216];
-              else if (conceito === "Bom")        data.cell.styles.textColor = [4, 120, 87];
-              else if (conceito === "Suficiente") data.cell.styles.textColor = [180, 83, 9];
-              else if (conceito === "Regular")    data.cell.styles.textColor = [185, 28, 28];
+              const c = data.cell.raw as string;
+              if (c === "Ótimo")           data.cell.styles.textColor = [29, 78, 216];
+              else if (c === "Bom")        data.cell.styles.textColor = [4, 120, 87];
+              else if (c === "Suficiente") data.cell.styles.textColor = [180, 83, 9];
+              else if (c === "Regular")    data.cell.styles.textColor = [185, 28, 28];
             }
           },
         });
@@ -669,7 +743,7 @@ export const ResultadoFinalTab = ({
 
   return (
     <div className="space-y-8">
-      {/* Filters */}
+      {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
@@ -754,7 +828,7 @@ export const ResultadoFinalTab = ({
         <>
           <ResultTable result={geral} title="Resultado Geral" showMeses={showMeses} />
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-foreground flex items-center text-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Award className="h-5 w-5" />
               Resultado por Equipe
             </h2>
@@ -765,7 +839,7 @@ export const ResultadoFinalTab = ({
         </>
       )}
 
-      {/* Legends */}
+      {/* Legendas */}
       <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
         <span className="font-medium text-muted-foreground">Conceito no Indicador:</span>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
