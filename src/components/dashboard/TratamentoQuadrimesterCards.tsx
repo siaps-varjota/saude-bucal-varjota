@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 
 interface TratamentoQuadrimesterCardsProps {
-  patients: TratamentoPatient[];
-  allPatients: TratamentoPatient[];
+  patients: TratamentoPatient[];       // lista completa filtrada só por equipe (sem filtro de período)
+  allPatients: TratamentoPatient[];    // mesma lista — mantido para compatibilidade de interface
   totalComConsulta: number;
   quadrimestre?: string;
 }
@@ -53,7 +53,6 @@ const getQuadrimesterInfo = (date: Date) => {
 
 export const TratamentoQuadrimesterCards = ({
   patients,
-  allPatients,
   quadrimestre = "todos",
 }: TratamentoQuadrimesterCardsProps) => {
   const quadrimesterData = useMemo(() => {
@@ -81,22 +80,20 @@ export const TratamentoQuadrimesterCards = ({
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
-      // ── NUMERADOR: filtra allPatients pela data de TRATAMENTO CONCLUÍDO ──────
-      // Usa allPatients (sem filtro de período pré-aplicado) para garantir que
-      // pacientes com primeiraConsulta fora do quad mas tratamento dentro sejam contados.
-      const tratamentoCount = allPatients.filter(p => {
+      // ── NUMERADOR: conta pela DATA da coluna "Tratamento Concluído" ──────────
+      const tratamentoCount = patients.filter(p => {
         const d = parseTratamentoDate(p.tratamentoConcluido);
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
-      // ── DENOMINADOR: filtra allPatients pela data de PRIMEIRA CONSULTA ────────
-      const consultasQuad = allPatients.filter(p => {
+      // ── DENOMINADOR: conta pela DATA da coluna "1ª Consulta" ─────────────────
+      const consultasQuad = patients.filter(p => {
         const d = parseTratamentoDate(p.primeiraConsulta);
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
       const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
-      const average = monthsCount > 0 ? tratamentoCount / monthsCount : 0;
+      const average    = monthsCount    > 0 ? tratamentoCount / monthsCount        : 0;
 
       result.push({
         label,
@@ -110,8 +107,7 @@ export const TratamentoQuadrimesterCards = ({
     }
 
     return result;
-  }, [allPatients]);
-  // ↑ Removido `patients` das dependências — agora só allPatients é necessário
+  }, [patients]);
 
   const visibleCards = quadrimestre !== "todos"
     ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
