@@ -156,7 +156,8 @@ const Index = () => {
 
   const mesRefOptionsTratamento = useMemo(() => {
     if (!tratamentoPatients) return [];
-    return extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta));
+    // Opções de mês baseadas na coluna Tratamento Concluído (numerador)
+    return extractMesesFromDates(tratamentoPatients.map(p => p.tratamentoConcluido));
   }, [tratamentoPatients]);
 
   const mesRefOptionsTab3 = useMemo(() => {
@@ -181,27 +182,39 @@ const Index = () => {
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
-  const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
-  const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
 
-  // ── Sem filtro de período — usado pelo TratamentoMetaCard para calcular internamente ──
-  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], {
-    ...filtersTratamento,
-    quadrimestre: "todos",
-    mesReferencia: [],
-  });
+  // ── Tratamento: NUMERADOR filtra por tratamentoConcluido ─────────────────────
+  const filteredTratamento = useFilteredTratamento(
+    tratamentoPatients || [],
+    filtersTratamento,
+    "tratamentoConcluido"   // ← numerador: usa data de Tratamento Concluído
+  );
+
+  // ── Tratamento: DENOMINADOR filtra por primeiraConsulta (sem filtro de quad) ─
+  const filteredTratamentoNoQuad = useFilteredTratamento(
+    tratamentoPatients || [],
+    { ...filtersTratamento, quadrimestre: "todos" },
+    "primeiraConsulta"      // ← denominador: usa data da 1ª Consulta
+  );
+
+  // ── Para TratamentoMetaCard: dados brutos filtrados apenas por equipe ─────────
+  // O MetaCard calcula numerador e denominador internamente com a data correta.
+  const tratamentoPatientsByEquipe = useMemo(() =>
+    (tratamentoPatients || []).filter(p =>
+      filtersTratamento.equipe === "all" || p.equipe === filtersTratamento.equipe
+    ),
+    [tratamentoPatients, filtersTratamento.equipe]
+  );
 
   const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
   const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], {
-    equipe: filtersTab5.equipe,
-    microarea: "all",
-    status: "all",
-    quadrimestre: "todos",
-    mesReferencia: [],
-  });
+  const filteredTratamentoByTab5 = useFilteredTratamento(
+    tratamentoPatients || [],
+    { equipe: filtersTab5.equipe, microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] },
+    "primeiraConsulta"
+  );
   const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
@@ -288,8 +301,13 @@ const Index = () => {
 
   const totalPatients          = resolverDenominadorPorEquipe(filtersConsulta.equipe) || patientsByEquipe.length;
   const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-  const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
-  const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+
+  // ── Contadores da Aba 2 ───────────────────────────────────────────────────────
+  // totalTratamento = denominador = 1ªs consultas no período (filtradas por primeiraConsulta)
+  const totalTratamento = filteredTratamentoNoQuad.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
+  // withTratamento = numerador = tratamentos concluídos no período (filtrados por tratamentoConcluido)
+  const withTratamento  = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+
   const totalExodontiasTab3    = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
   const totalAtendimentosTab3  = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
   const totalTab4              = filteredTab4NoQuad.length;
@@ -458,12 +476,12 @@ const Index = () => {
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <TratamentoQuadrimesterCards
                       patients={filteredTratamento}
-                      allPatients={filteredTratamentoNoQuad}
-                      totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                      allPatients={tratamentoPatientsByEquipe}
+                      totalComConsulta={totalTratamento}
                     />
                     <TratamentoMetaCard
-                      patients={filteredTratamentoSemMes}
-                      allPatients={filteredTratamentoSemMes}
+                      patients={tratamentoPatientsByEquipe}
+                      allPatients={tratamentoPatientsByEquipe}
                       quadrimestre={filtersTratamento.quadrimestre}
                       denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
                       consultasAba1Quad={consultasAba1Quad}
