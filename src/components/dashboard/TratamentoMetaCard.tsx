@@ -81,10 +81,13 @@ export const TratamentoMetaCard = ({
       return isWithinInterval(d, { start: range.start, end: range.end });
     };
 
+    // Denominador: 1ªs consultas no período
     const consultasQuad = allPatients.filter(p => matchesPeriod(p.primeiraConsulta)).length;
 
+    // Numerador: tratamentos concluídos no período
     const tratamentosQuad = patients.filter(p => matchesPeriod(p.tratamentoConcluido)).length;
 
+    // Pendentes: 1ª consulta no período mas sem tratamento concluído
     const pendentes = allPatients.filter(p => {
       if (!matchesPeriod(p.primeiraConsulta)) return false;
       const status = (p.comTratamentoConcluido || "").toUpperCase().trim();
@@ -102,7 +105,7 @@ export const TratamentoMetaCard = ({
       const match = quadKey.match(/Q(\d)-(\d{4})/);
       if (!match) return null;
       const q = parseInt(match[1]);
-      let startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
+      const startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
       const currentQuadInfo = getQuadrimesterInfo(now);
       const isCurrentQuad = `Q${currentQuadInfo.quad}-${currentQuadInfo.year}` === quadKey;
       const endMonth = isCurrentQuad ? now.getMonth() : startMonth + 3;
@@ -125,9 +128,9 @@ export const TratamentoMetaCard = ({
       const numeradorSimBom   = tratamentosQuad + novasConsultasBom   * 0.5;
       const numeradorSimOtimo = tratamentosQuad + novasConsultasOtimo * 0.5;
 
-      const tratNeedBomBom    = Math.max(0, Math.ceil(denomSimBom   * 0.501 - numeradorSimBom));
-      const tratNeedBomOtimo  = Math.max(0, Math.ceil(denomSimBom   * 0.751 - numeradorSimBom));
-      const tratNeedOtimoBom  = Math.max(0, Math.ceil(denomSimOtimo * 0.501 - numeradorSimOtimo));
+      const tratNeedBomBom     = Math.max(0, Math.ceil(denomSimBom   * 0.501 - numeradorSimBom));
+      const tratNeedBomOtimo   = Math.max(0, Math.ceil(denomSimBom   * 0.751 - numeradorSimBom));
+      const tratNeedOtimoBom   = Math.max(0, Math.ceil(denomSimOtimo * 0.501 - numeradorSimOtimo));
       const tratNeedOtimoOtimo = Math.max(0, Math.ceil(denomSimOtimo * 0.751 - numeradorSimOtimo));
 
       return {
@@ -151,7 +154,10 @@ export const TratamentoMetaCard = ({
 
   if (!metaData) return null;
 
-  const { consultasQuad, tratamentosQuad, pendentes, currentPct, faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, simulations } = metaData;
+  const {
+    consultasQuad, tratamentosQuad, pendentes, currentPct,
+    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, simulations,
+  } = metaData;
 
   return (
     <>
@@ -252,7 +258,10 @@ export const TratamentoMetaCard = ({
                     {simulations.tratNeedBomBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedBomBom} <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span></p>
+                      <p className="text-lg font-bold text-emerald-700">
+                        {simulations.tratNeedBomBom}{" "}
+                        <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span>
+                      </p>
                     )}
                   </div>
                   <div className="text-center flex-1">
@@ -260,7 +269,10 @@ export const TratamentoMetaCard = ({
                     {simulations.tratNeedBomOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedBomOtimo} <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span></p>
+                      <p className="text-lg font-bold text-blue-700">
+                        {simulations.tratNeedBomOtimo}{" "}
+                        <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span>
+                      </p>
                     )}
                   </div>
                 </div>
@@ -286,7 +298,10 @@ export const TratamentoMetaCard = ({
                     {simulations.tratNeedOtimoBom === 0 ? (
                       <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedOtimoBom} <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span></p>
+                      <p className="text-lg font-bold text-emerald-700">
+                        {simulations.tratNeedOtimoBom}{" "}
+                        <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span>
+                      </p>
                     )}
                   </div>
                   <div className="text-center flex-1">
@@ -294,7 +309,10 @@ export const TratamentoMetaCard = ({
                     {simulations.tratNeedOtimoOtimo === 0 ? (
                       <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                     ) : (
-                      <p className="text-lg font-bold text-blue-700">{simulations.tratNeedOtimoOtimo} <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span></p>
+                      <p className="text-lg font-bold text-blue-700">
+                        {simulations.tratNeedOtimoOtimo}{" "}
+                        <span className="text-xs font-normal">Finalização(ões) de tratamento(s)</span>
+                      </p>
                     )}
                   </div>
                 </div>
