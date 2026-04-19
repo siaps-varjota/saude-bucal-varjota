@@ -669,7 +669,7 @@ const ResultTable = ({
   return (
     <Card className="border shadow-md">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
+        <CardTitle className="flex items-center gap-4 text-lg">
           <Trophy className="h-5 w-5 text-primary" />
           {title}
         </CardTitle>
