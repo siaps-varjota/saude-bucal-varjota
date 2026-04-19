@@ -561,17 +561,17 @@ const DetalheRow = ({
 
   return (
     <TableRow className="bg-muted/20">
-      <TableCell colSpan={colSpan} className="py-4 px-4">
+      <TableCell colSpan={colSpan} className="py-2 px-2">
         <div className="flex items-center justify-center">
-          <div className="flex items-stretch gap-3">
+          <div className="flex items-stretch gap-2">
 
             {/* Coluna esquerda: Meta + Status relacionados (topo) + Detalhamento Mensal (baixo) */}
             {hasLeftCol && (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
 
                 {/* Linha superior: Meta do Quadrimestre + cards de Status relacionados */}
                 {metaThresholds && (
-                  <div className="flex items-stretch gap-3 flex-wrap">
+                  <div className="flex items-stretch gap-2 flex-wrap">
                     <MetaQuadrimestreCard
                       denominador={ind.denominador}
                       numerador={ind.numerador}
