@@ -81,25 +81,37 @@ export const TratamentoQuadrimesterCards = ({
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
+      // ── NUMERADOR: filtra allPatients pela data de TRATAMENTO CONCLUÍDO ──────
+      // Usa allPatients (sem filtro de período pré-aplicado) para garantir que
+      // pacientes com primeiraConsulta fora do quad mas tratamento dentro sejam contados.
       const tratamentoCount = allPatients.filter(p => {
-      const d = parseTratamentoDate(p.tratamentoConcluido);
-      return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
-     }).length;
+        const d = parseTratamentoDate(p.tratamentoConcluido);
+        return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
+      }).length;
 
+      // ── DENOMINADOR: filtra allPatients pela data de PRIMEIRA CONSULTA ────────
       const consultasQuad = allPatients.filter(p => {
         const d = parseTratamentoDate(p.primeiraConsulta);
         return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
       }).length;
 
-      // % = sumTratamentos / sumConsultas (divisão direta)
       const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
       const average = monthsCount > 0 ? tratamentoCount / monthsCount : 0;
 
-      result.push({ label, total: tratamentoCount, totalConsultasQuad: consultasQuad, average, months: monthsCount, percentage, quadKey: `Q${targetQuad}-${targetYear}` });
+      result.push({
+        label,
+        total: tratamentoCount,
+        totalConsultasQuad: consultasQuad,
+        average,
+        months: monthsCount,
+        percentage,
+        quadKey: `Q${targetQuad}-${targetYear}`,
+      });
     }
 
     return result;
-  }, [patients, allPatients]);
+  }, [allPatients]);
+  // ↑ Removido `patients` das dependências — agora só allPatients é necessário
 
   const visibleCards = quadrimestre !== "todos"
     ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
