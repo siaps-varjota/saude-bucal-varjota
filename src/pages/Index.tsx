@@ -459,6 +459,7 @@ const Index = () => {
                       quadrimestre={filtersTratamento.quadrimestre}
                       denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
                       consultasAba1Quad={consultasAba1Quad}
+                      mesReferencia={filtersTratamento.mesReferencia}
                     />
                   </>
                 )}
