@@ -561,17 +561,16 @@ const DetalheRow = ({
 
   return (
     <TableRow className="bg-muted/20">
-      <TableCell colSpan={colSpan} className="py-4 px-4">
-        <div className="flex items-center justify-center">
-          <div className="flex items-stretch gap-3">
+      <TableCell colSpan={colSpan} className="py-2 px-2">
+        <div className="flex items-start gap-2 flex-wrap">
 
             {/* Coluna esquerda: Meta + Status relacionados (topo) + Detalhamento Mensal (baixo) */}
             {hasLeftCol && (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
 
                 {/* Linha superior: Meta do Quadrimestre + cards de Status relacionados */}
                 {metaThresholds && (
-                  <div className="flex items-stretch gap-3 flex-wrap">
+                  <div className="flex items-stretch gap-2 flex-wrap">
                     <MetaQuadrimestreCard
                       denominador={ind.denominador}
                       numerador={ind.numerador}
@@ -626,7 +625,7 @@ const DetalheRow = ({
 
             {/* Coluna direita: Simulação */}
             {hasSimCard && (
-              <div className="self-stretch flex flex-col">
+              <div className="flex flex-col">
                 <SimulacaoCard
                   b1Numerador={b1?.numerador ?? 0}
                   b1Denominador={b1?.denominador ?? 0}
@@ -639,7 +638,6 @@ const DetalheRow = ({
               </div>
             )}
 
-          </div>
         </div>
       </TableCell>
     </TableRow>
