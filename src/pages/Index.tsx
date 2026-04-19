@@ -183,6 +183,14 @@ const Index = () => {
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
   const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
+
+  // ── Sem filtro de período — usado pelo TratamentoMetaCard para calcular internamente ──
+  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], {
+    ...filtersTratamento,
+    quadrimestre: "todos",
+    mesReferencia: [],
+  });
+
   const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
@@ -454,8 +462,8 @@ const Index = () => {
                       totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
                     />
                     <TratamentoMetaCard
-                      patients={filteredTratamento}
-                      allPatients={filteredTratamentoNoQuad}
+                      patients={filteredTratamentoSemMes}
+                      allPatients={filteredTratamentoSemMes}
                       quadrimestre={filtersTratamento.quadrimestre}
                       denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
                       consultasAba1Quad={consultasAba1Quad}
