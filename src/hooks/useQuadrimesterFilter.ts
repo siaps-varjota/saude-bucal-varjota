@@ -76,25 +76,53 @@ export function filterPatientsByQuadrimestre<T extends { primeiraConsulta: strin
   });
 }
 
-// Tab2 - filtra por primeiraConsulta; se tiver tratamentoConcluido, filtra também por ele
-// Pendentes (sem tratamento) são incluídos se a primeiraConsulta estiver no quadrimestre.
-// Concluídos são incluídos se o tratamentoConcluido estiver no quadrimestre.
-export function filterTratamentoByQuadrimestre<T extends { primeiraConsulta: string; tratamentoConcluido: string }>(
+/**
+ * Tab2 — filtra pacientes de tratamento por quadrimestre.
+ *
+ * @param dateField  Controla qual coluna é usada para o filtro de período:
+ *
+ *   "primeiraConsulta"    → DENOMINADOR
+ *     • Concluídos: incluídos se primeiraConsulta estiver no quad.
+ *     • Pendentes (sem tratamentoConcluido): incluídos se primeiraConsulta
+ *       estiver no quad.
+ *     Comportamento original — lista todos que iniciaram no período.
+ *
+ *   "tratamentoConcluido" → NUMERADOR
+ *     • Inclui apenas registros cuja data de tratamentoConcluido cai no quad.
+ *     • Pendentes (sem tratamentoConcluido) são excluídos, pois ainda não
+ *       compõem o numerador.
+ */
+export function filterTratamentoByQuadrimestre<
+  T extends { primeiraConsulta: string; tratamentoConcluido: string }
+>(
   patients: T[],
-  quad: Quadrimestre
+  quad: Quadrimestre,
+  dateField: "primeiraConsulta" | "tratamentoConcluido" = "primeiraConsulta"
 ): T[] {
   if (quad === "todos") return patients;
+
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
 
+  // ── NUMERADOR: filtra exclusivamente pela data de tratamentoConcluido ────────
+  if (dateField === "tratamentoConcluido") {
+    return patients.filter((p) => {
+      const dTrat = parseDate(p.tratamentoConcluido);
+      if (!dTrat) return false; // pendente não entra no numerador
+      return getYear(dTrat) === year && months.includes(getMonth(dTrat));
+    });
+  }
+
+  // ── DENOMINADOR (padrão): comportamento original ──────────────────────────
+  // Concluídos filtrados por tratamentoConcluido; pendentes por primeiraConsulta.
   return patients.filter((p) => {
     const dTrat = parseDate(p.tratamentoConcluido);
     if (dTrat) {
-      // Concluído: filtra pelo tratamentoConcluido
+      // já tem tratamento concluído — filtra pela data de conclusão
       return getYear(dTrat) === year && months.includes(getMonth(dTrat));
     }
-    // Pendente / sem 1ª consulta: filtra pela primeiraConsulta
+    // ainda pendente — filtra pela data da 1ª consulta
     const dCons = parseDate(p.primeiraConsulta);
     if (!dCons) return false;
     return getYear(dCons) === year && months.includes(getMonth(dCons));
