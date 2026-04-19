@@ -24,19 +24,9 @@ export const isTratamentoPendente = (tratamentoConcluido: string): boolean => {
   return differenceInYears(new Date(), tratamentoDate) >= 1;
 };
 
-/**
- * dateField controla qual coluna é usada no filtro de quadrimestre e mesReferência:
- *  - "primeiraConsulta"  → denominador (padrão, comportamento original)
- *  - "tratamentoConcluido" → numerador
- */
-export const useFilteredTratamento = (
-  patients: TratamentoPatient[],
-  filters: FilterState,
-  dateField: "primeiraConsulta" | "tratamentoConcluido" = "primeiraConsulta"
-) => {
+export const useFilteredTratamento = (patients: TratamentoPatient[], filters: FilterState) => {
   return useMemo(() => {
-    // Filtro de quadrimestre usando o campo correto conforme contexto
-    let filtered = filterTratamentoByQuadrimestre(patients, filters.quadrimestre, dateField);
+    let filtered = filterTratamentoByQuadrimestre(patients, filters.quadrimestre);
 
     return filtered.filter((patient) => {
       const matchesEquipe    = filters.equipe    === "all" || patient.equipe    === filters.equipe;
@@ -47,18 +37,20 @@ export const useFilteredTratamento = (
         filters.status === "all" ||
         status === filters.status.toUpperCase().trim();
 
-      // Filtro Mês de Referência — usa o campo correto conforme contexto
+      // Filtro Mês de Referência — filtra pela data de TRATAMENTO CONCLUÍDO
       const selected = filters.mesReferencia || [];
       let matchesMesRef = true;
       if (selected.length > 0) {
-        const dateValue = patient[dateField];
-        const hasNoDate =
-          !dateValue || dateValue === "-" || dateValue.trim() === "";
-        const mmyyyy = dateToMMYYYY(dateValue);
-        matchesMesRef = hasNoDate || matchesMesReferencia(mmyyyy, selected);
+        const mmyyyy = dateToMMYYYY(patient.tratamentoConcluido);
+        const hasNoTratamento =
+          !patient.tratamentoConcluido ||
+          patient.tratamentoConcluido === "-" ||
+          patient.tratamentoConcluido.trim() === "";
+        // Pacientes sem tratamento concluído são excluídos quando há filtro de mês
+        matchesMesRef = !hasNoTratamento && matchesMesReferencia(mmyyyy, selected);
       }
 
       return matchesEquipe && matchesMicroarea && matchesStatus && matchesMesRef;
     });
-  }, [patients, filters, dateField]);
+  }, [patients, filters]);
 };
