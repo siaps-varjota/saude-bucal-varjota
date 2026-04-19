@@ -160,7 +160,7 @@ const MetaQuadrimestreCard = ({
   const exibeUnit   = faltaUnitProp ?? unit;
 
   return (
-    <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm min-w-[260px]">
+    <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm">
       <div className="flex items-center gap-1.5 mb-2">
         <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
         <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
@@ -407,6 +407,86 @@ const SimulacaoCard = ({
   );
 };
 
+// ── Configuração dos cards de status relacionados ────────────────────────────
+/** Quais indicadores relacionados exibir ao lado da Meta de cada indicador */
+const STATUS_RELACIONADOS: Partial<Record<string, string[]>> = {
+  "1ª Consulta Odontológica": ["Tratamento Concluído", "Proced. Odont. Preventivos"],
+  "Tratamento Concluído":     ["1ª Consulta Odontológica", "Proced. Odont. Preventivos"],
+  "Proced. Odont. Preventivos": ["1ª Consulta Odontológica", "Tratamento Concluído"],
+};
+
+/** Rótulo curto e configuração de delta por indicador */
+const STATUS_CONFIG: Record<string, { label: string; unit: string; deltaNum: number; deltaDenom: number }> = {
+  "1ª Consulta Odontológica": { label: "B1",  unit: "atend.",    deltaNum: 1, deltaDenom: 0 },
+  "Tratamento Concluído":     { label: "B2",  unit: "trat.",     deltaNum: 1, deltaDenom: 0 },
+  "Proced. Odont. Preventivos": { label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2 },
+};
+
+// ── Card de status de um indicador relacionado ────────────────────────────────
+const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
+  const thresholds = META_THRESHOLDS[ind.indicador];
+  const cfg        = STATUS_CONFIG[ind.indicador];
+  if (!thresholds || !cfg) return null;
+
+  const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
+
+  // Conceito atual
+  const conceito = derivaConceito(pct, thresholds);
+
+  // Calcula faltam para o próximo nível
+  const calcFaltam = (threshold: number): number => {
+    if (ind.denominador > 0 && ind.numerador / ind.denominador >= threshold) return 0;
+    const { deltaNum: dn, deltaDenom: dd } = cfg;
+    if (dd > 0) {
+      const den = dn - dd * threshold;
+      if (den <= 0) return 0;
+      return Math.max(0, Math.ceil((threshold * ind.denominador - ind.numerador) / den));
+    }
+    return Math.max(0, Math.ceil(ind.denominador * threshold) - ind.numerador);
+  };
+
+  // Próximo nível: se já é Ótimo → nenhum; se Bom → mostra faltam Ótimo; senão → mostra faltam Bom
+  const isOtimo   = pct > thresholds.thresholdOtimo * 100;
+  const isBom     = pct > thresholds.thresholdBom   * 100;
+  const proximoLabel    = isOtimo ? null : isBom ? `Ótimo (${thresholds.labelOtimo})` : `Bom (${thresholds.labelBom})`;
+  const proximoThresh   = isOtimo ? null : isBom ? thresholds.thresholdOtimo : thresholds.thresholdBom;
+  const faltamProximo   = proximoThresh !== null ? calcFaltam(proximoThresh) : 0;
+
+  return (
+    <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 shadow-sm min-w-[150px]">
+      {/* Cabeçalho */}
+      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">{cfg.label}</p>
+      <p className="text-[10px] text-muted-foreground leading-snug mb-1.5 truncate" title={ind.indicador}>
+        {ind.indicador}
+      </p>
+
+      {/* Num / Denom e % */}
+      <p className="text-sm font-mono font-bold leading-tight">
+        {fmtNum(ind.numerador)}
+        <span className="text-xs font-normal text-muted-foreground"> / {fmtNum(ind.denominador)}</span>
+      </p>
+      <p className="text-xs text-muted-foreground mb-1.5">{pct.toFixed(1)}%</p>
+
+      {/* Badge conceito atual */}
+      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit mb-1.5 ${conceito.bgBorder} ${conceito.textColor}`}>
+        {conceito.label}
+      </div>
+
+      {/* Faltam para próximo nível */}
+      {isOtimo ? (
+        <p className="text-[10px] font-medium text-blue-600">✓ Ótimo atingido!</p>
+      ) : faltamProximo > 0 ? (
+        <p className="text-[10px] font-medium text-red-600 leading-snug">
+          Faltam {faltamProximo.toLocaleString("pt-BR")} {cfg.unit}<br />
+          <span className="text-muted-foreground">p/ {proximoLabel}</span>
+        </p>
+      ) : (
+        <p className="text-[10px] font-medium text-emerald-600">✓ {proximoLabel} atingido!</p>
+      )}
+    </div>
+  );
+};
+
 // ── Row de detalhe compartilhado ─────────────────────────────────────────────
 const DetalheRow = ({
   ind,
@@ -435,21 +515,31 @@ const DetalheRow = ({
         <div className="flex items-center justify-center">
           <div className="flex items-stretch gap-3">
 
-            {/* Coluna esquerda: Meta do Quadrimestre + Detalhamento Mensal */}
+            {/* Coluna esquerda: Meta + Status relacionados (topo) + Detalhamento Mensal (baixo) */}
             {hasLeftCol && (
               <div className="flex flex-col gap-3">
 
+                {/* Linha superior: Meta do Quadrimestre + cards de Status relacionados */}
                 {metaThresholds && (
-                  <MetaQuadrimestreCard
-                    denominador={ind.denominador}
-                    numerador={ind.numerador}
-                    thresholds={metaThresholds}
-                    {...(ind.indicador === "Proced. Odont. Preventivos" && {
-                      deltaNum: 2,
-                      deltaDenom: 2,
-                      faltaUnit: "consultas",
+                  <div className="flex items-stretch gap-3 flex-wrap">
+                    <MetaQuadrimestreCard
+                      denominador={ind.denominador}
+                      numerador={ind.numerador}
+                      thresholds={metaThresholds}
+                      {...(ind.indicador === "Proced. Odont. Preventivos" && {
+                        deltaNum: 2,
+                        deltaDenom: 2,
+                        faltaUnit: "consultas",
+                      })}
+                    />
+                    {/* Status dos indicadores relacionados */}
+                    {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
+                      const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);
+                      return relInd ? (
+                        <StatusRelacionadoCard key={nomeRel} ind={relInd} />
+                      ) : null;
                     })}
-                  />
+                  </div>
                 )}
 
                 {hasMeses && (
