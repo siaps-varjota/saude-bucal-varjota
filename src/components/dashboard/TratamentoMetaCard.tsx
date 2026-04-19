@@ -5,8 +5,8 @@ import { Target, TrendingUp, AlertCircle } from "lucide-react";
 import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
 interface TratamentoMetaCardProps {
-  patients: TratamentoPatient[];
-  allPatients: TratamentoPatient[];
+  patients: TratamentoPatient[];    // lista filtrada apenas por equipe (sem filtro de período)
+  allPatients: TratamentoPatient[]; // mesma lista — mantido para compatibilidade
   quadrimestre?: string;
   denominadorB1?: number;
   consultasAba1Quad?: number;
@@ -27,7 +27,7 @@ const parseDateStr = (str: string): Date | null => {
 
 const getQuadrimesterInfo = (date: Date) => {
   const month = date.getMonth();
-  const year = date.getFullYear();
+  const year  = date.getFullYear();
   if (month <= 3) return { quad: 1, year };
   if (month <= 7) return { quad: 2, year };
   return { quad: 3, year };
@@ -38,11 +38,8 @@ const getQuadRange = (quadKey: string) => {
   if (!match) return null;
   const q = parseInt(match[1]);
   const y = parseInt(match[2]);
-  let startMonth: number;
-  if (q === 1) startMonth = 0;
-  else if (q === 2) startMonth = 4;
-  else startMonth = 8;
-  const endMonth = startMonth + 3;
+  const startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
+  const endMonth   = startMonth + 3;
 
   const now = new Date();
   const currentQuad = getQuadrimesterInfo(now);
@@ -51,13 +48,12 @@ const getQuadRange = (quadKey: string) => {
 
   return {
     start: startOfMonth(new Date(y, startMonth, 1)),
-    end: endOfMonth(new Date(y, actualEndMonth, 1)),
+    end:   endOfMonth(new Date(y, actualEndMonth, 1)),
   };
 };
 
 export const TratamentoMetaCard = ({
   patients,
-  allPatients,
   quadrimestre = "todos",
   denominadorB1 = 0,
   consultasAba1Quad = 0,
@@ -66,12 +62,14 @@ export const TratamentoMetaCard = ({
   const metaData = useMemo(() => {
     const now = new Date();
     const currentQuad = getQuadrimesterInfo(now);
-    const quadKey = quadrimestre !== "todos" ? quadrimestre : `Q${currentQuad.quad}-${currentQuad.year}`;
+    const quadKey = quadrimestre !== "todos"
+      ? quadrimestre
+      : `Q${currentQuad.quad}-${currentQuad.year}`;
     const range = getQuadRange(quadKey);
     if (!range) return null;
 
-    // Quando há filtro de mês específico, usa monthKey "MM/yyyy"; senão usa intervalo do quad
-    const matchesPeriod = (dateStr: string): boolean => {
+    // ── Helper: verifica se uma data cai no período selecionado ───────────────
+    const inPeriod = (dateStr: string): boolean => {
       const d = parseDateStr(dateStr);
       if (!d) return false;
       if (mesReferencia.length > 0) {
@@ -81,26 +79,24 @@ export const TratamentoMetaCard = ({
       return isWithinInterval(d, { start: range.start, end: range.end });
     };
 
-    // Denominador: 1ªs consultas no período
-    const consultasQuad = allPatients.filter(p => matchesPeriod(p.primeiraConsulta)).length;
+    // ── DENOMINADOR: 1ªs consultas no período ────────────────────────────────
+    const consultasQuad = patients.filter(p => inPeriod(p.primeiraConsulta)).length;
 
-    // Numerador: tratamentos concluídos no período
-    const tratamentosQuad = patients.filter(p => matchesPeriod(p.tratamentoConcluido)).length;
+    // ── NUMERADOR: tratamentos concluídos no período (data da coluna) ─────────
+    const tratamentosQuad = patients.filter(p => inPeriod(p.tratamentoConcluido)).length;
 
-    // Pendentes: 1ª consulta no período mas sem tratamento concluído
-    const pendentes = allPatients.filter(p => {
-      if (!matchesPeriod(p.primeiraConsulta)) return false;
-      const status = (p.comTratamentoConcluido || "").toUpperCase().trim();
-      return status !== "SIM";
+    // ── Pendentes: têm 1ª consulta no período mas sem tratamento concluído ────
+    const pendentes = patients.filter(p => {
+      if (!inPeriod(p.primeiraConsulta)) return false;
+      const trat = (p.tratamentoConcluido || "").trim();
+      return !trat || trat === "-";
     }).length;
 
     const currentPct = consultasQuad > 0 ? (tratamentosQuad / consultasQuad) * 100 : 0;
+    const faltamBom   = Math.max(0, Math.ceil(consultasQuad * 0.501) - tratamentosQuad);
+    const faltamOtimo = Math.max(0, Math.ceil(consultasQuad * 0.751) - tratamentosQuad);
 
-    const needBom = Math.ceil(consultasQuad * 0.501) - tratamentosQuad;
-    const faltamBom = Math.max(0, needBom);
-    const needOtimo = Math.ceil(consultasQuad * 0.751) - tratamentosQuad;
-    const faltamOtimo = Math.max(0, needOtimo);
-
+    // ── Simulação se Aba 1 atingir meta ──────────────────────────────────────
     const simulations = denominadorB1 > 0 ? (() => {
       const match = quadKey.match(/Q(\d)-(\d{4})/);
       if (!match) return null;
@@ -128,29 +124,25 @@ export const TratamentoMetaCard = ({
       const numeradorSimBom   = tratamentosQuad + novasConsultasBom   * 0.5;
       const numeradorSimOtimo = tratamentosQuad + novasConsultasOtimo * 0.5;
 
-      const tratNeedBomBom     = Math.max(0, Math.ceil(denomSimBom   * 0.501 - numeradorSimBom));
-      const tratNeedBomOtimo   = Math.max(0, Math.ceil(denomSimBom   * 0.751 - numeradorSimBom));
-      const tratNeedOtimoBom   = Math.max(0, Math.ceil(denomSimOtimo * 0.501 - numeradorSimOtimo));
-      const tratNeedOtimoOtimo = Math.max(0, Math.ceil(denomSimOtimo * 0.751 - numeradorSimOtimo));
-
       return {
         consultasBom, consultasOtimo,
         aba1JaAtingiuBom, aba1JaAtingiuOtimo,
         faltamAba1Bom, faltamAba1Otimo,
-        denomBom: denomSimBom, denomOtimo: denomSimOtimo,
-        numeradorSimBom, numeradorSimOtimo,
-        tratNeedBomBom, tratNeedBomOtimo,
-        tratNeedOtimoBom, tratNeedOtimoOtimo,
+        tratNeedBomBom:   Math.max(0, Math.ceil(denomSimBom   * 0.501 - numeradorSimBom)),
+        tratNeedBomOtimo: Math.max(0, Math.ceil(denomSimBom   * 0.751 - numeradorSimBom)),
+        tratNeedOtimoBom:   Math.max(0, Math.ceil(denomSimOtimo * 0.501 - numeradorSimOtimo)),
+        tratNeedOtimoOtimo: Math.max(0, Math.ceil(denomSimOtimo * 0.751 - numeradorSimOtimo)),
       };
     })() : null;
 
     return {
       consultasQuad, tratamentosQuad, pendentes, currentPct,
       faltamBom, faltamOtimo,
-      alreadyBom: currentPct > 50, alreadyOtimo: currentPct > 75,
+      alreadyBom:   currentPct > 50,
+      alreadyOtimo: currentPct > 75,
       simulations,
     };
-  }, [patients, allPatients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia]);
+  }, [patients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia]);
 
   if (!metaData) return null;
 
@@ -228,7 +220,7 @@ export const TratamentoMetaCard = ({
         </CardContent>
       </Card>
 
-      {/* Simulação — Card separado */}
+      {/* Simulação */}
       {simulations && (
         <Card className="border-0 shadow-md bg-gradient-to-br from-indigo-50 to-purple-50 border-l-4 border-l-indigo-500 col-span-2 lg:col-span-full">
           <CardContent className="p-4">
@@ -247,9 +239,7 @@ export const TratamentoMetaCard = ({
                   {simulations.aba1JaAtingiuBom ? (
                     <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
                   ) : (
-                    <span className="text-xs font-bold text-red-500">
-                      (faltam {simulations.faltamAba1Bom} na Aba 1)
-                    </span>
+                    <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Bom} na Aba 1)</span>
                   )}
                 </div>
                 <div className="flex gap-4">
@@ -287,9 +277,7 @@ export const TratamentoMetaCard = ({
                   {simulations.aba1JaAtingiuOtimo ? (
                     <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
                   ) : (
-                    <span className="text-xs font-bold text-red-500">
-                      (faltam {simulations.faltamAba1Otimo} na Aba 1)
-                    </span>
+                    <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Otimo} na Aba 1)</span>
                   )}
                 </div>
                 <div className="flex gap-4">
