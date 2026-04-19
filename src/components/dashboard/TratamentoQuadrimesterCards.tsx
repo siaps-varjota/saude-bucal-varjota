@@ -81,10 +81,10 @@ export const TratamentoQuadrimesterCards = ({
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
-      const tratamentoCount = patients.filter(p => {
-        const d = parseTratamentoDate(p.tratamentoConcluido);
-        return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
-      }).length;
+      const tratamentoCount = allPatients.filter(p => {
+      const d = parseTratamentoDate(p.tratamentoConcluido);
+      return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
+     }).length;
 
       const consultasQuad = allPatients.filter(p => {
         const d = parseTratamentoDate(p.primeiraConsulta);
