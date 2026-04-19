@@ -5,25 +5,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 
 interface TratamentoQuadrimesterCardsProps {
-  patients: TratamentoPatient[];       // lista completa filtrada só por equipe (sem filtro de período)
-  allPatients: TratamentoPatient[];    // mesma lista — mantido para compatibilidade de interface
+  patients: TratamentoPatient[];
+  allPatients: TratamentoPatient[];
   totalComConsulta: number;
   quadrimestre?: string;
+  mesReferencia?: string[]; // ← novo
 }
 
-const parseTratamentoDate = (tratamento: string): Date | null => {
-  if (!tratamento || tratamento === "-" || tratamento.trim() === "") return null;
+const parseTratamentoDate = (str: string): Date | null => {
+  if (!str || str === "-" || str.trim() === "") return null;
   const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
   for (const fmt of formats) {
     try {
-      const parsed = parse(tratamento.trim(), fmt, new Date());
+      const parsed = parse(str.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
     } catch { continue; }
   }
   return null;
 };
 
-// Critérios B2 — Regular ≤25%, Suficiente >25% e ≤50%, Bom >50% e ≤75%, Ótimo >75%
 const getScoreCategory = (percentage: number, total: number): string => {
   if (total === 0) return "none";
   if (percentage > 75) return "otimo";
@@ -38,7 +38,6 @@ const getScoreStyles = (category: string) => {
     case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
     case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
     case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
-    case "none":
     default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
@@ -51,9 +50,26 @@ const getQuadrimesterInfo = (date: Date) => {
   return { quad: 3, year };
 };
 
+// Verifica se uma data cai no período: mesReferencia tem prioridade sobre o range
+const inPeriod = (
+  dateStr: string,
+  startDate: Date,
+  endDate: Date,
+  mesReferencia: string[]
+): boolean => {
+  const d = parseTratamentoDate(dateStr);
+  if (!d) return false;
+  if (mesReferencia.length > 0) {
+    const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    return mesReferencia.includes(key);
+  }
+  return isWithinInterval(d, { start: startDate, end: endDate });
+};
+
 export const TratamentoQuadrimesterCards = ({
   patients,
   quadrimestre = "todos",
+  mesReferencia = [], // ← novo
 }: TratamentoQuadrimesterCardsProps) => {
   const quadrimesterData = useMemo(() => {
     const now = new Date();
@@ -73,27 +89,25 @@ export const TratamentoQuadrimesterCards = ({
       else if (targetQuad === 2) { startMonth = 4; endMonth = 7;  label = `2º Quad/${targetYear}`; }
       else                       { startMonth = 8; endMonth = 11; label = `3º Quad/${targetYear}`; }
 
-      const isCurrentQuad = i === 0;
+      const isCurrentQuad  = i === 0;
       const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
-      const monthsCount = actualEndMonth - startMonth + 1;
+      const monthsCount    = actualEndMonth - startMonth + 1;
 
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
-      // ── NUMERADOR: conta pela DATA da coluna "Tratamento Concluído" ──────────
-      const tratamentoCount = patients.filter(p => {
-        const d = parseTratamentoDate(p.tratamentoConcluido);
-        return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
-      }).length;
+      // ── DENOMINADOR: primeiraConsulta no período ──────────────────────────
+      const consultasQuad = patients.filter(p =>
+        inPeriod(p.primeiraConsulta, startDate, endDate, mesReferencia)
+      ).length;
 
-      // ── DENOMINADOR: conta pela DATA da coluna "1ª Consulta" ─────────────────
-      const consultasQuad = patients.filter(p => {
-        const d = parseTratamentoDate(p.primeiraConsulta);
-        return d ? isWithinInterval(d, { start: startDate, end: endDate }) : false;
-      }).length;
+      // ── NUMERADOR: tratamentoConcluido no período ─────────────────────────
+      const tratamentoCount = patients.filter(p =>
+        inPeriod(p.tratamentoConcluido, startDate, endDate, mesReferencia)
+      ).length;
 
       const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
-      const average    = monthsCount    > 0 ? tratamentoCount / monthsCount        : 0;
+      const average    = monthsCount    > 0 ? tratamentoCount / monthsCount          : 0;
 
       result.push({
         label,
@@ -107,7 +121,7 @@ export const TratamentoQuadrimesterCards = ({
     }
 
     return result;
-  }, [patients]);
+  }, [patients, mesReferencia]); // ← mesReferencia na dep
 
   const visibleCards = quadrimestre !== "todos"
     ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
