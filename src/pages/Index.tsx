@@ -393,7 +393,11 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingPatients
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <MonthlyCards patients={filteredPatients} totalPatients={totalPatients} />}
+                  : <MonthlyCards
+                      patients={filteredPatients}
+                      totalPatients={totalPatients}
+                      mesReferencia={filtersConsulta.mesReferencia}
+                    />}
               </div>
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
             </div>
@@ -463,7 +467,11 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)</h2>
                 {isLoadingTratamento
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <TratamentoMonthlyCards patients={filteredTratamento} allPatients={filteredTratamentoNoQuad}  mesReferencia={filtersTratamento.mesReferencia}/>
+                  : <TratamentoMonthlyCards
+                      patients={filteredTratamento}
+                      allPatients={filteredTratamentoNoQuad}
+                      mesReferencia={filtersTratamento.mesReferencia}
+                    />}
               </div>
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
             </div>
@@ -513,7 +521,10 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab3
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab3MonthlyCards records={filteredTab3} />}
+                  : <Tab3MonthlyCards
+                      records={filteredTab3}
+                      mesReferencia={filtersTab3.mesReferencia}
+                    />}
               </div>
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
@@ -566,7 +577,11 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingTab4
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} />}
+                  : <Tab4MonthlyCards
+                      patients={filteredTab4}
+                      totalPatients={filteredTab4NoQuad.length}
+                      mesReferencia={filtersTab4.mesReferencia}
+                    />}
               </div>
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
@@ -626,7 +641,10 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
                 {isLoadingTab5
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab5MonthlyCards records={filteredTab5} />}
+                  : <Tab5MonthlyCards
+                      records={filteredTab5}
+                      mesReferencia={filtersTab5.mesReferencia}
+                    />}
               </div>
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
@@ -676,7 +694,10 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab6
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab6MonthlyCards records={filteredTab6} />}
+                  : <Tab6MonthlyCards
+                      records={filteredTab6}
+                      mesReferencia={filtersTab6.mesReferencia}
+                    />}
               </div>
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
