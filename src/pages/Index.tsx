@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { parse, isValid } from "date-fns";
-import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
+import { extractMesesFromDates, extractMesesFromMesAno, matchesMesReferencia, dateToMMYYYY } from "@/lib/mesReferenciaUtils";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { useTab3Data } from "@/hooks/useTab3Data";
@@ -134,7 +134,7 @@ const Index = () => {
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey as unknown as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
   const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
   const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
@@ -154,7 +154,6 @@ const Index = () => {
     return extractMesesFromDates(patients.map(p => p.primeiraConsulta));
   }, [patients]);
 
-  // Opções de mês de referência extraídas da coluna Tratamento Concluído
   const mesRefOptionsTratamento = useMemo(() => {
     if (!tratamentoPatients) return [];
     return extractMesesFromDates(tratamentoPatients.map(p => p.tratamentoConcluido));
@@ -185,9 +184,7 @@ const Index = () => {
   const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
 
-  // ── Dados brutos filtrados apenas por equipe — usados pelos cards de quadrimestre
-  // e pela Meta, que calculam numerador (tratamentoConcluido) e denominador
-  // (primeiraConsulta) internamente sobre o período certo.
+  // ── Dados brutos filtrados apenas por equipe ──────────────────────────────
   const tratamentoPatientsByEquipe = useMemo(() =>
     (tratamentoPatients || []).filter(p =>
       filtersTratamento.equipe === "all" || p.equipe === filtersTratamento.equipe
@@ -293,10 +290,27 @@ const Index = () => {
   const totalPatients    = resolverDenominadorPorEquipe(filtersConsulta.equipe) || patientsByEquipe.length;
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
 
-  // Denominador: 1ªs consultas (filtradas por primeiraConsulta via hook)
-  const totalTratamento = filteredTratamentoNoQuad.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
-  // Numerador: tratamentos concluídos (filtrados por tratamentoConcluido via hook)
-  const withTratamento  = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+  // ── Denominador Aba 2: primeiraConsulta no período ────────────────────────
+  // Quando mesReferencia está ativo, filteredTratamentoNoQuad já filtra o
+  // denominador por primeiraConsulta no(s) mês(es) (via hook corrigido).
+  const totalTratamento = filteredTratamentoNoQuad.filter(
+    p => !isTratamentoPendente(p.primeiraConsulta)
+  ).length;
+
+  // ── Numerador Aba 2: tratamentoConcluido no período ───────────────────────
+  // Quando mesReferencia está ativo, só contamos tratamentos cujo
+  // tratamentoConcluido cai no(s) mês(es) selecionado(s).
+  const withTratamento = useMemo(() => {
+    const selected = filtersTratamento.mesReferencia || [];
+    return filteredTratamento.filter(p => {
+      if (isTratamentoPendente(p.tratamentoConcluido)) return false;
+      if (selected.length > 0) {
+        const mmyyyy = dateToMMYYYY(p.tratamentoConcluido);
+        return matchesMesReferencia(mmyyyy, selected);
+      }
+      return true;
+    }).length;
+  }, [filteredTratamento, filtersTratamento.mesReferencia]);
 
   const totalExodontiasTab3    = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
   const totalAtendimentosTab3  = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
@@ -460,17 +474,12 @@ const Index = () => {
                   <>
                     <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    {/*
-                      TratamentoQuadrimesterCards e TratamentoMetaCard recebem
-                      tratamentoPatientsByEquipe (bruto, sem filtro de período) para
-                      calcular numerador (data de tratamentoConcluido) e denominador
-                      (data de primeiraConsulta) internamente sobre o período correto.
-                    */}
                     <TratamentoQuadrimesterCards
                       patients={tratamentoPatientsByEquipe}
                       allPatients={tratamentoPatientsByEquipe}
                       totalComConsulta={totalTratamento}
                       quadrimestre={filtersTratamento.quadrimestre}
+                      mesReferencia={filtersTratamento.mesReferencia}
                     />
                     <TratamentoMetaCard
                       patients={tratamentoPatientsByEquipe}
