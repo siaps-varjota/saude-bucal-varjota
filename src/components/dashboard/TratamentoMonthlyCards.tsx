@@ -108,14 +108,18 @@ export const TratamentoMonthlyCards = ({
     return months;
   }, [patients, allPatients]);
 
-  // 1. Filtro por quadrimestre
+  // 1. Filtro por quadrimestre — remove meses fora do quad
   let filteredMonthlyData = quadMonths && quadYear
     ? monthlyData.filter(m => m.date.getFullYear() === quadYear && quadMonths.includes(m.date.getMonth()))
     : monthlyData;
 
-  // 2. Filtro por mês específico selecionado no PatientFilters
+  // 2. Filtro por mês específico — mantém todos os cards mas zera os não selecionados
   if (mesReferencia.length > 0) {
-    filteredMonthlyData = filteredMonthlyData.filter(m => mesReferencia.includes(m.monthKey));
+    filteredMonthlyData = filteredMonthlyData.map(m =>
+      mesReferencia.includes(m.monthKey)
+        ? m
+        : { ...m, tratamentoCount: 0, consultaCount: 0 }
+    );
   }
 
   return (
