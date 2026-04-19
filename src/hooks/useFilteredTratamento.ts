@@ -24,27 +24,41 @@ export const isTratamentoPendente = (tratamentoConcluido: string): boolean => {
   return differenceInYears(new Date(), tratamentoDate) >= 1;
 };
 
-export const useFilteredTratamento = (patients: TratamentoPatient[], filters: FilterState) => {
+/**
+ * dateField controla qual coluna é usada no filtro de quadrimestre e mesReferência:
+ *  - "primeiraConsulta"  → denominador (padrão, comportamento original)
+ *  - "tratamentoConcluido" → numerador
+ */
+export const useFilteredTratamento = (
+  patients: TratamentoPatient[],
+  filters: FilterState,
+  dateField: "primeiraConsulta" | "tratamentoConcluido" = "primeiraConsulta"
+) => {
   return useMemo(() => {
-    let filtered = filterTratamentoByQuadrimestre(patients, filters.quadrimestre);
+    // Filtro de quadrimestre usando o campo correto conforme contexto
+    let filtered = filterTratamentoByQuadrimestre(patients, filters.quadrimestre, dateField);
+
     return filtered.filter((patient) => {
-      const matchesEquipe = filters.equipe === "all" || patient.equipe === filters.equipe;
+      const matchesEquipe    = filters.equipe    === "all" || patient.equipe    === filters.equipe;
       const matchesMicroarea = filters.microarea === "all" || patient.microarea === filters.microarea;
+
       const status = (patient.comTratamentoConcluido || "").toUpperCase().trim();
       const matchesStatus =
         filters.status === "all" ||
         status === filters.status.toUpperCase().trim();
 
-      // Filtro Mês de Referência — filtra pela data da 1ª Consulta
+      // Filtro Mês de Referência — usa o campo correto conforme contexto
       const selected = filters.mesReferencia || [];
       let matchesMesRef = true;
       if (selected.length > 0) {
-        const mmyyyy = dateToMMYYYY(patient.primeiraConsulta);
-        const hasNoConsulta = !patient.primeiraConsulta || patient.primeiraConsulta === "-" || patient.primeiraConsulta.trim() === "";
-        matchesMesRef = hasNoConsulta || matchesMesReferencia(mmyyyy, selected);
+        const dateValue = patient[dateField];
+        const hasNoDate =
+          !dateValue || dateValue === "-" || dateValue.trim() === "";
+        const mmyyyy = dateToMMYYYY(dateValue);
+        matchesMesRef = hasNoDate || matchesMesReferencia(mmyyyy, selected);
       }
 
       return matchesEquipe && matchesMicroarea && matchesStatus && matchesMesRef;
     });
-  }, [patients, filters]);
+  }, [patients, filters, dateField]);
 };
