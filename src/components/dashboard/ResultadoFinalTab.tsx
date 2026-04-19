@@ -296,6 +296,7 @@ const SimulacaoCard = ({
   b2Denominador,
   b5Numerador,
   b5Denominador,
+  todosIndicadores,
 }: {
   b1Numerador: number;
   b1Denominador: number;
@@ -303,6 +304,7 @@ const SimulacaoCard = ({
   b2Denominador: number;
   b5Numerador: number;
   b5Denominador: number;
+  todosIndicadores?: IndicadorResult[];
 }) => {
   const [rawConsultas,  setRawConsultas]  = useState("0");
   const [rawConclusoes, setRawConclusoes] = useState("0");
@@ -336,6 +338,26 @@ const SimulacaoCard = ({
   const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
+  // ── Nota Final Atual e Projetada ──────────────────────────────────────────
+  const notaFinalAtual = todosIndicadores?.reduce((s, i) => s + i.notaFinal, 0) ?? 0;
+
+  const notaNum = (c: ReturnType<typeof derivaConceito>): number =>
+    parseFloat(c.nota.replace(",", "."));
+
+  const b1Ind = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
+  const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
+  const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
+
+  const notaFinalProjetada = todosIndicadores
+    ? notaFinalAtual
+        - (b1Ind?.notaFinal ?? 0) + notaNum(b1Conceito) * (b1Ind?.peso ?? 0)
+        - (b2Ind?.notaFinal ?? 0) + notaNum(b2Conceito) * (b2Ind?.peso ?? 0)
+        - (b5Ind?.notaFinal ?? 0) + notaNum(b5Conceito) * (b5Ind?.peso ?? 0)
+    : 0;
+
+  const notaDelta = notaFinalProjetada - notaFinalAtual;
+  const hasNota   = notaFinalAtual > 0;
+
   return (
     <div className="flex flex-col h-full bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 shadow-sm">
 
@@ -345,24 +367,52 @@ const SimulacaoCard = ({
         <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Simulação</span>
       </div>
 
-      {/* Inputs */}
-      <div className="flex items-start gap-5 mb-3 flex-wrap">
-        <InputStepper
-          label="+ adicionar"
-          sublabel="1ªs consultas"
-          rawValue={rawConsultas}
-          onRawChange={setRawConsultas}
-          onDecrement={() => setRawConsultas(String(Math.max(0, extraConsultas - 1)))}
-          onIncrement={() => setRawConsultas(String(extraConsultas + 1))}
-        />
-        <InputStepper
-          label="+ adicionar"
-          sublabel="trat. concluídos"
-          rawValue={rawConclusoes}
-          onRawChange={setRawConclusoes}
-          onDecrement={() => setRawConclusoes(String(Math.max(0, extraConclusoes - 1)))}
-          onIncrement={() => setRawConclusoes(String(extraConclusoes + 1))}
-        />
+      {/* Linha de inputs + painel de nota lado a lado */}
+      <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+
+        {/* Inputs */}
+        <div className="flex items-start gap-5 flex-wrap">
+          <InputStepper
+            label="+ adicionar"
+            sublabel="1ªs consultas"
+            rawValue={rawConsultas}
+            onRawChange={setRawConsultas}
+            onDecrement={() => setRawConsultas(String(Math.max(0, extraConsultas - 1)))}
+            onIncrement={() => setRawConsultas(String(extraConsultas + 1))}
+          />
+          <InputStepper
+            label="+ adicionar"
+            sublabel="trat. concluídos"
+            rawValue={rawConclusoes}
+            onRawChange={setRawConclusoes}
+            onDecrement={() => setRawConclusoes(String(Math.max(0, extraConclusoes - 1)))}
+            onIncrement={() => setRawConclusoes(String(extraConclusoes + 1))}
+          />
+        </div>
+
+        {/* Painel Nota Final */}
+        {hasNota && (
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Nota atual</span>
+              <span className={`text-lg font-bold font-mono ${getNotaFinalColor(notaFinalAtual)}`}>
+                {notaFinalAtual.toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Com simulação</span>
+              <span className={`text-lg font-bold font-mono ${getNotaFinalColor(notaFinalProjetada)}`}>
+                {notaFinalProjetada.toFixed(2).replace(".", ",")}
+              </span>
+              {anyInput && notaDelta !== 0 && (
+                <span className={`text-xs font-medium ${notaDelta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                  ({notaDelta > 0 ? "+" : ""}{notaDelta.toFixed(2).replace(".", ",")})
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Divisor */}
@@ -584,6 +634,7 @@ const DetalheRow = ({
                   b2Denominador={b2?.denominador ?? 0}
                   b5Numerador={b5?.numerador ?? 0}
                   b5Denominador={b5?.denominador ?? 0}
+                  todosIndicadores={todosIndicadores}
                 />
               </div>
             )}
