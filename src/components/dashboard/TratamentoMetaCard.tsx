@@ -9,7 +9,8 @@ interface TratamentoMetaCardProps {
   allPatients: TratamentoPatient[];
   quadrimestre?: string;
   denominadorB1?: number;
-  consultasAba1Quad?: number; // consultas já realizadas na Aba 1 no quadrimestre
+  consultasAba1Quad?: number;
+  mesReferencia?: string[];
 }
 
 const parseDateStr = (str: string): Date | null => {
@@ -60,6 +61,7 @@ export const TratamentoMetaCard = ({
   quadrimestre = "todos",
   denominadorB1 = 0,
   consultasAba1Quad = 0,
+  mesReferencia = [],
 }: TratamentoMetaCardProps) => {
   const metaData = useMemo(() => {
     const now = new Date();
@@ -68,19 +70,23 @@ export const TratamentoMetaCard = ({
     const range = getQuadRange(quadKey);
     if (!range) return null;
 
-    const consultasQuad = allPatients.filter(p => {
-      const d = parseDateStr(p.primeiraConsulta);
-      return d ? isWithinInterval(d, { start: range.start, end: range.end }) : false;
-    }).length;
+    // Quando há filtro de mês específico, usa monthKey "MM/yyyy"; senão usa intervalo do quad
+    const matchesPeriod = (dateStr: string): boolean => {
+      const d = parseDateStr(dateStr);
+      if (!d) return false;
+      if (mesReferencia.length > 0) {
+        const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+        return mesReferencia.includes(key);
+      }
+      return isWithinInterval(d, { start: range.start, end: range.end });
+    };
 
-    const tratamentosQuad = patients.filter(p => {
-      const d = parseDateStr(p.tratamentoConcluido);
-      return d ? isWithinInterval(d, { start: range.start, end: range.end }) : false;
-    }).length;
+    const consultasQuad = allPatients.filter(p => matchesPeriod(p.primeiraConsulta)).length;
+
+    const tratamentosQuad = patients.filter(p => matchesPeriod(p.tratamentoConcluido)).length;
 
     const pendentes = allPatients.filter(p => {
-      const dConsulta = parseDateStr(p.primeiraConsulta);
-      if (!dConsulta || !isWithinInterval(dConsulta, { start: range.start, end: range.end })) return false;
+      if (!matchesPeriod(p.primeiraConsulta)) return false;
       const status = (p.comTratamentoConcluido || "").toUpperCase().trim();
       return status !== "SIM";
     }).length;
@@ -91,7 +97,6 @@ export const TratamentoMetaCard = ({
     const faltamBom = Math.max(0, needBom);
     const needOtimo = Math.ceil(consultasQuad * 0.751) - tratamentosQuad;
     const faltamOtimo = Math.max(0, needOtimo);
-
 
     const simulations = denominadorB1 > 0 ? (() => {
       const match = quadKey.match(/Q(\d)-(\d{4})/);
@@ -106,7 +111,6 @@ export const TratamentoMetaCard = ({
       const consultasBom   = (Math.floor(denominadorB1 * 0.03) + 1) * meses;
       const consultasOtimo = (Math.floor(denominadorB1 * 0.05) + 1) * meses;
 
-      // Quantas consultas da Aba 1 já foram feitas vs o alvo
       const aba1JaAtingiuBom   = consultasAba1Quad >= consultasBom;
       const aba1JaAtingiuOtimo = consultasAba1Quad >= consultasOtimo;
       const faltamAba1Bom   = Math.max(0, consultasBom   - consultasAba1Quad);
@@ -143,7 +147,7 @@ export const TratamentoMetaCard = ({
       alreadyBom: currentPct > 50, alreadyOtimo: currentPct > 75,
       simulations,
     };
-  }, [patients, allPatients, quadrimestre, denominadorB1, consultasAba1Quad]);
+  }, [patients, allPatients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia]);
 
   if (!metaData) return null;
 
