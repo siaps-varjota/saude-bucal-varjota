@@ -181,18 +181,20 @@ const Index = () => {
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
-  // Versão sem mesReferencia — usada nos cards de Quadrimestre (não devem ser afetados pelo filtro mensal)
-  const filteredPatientsNoMes    = useFilteredPatients(patients || [], { ...filtersConsulta, mesReferencia: [] });
   const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-  const filteredTratamentoNoMes  = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, mesReferencia: [] });
+
+  // ── Sem filtro de período — usado pelo TratamentoMetaCard para calcular internamente ──
+  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], {
+    ...filtersTratamento,
+    quadrimestre: "todos",
+    mesReferencia: [],
+  });
+
   const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
-  const filteredTab3NoMes        = useFilteredTab3(tab3Patients || [], { ...filtersTab3, mesReferencia: [] });
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
-  const filteredTab4NoMes        = useFilteredTab4(tab4Patients || [], { ...filtersTab4, mesReferencia: [] });
   const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTab5NoMes        = useFilteredTab5(tab5Patients || [], { ...filtersTab5, mesReferencia: [] });
   const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], {
     equipe: filtersTab5.equipe,
     microarea: "all",
@@ -201,7 +203,6 @@ const Index = () => {
     mesReferencia: [],
   });
   const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
-  const filteredTab6NoMes        = useFilteredTab6(tab6Patients || [], { ...filtersTab6, mesReferencia: [] });
 
   const patientsByEquipe = useMemo(() =>
     (patients || []).filter(p => filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe),
@@ -455,17 +456,22 @@ const Index = () => {
                   <>
                     <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    {/* QuadrimesterCards: dados sem filtro de mês + mesReferencia para cálculo interno */}
                     <TratamentoQuadrimesterCards
-                      patients={filteredTratamento}
-                      allPatients={filteredTratamentoNoQuad}
-                      totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                      patients={filteredTratamentoSemMes}
+                      allPatients={filteredTratamentoSemMes}
+                      totalComConsulta={filteredTratamentoSemMes.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                      quadrimestre={filtersTratamento.quadrimestre}
+                      mesReferencia={filtersTratamento.mesReferencia}
                     />
+                    {/* MetaCard: dados sem filtro de mês + mesReferencia para cálculo interno */}
                     <TratamentoMetaCard
-                      patients={filteredTratamento}
-                      allPatients={filteredTratamentoNoQuad}
+                      patients={filteredTratamentoSemMes}
+                      allPatients={filteredTratamentoSemMes}
                       quadrimestre={filtersTratamento.quadrimestre}
                       denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
                       consultasAba1Quad={consultasAba1Quad}
+                      mesReferencia={filtersTratamento.mesReferencia}
                     />
                   </>
                 )}
@@ -475,8 +481,9 @@ const Index = () => {
                 {isLoadingTratamento
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <TratamentoMonthlyCards
-                      patients={filteredTratamento}
-                      allPatients={filteredTratamentoNoQuad}
+                      patients={filteredTratamentoSemMes}
+                      allPatients={filteredTratamentoSemMes}
+                      quadrimestre={filtersTratamento.quadrimestre}
                       mesReferencia={filtersTratamento.mesReferencia}
                     />}
               </div>
