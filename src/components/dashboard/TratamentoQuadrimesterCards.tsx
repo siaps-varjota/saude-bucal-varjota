@@ -9,7 +9,7 @@ interface TratamentoQuadrimesterCardsProps {
   allPatients: TratamentoPatient[];
   totalComConsulta: number;
   quadrimestre?: string;
-  mesReferencia?: string[]; // ← novo
+  mesReferencia?: string[];
 }
 
 const parseTratamentoDate = (str: string): Date | null => {
@@ -50,16 +50,36 @@ const getQuadrimesterInfo = (date: Date) => {
   return { quad: 3, year };
 };
 
-// Verifica se uma data cai no período: mesReferencia tem prioridade sobre o range
+/** Retorna true se algum dos meses selecionados cai dentro do range do quadrimestre */
+const quadContainsMesReferencia = (
+  mesReferencia: string[],
+  startDate: Date,
+  endDate: Date
+): boolean => {
+  if (mesReferencia.length === 0) return false;
+  return mesReferencia.some(mmyyyy => {
+    const [mm, yyyy] = mmyyyy.split("/").map(Number);
+    if (!mm || !yyyy) return false;
+    const d = new Date(yyyy, mm - 1, 1);
+    return isWithinInterval(d, { start: startDate, end: endDate });
+  });
+};
+
+/**
+ * Verifica se uma data cai no período.
+ * Se o quadrimestre contém algum mês selecionado, aplica mesReferencia.
+ * Caso contrário, usa o range normal do quadrimestre.
+ */
 const inPeriod = (
   dateStr: string,
   startDate: Date,
   endDate: Date,
-  mesReferencia: string[]
+  mesReferencia: string[],
+  quadContainsMes: boolean
 ): boolean => {
   const d = parseTratamentoDate(dateStr);
   if (!d) return false;
-  if (mesReferencia.length > 0) {
+  if (mesReferencia.length > 0 && quadContainsMes) {
     const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     return mesReferencia.includes(key);
   }
@@ -69,7 +89,7 @@ const inPeriod = (
 export const TratamentoQuadrimesterCards = ({
   patients,
   quadrimestre = "todos",
-  mesReferencia = [], // ← novo
+  mesReferencia = [],
 }: TratamentoQuadrimesterCardsProps) => {
   const quadrimesterData = useMemo(() => {
     const now = new Date();
@@ -96,14 +116,17 @@ export const TratamentoQuadrimesterCards = ({
       const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
       const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
-      // ── DENOMINADOR: primeiraConsulta no período ──────────────────────────
+      // Verifica se o mesReferencia selecionado pertence a este quadrimestre
+      const containsMes = quadContainsMesReferencia(mesReferencia, startDate, endDate);
+
+      // DENOMINADOR: primeiraConsulta no período
       const consultasQuad = patients.filter(p =>
-        inPeriod(p.primeiraConsulta, startDate, endDate, mesReferencia)
+        inPeriod(p.primeiraConsulta, startDate, endDate, mesReferencia, containsMes)
       ).length;
 
-      // ── NUMERADOR: tratamentoConcluido no período ─────────────────────────
+      // NUMERADOR: tratamentoConcluido no período
       const tratamentoCount = patients.filter(p =>
-        inPeriod(p.tratamentoConcluido, startDate, endDate, mesReferencia)
+        inPeriod(p.tratamentoConcluido, startDate, endDate, mesReferencia, containsMes)
       ).length;
 
       const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
@@ -121,7 +144,7 @@ export const TratamentoQuadrimesterCards = ({
     }
 
     return result;
-  }, [patients, mesReferencia]); // ← mesReferencia na dep
+  }, [patients, mesReferencia]);
 
   const visibleCards = quadrimestre !== "todos"
     ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
