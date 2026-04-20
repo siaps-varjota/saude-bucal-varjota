@@ -988,7 +988,7 @@ rankEquipes.forEach((item, i) => {
   doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + (item.isGeral ? 14 : 16), { align: "center" });
 });
 
-y += cardH + 8;
+y += cardH + 14;
 
       const equipesList =
         equipe !== "all"
