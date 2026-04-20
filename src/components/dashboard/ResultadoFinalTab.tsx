@@ -916,7 +916,7 @@ export const ResultadoFinalTab = ({
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
-      y += 8;
+      y += 10;
       doc.setFontSize(13);
       doc.text("Resultado Final", 14, y);
       y += 10;
