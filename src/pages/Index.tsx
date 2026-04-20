@@ -479,8 +479,8 @@ const Index = () => {
                       allPatients={tratamentoPatientsByEquipe}
                       totalComConsulta={totalTratamento}
                       quadrimestre={filtersTratamento.quadrimestre}
-                      mesReferencia={filtersTratamento.mesReferencia}
-                    />
+                       mesReferencia={filtersTratamento.mesReferencia}
+                   />
                     <TratamentoMetaCard
                       patients={tratamentoPatientsByEquipe}
                       allPatients={tratamentoPatientsByEquipe}
@@ -497,10 +497,10 @@ const Index = () => {
                 {isLoadingTratamento
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <TratamentoMonthlyCards
-                      patients={tratamentoPatientsByEquipe}
-                      allPatients={tratamentoPatientsByEquipe}
-                      mesReferencia={filtersTratamento.mesReferencia}
-                    />}
+  patients={tratamentoPatientsByEquipe}
+  allPatients={tratamentoPatientsByEquipe}
+  mesReferencia={filtersTratamento.mesReferencia}
+/>}
               </div>
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
             </div>
