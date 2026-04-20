@@ -1005,7 +1005,7 @@ y += cardH + 12;
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30);
         doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
-        y += 4;
+        y += 8;
 
         const rows = result.indicadores
           .filter(ind => indicadorFiltro === "todos" || ind.indicador === indicadorFiltro)
