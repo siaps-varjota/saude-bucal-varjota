@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { parse, isValid } from "date-fns";
-import { extractMesesFromDates, extractMesesFromMesAno, matchesMesReferencia, dateToMMYYYY } from "@/lib/mesReferenciaUtils";
+import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { useTab3Data } from "@/hooks/useTab3Data";
@@ -134,7 +134,7 @@ const Index = () => {
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey as unknown as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
   const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
   const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
@@ -156,7 +156,7 @@ const Index = () => {
 
   const mesRefOptionsTratamento = useMemo(() => {
     if (!tratamentoPatients) return [];
-    return extractMesesFromDates(tratamentoPatients.map(p => p.tratamentoConcluido));
+    return extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta));
   }, [tratamentoPatients]);
 
   const mesRefOptionsTab3 = useMemo(() => {
@@ -181,21 +181,18 @@ const Index = () => {
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
+  // Versão sem mesReferencia — usada nos cards de Quadrimestre (não devem ser afetados pelo filtro mensal)
+  const filteredPatientsNoMes    = useFilteredPatients(patients || [], { ...filtersConsulta, mesReferencia: [] });
   const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-
-  // ── Dados brutos filtrados apenas por equipe ──────────────────────────────
-  const tratamentoPatientsByEquipe = useMemo(() =>
-    (tratamentoPatients || []).filter(p =>
-      filtersTratamento.equipe === "all" || p.equipe === filtersTratamento.equipe
-    ),
-    [tratamentoPatients, filtersTratamento.equipe]
-  );
-
+  const filteredTratamentoNoMes  = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, mesReferencia: [] });
   const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
+  const filteredTab3NoMes        = useFilteredTab3(tab3Patients || [], { ...filtersTab3, mesReferencia: [] });
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
+  const filteredTab4NoMes        = useFilteredTab4(tab4Patients || [], { ...filtersTab4, mesReferencia: [] });
   const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
+  const filteredTab5NoMes        = useFilteredTab5(tab5Patients || [], { ...filtersTab5, mesReferencia: [] });
   const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], {
     equipe: filtersTab5.equipe,
     microarea: "all",
@@ -204,6 +201,7 @@ const Index = () => {
     mesReferencia: [],
   });
   const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
+  const filteredTab6NoMes        = useFilteredTab6(tab6Patients || [], { ...filtersTab6, mesReferencia: [] });
 
   const patientsByEquipe = useMemo(() =>
     (patients || []).filter(p => filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe),
@@ -287,31 +285,10 @@ const Index = () => {
 
   const { error, isFetching, refetch } = getTabState();
 
-  const totalPatients    = resolverDenominadorPorEquipe(filtersConsulta.equipe) || patientsByEquipe.length;
-  const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
-
-  // ── Denominador Aba 2: primeiraConsulta no período ────────────────────────
-  // Quando mesReferencia está ativo, filteredTratamentoNoQuad já filtra o
-  // denominador por primeiraConsulta no(s) mês(es) (via hook corrigido).
-  const totalTratamento = filteredTratamentoNoQuad.filter(
-    p => !isTratamentoPendente(p.primeiraConsulta)
-  ).length;
-
-  // ── Numerador Aba 2: tratamentoConcluido no período ───────────────────────
-  // Quando mesReferencia está ativo, só contamos tratamentos cujo
-  // tratamentoConcluido cai no(s) mês(es) selecionado(s).
-  const withTratamento = useMemo(() => {
-    const selected = filtersTratamento.mesReferencia || [];
-    return filteredTratamento.filter(p => {
-      if (isTratamentoPendente(p.tratamentoConcluido)) return false;
-      if (selected.length > 0) {
-        const mmyyyy = dateToMMYYYY(p.tratamentoConcluido);
-        return matchesMesReferencia(mmyyyy, selected);
-      }
-      return true;
-    }).length;
-  }, [filteredTratamento, filtersTratamento.mesReferencia]);
-
+  const totalPatients          = resolverDenominadorPorEquipe(filtersConsulta.equipe) || patientsByEquipe.length;
+  const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
+  const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
+  const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
   const totalExodontiasTab3    = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
   const totalAtendimentosTab3  = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
   const totalTab4              = filteredTab4NoQuad.length;
@@ -423,7 +400,11 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingPatients
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <MonthlyCards patients={filteredPatients} totalPatients={totalPatients} mesReferencia={filtersConsulta.mesReferencia} />}
+                  : <MonthlyCards
+                      patients={filteredPatients}
+                      totalPatients={totalPatients}
+                      mesReferencia={filtersConsulta.mesReferencia}
+                    />}
               </div>
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
             </div>
@@ -475,19 +456,16 @@ const Index = () => {
                     <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <TratamentoQuadrimesterCards
-                      patients={tratamentoPatientsByEquipe}
-                      allPatients={tratamentoPatientsByEquipe}
-                      totalComConsulta={totalTratamento}
-                      quadrimestre={filtersTratamento.quadrimestre}
-                      mesReferencia={filtersTratamento.mesReferencia}
+                      patients={filteredTratamento}
+                      allPatients={filteredTratamentoNoQuad}
+                      totalComConsulta={filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
                     />
                     <TratamentoMetaCard
-                      patients={tratamentoPatientsByEquipe}
-                      allPatients={tratamentoPatientsByEquipe}
+                      patients={filteredTratamento}
+                      allPatients={filteredTratamentoNoQuad}
                       quadrimestre={filtersTratamento.quadrimestre}
                       denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
                       consultasAba1Quad={consultasAba1Quad}
-                      mesReferencia={filtersTratamento.mesReferencia}
                     />
                   </>
                 )}
@@ -550,7 +528,10 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab3
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab3MonthlyCards records={filteredTab3} mesReferencia={filtersTab3.mesReferencia} />}
+                  : <Tab3MonthlyCards
+                      records={filteredTab3}
+                      mesReferencia={filtersTab3.mesReferencia}
+                    />}
               </div>
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
@@ -603,7 +584,11 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingTab4
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} mesReferencia={filtersTab4.mesReferencia} />}
+                  : <Tab4MonthlyCards
+                      patients={filteredTab4}
+                      totalPatients={filteredTab4NoQuad.length}
+                      mesReferencia={filtersTab4.mesReferencia}
+                    />}
               </div>
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
@@ -663,7 +648,10 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
                 {isLoadingTab5
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab5MonthlyCards records={filteredTab5} mesReferencia={filtersTab5.mesReferencia} />}
+                  : <Tab5MonthlyCards
+                      records={filteredTab5}
+                      mesReferencia={filtersTab5.mesReferencia}
+                    />}
               </div>
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
@@ -713,7 +701,10 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab6
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab6MonthlyCards records={filteredTab6} mesReferencia={filtersTab6.mesReferencia} />}
+                  : <Tab6MonthlyCards
+                      records={filteredTab6}
+                      mesReferencia={filtersTab6.mesReferencia}
+                    />}
               </div>
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
