@@ -1001,11 +1001,19 @@ y += cardH + 12;
       ];
 
       for (const { label, result } of resultsList) {
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(30);
-        doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
-        y += 8;
+        // Evita título solto no fim da página (mín. 40mm para título + pelo menos 2 linhas)
+const pageH = 210; // landscape A4 height
+const margin = 15;
+if (y > pageH - margin - 40) {
+  doc.addPage();
+  y = 15;
+}
+
+doc.setFontSize(11);
+doc.setFont("helvetica", "bold");
+doc.setTextColor(30);
+doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
+y += 4;
 
         const rows = result.indicadores
           .filter(ind => indicadorFiltro === "todos" || ind.indicador === indicadorFiltro)
