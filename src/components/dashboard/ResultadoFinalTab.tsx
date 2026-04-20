@@ -923,7 +923,7 @@ export const ResultadoFinalTab = ({
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Filtros: ${filterText}`, 14, y);
-      y += 8;
+      y += 10;
 
       const rankEquipes = [
   { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
@@ -1052,7 +1052,7 @@ y += cardH + 14;
           },
         });
 
-        y = (doc as any).lastAutoTable.finalY + 11;
+        y = (doc as any).lastAutoTable.finalY + 10;
       }
 
       doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
