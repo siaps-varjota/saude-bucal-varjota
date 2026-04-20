@@ -934,6 +934,7 @@ export const ResultadoFinalTab = ({
 
 const pageW   = 297; // landscape A4
 const gap     = 2;
+const geralGap = 6; // espaço extra depois do card Geral
 const cardH   = 19;
 const totalC  = rankEquipes.length;
 const cardW   = (pageW - 14 * 2 - gap * (totalC - 1)) / totalC;
