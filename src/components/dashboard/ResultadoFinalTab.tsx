@@ -1074,8 +1074,8 @@ export const ResultadoFinalTab = ({
 
     {/* Card Geral */}
     <div className={`
-      flex-shrink-0 flex flex-col items-center justify-center gap-0.5
-      px-5 py-3 rounded-xl border-2 shadow-md min-w-[110px]
+      flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
+      px-5 py-3 rounded-xl border-2 shadow-md
       bg-gradient-to-b from-white to-primary/5 border-primary/30
     `}>
       <div className="flex items-center gap-1 mb-0.5">
@@ -1109,8 +1109,8 @@ export const ResultadoFinalTab = ({
         <div
           key={eq.equipe}
           className={`
-            flex-shrink-0 flex flex-col items-center justify-center gap-0.5
-            px-4 py-3 rounded-xl border-2 shadow-md min-w-[110px] max-w-[140px]
+            flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
+            px-4 py-3 rounded-xl border-2 shadow-md
             bg-gradient-to-b ${bgClass} ${ringClass}
           `}
         >
