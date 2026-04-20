@@ -988,7 +988,7 @@ rankEquipes.forEach((item, i) => {
   doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + (item.isGeral ? 14 : 16), { align: "center" });
 });
 
-y += cardH + 14;
+y += cardH + 12;
 
       const equipesList =
         equipe !== "all"
@@ -1052,7 +1052,7 @@ y += cardH + 14;
           },
         });
 
-        y = (doc as any).lastAutoTable.finalY + 9;
+        y = (doc as any).lastAutoTable.finalY + 10;
       }
 
       doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
