@@ -926,29 +926,68 @@ export const ResultadoFinalTab = ({
       y += 8;
 
       const rankEquipes = [
-        { label: "Geral", nota: geral.notaFinal },
-        ...[...porEquipe]
-          .sort((a, b) => b.notaFinal - a.notaFinal)
-          .map((eq, i) => ({ label: `#${i + 1} ${eq.equipe}`, nota: eq.notaFinal })),
-      ];
+  { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
+  ...[...porEquipe]
+    .sort((a, b) => b.notaFinal - a.notaFinal)
+    .map((eq, i) => ({ label: eq.equipe, nota: eq.notaFinal, isGeral: false, rank: i + 1 })),
+];
 
-      const cardW = 44;
-      const cardH = 16;
-      rankEquipes.forEach((item, i) => {
-        const x = 14 + i * (cardW + 3);
-        doc.setDrawColor(200);
-        doc.setFillColor(245, 245, 245);
-        doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100);
-        doc.text(item.label, x + cardW / 2, y + 5, { align: "center" });
-        doc.setFontSize(13);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(30);
-        doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + 12, { align: "center" });
-      });
-      y += cardH + 8;
+const pageW   = 297; // landscape A4
+const gap     = 2;
+const cardH   = 19;
+const totalC  = rankEquipes.length;
+const cardW   = (pageW - 14 * 2 - gap * (totalC - 1)) / totalC;
+
+rankEquipes.forEach((item, i) => {
+  const x = 14 + i * (cardW + gap);
+
+  // Fundo e borda por posição
+  if (item.isGeral) {
+    doc.setFillColor(238, 242, 255); doc.setDrawColor(99, 102, 241);
+  } else if (item.rank === 1) {
+    doc.setFillColor(254, 252, 232); doc.setDrawColor(202, 138, 4);
+  } else if (item.rank === 2) {
+    doc.setFillColor(248, 250, 252); doc.setDrawColor(148, 163, 184);
+  } else if (item.rank === 3) {
+    doc.setFillColor(255, 247, 237); doc.setDrawColor(194, 120, 53);
+  } else {
+    doc.setFillColor(250, 250, 250); doc.setDrawColor(210, 210, 210);
+  }
+  doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
+
+  // Linha 1 — rótulo topo (GERAL ou #N)
+  doc.setFontSize(6);
+  doc.setFont("helvetica", "bold");
+  if (item.isGeral) {
+    doc.setTextColor(79, 70, 229);
+    doc.text("GERAL", x + cardW / 2, y + 4.5, { align: "center" });
+  } else {
+    doc.setTextColor(120, 120, 120);
+    doc.text(`#${item.rank}`, x + cardW / 2, y + 4.5, { align: "center" });
+  }
+
+  // Linha 2 — nome da equipe (truncado)
+  if (!item.isGeral) {
+    const maxChars = Math.floor(cardW / 1.6);
+    const nome = item.label.length > maxChars ? item.label.slice(0, maxChars) + "…" : item.label;
+    doc.setFontSize(5.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 60, 60);
+    doc.text(nome, x + cardW / 2, y + 9, { align: "center" });
+  }
+
+  // Linha 3 — nota
+  const [nr, ng, nb] =
+    item.nota > 7.5  ? [29, 78, 216]  :
+    item.nota >= 5   ? [4, 120, 87]   :
+    item.nota >= 2.6 ? [180, 83, 9]   : [185, 28, 28];
+  doc.setTextColor(nr, ng, nb);
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + (item.isGeral ? 14 : 16), { align: "center" });
+});
+
+y += cardH + 8;
 
       const equipesList =
         equipe !== "all"
