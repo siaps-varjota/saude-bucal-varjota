@@ -1052,7 +1052,7 @@ y += cardH + 14;
           },
         });
 
-        y = (doc as any).lastAutoTable.finalY + 8;
+        y = (doc as any).lastAutoTable.finalY + 14;
       }
 
       doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
