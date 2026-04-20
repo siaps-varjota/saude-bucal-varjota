@@ -923,7 +923,7 @@ export const ResultadoFinalTab = ({
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Filtros: ${filterText}`, 14, y);
-      y += 10;
+      y += 9;
 
       const rankEquipes = [
   { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
