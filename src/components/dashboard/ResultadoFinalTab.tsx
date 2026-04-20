@@ -1060,7 +1060,7 @@ y += 4;
           },
         });
 
-        y = (doc as any).lastAutoTable.finalY + 10;
+        y = (doc as any).lastAutoTable.finalY + 8;
       }
 
       doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
