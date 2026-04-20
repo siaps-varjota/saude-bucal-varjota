@@ -919,7 +919,7 @@ export const ResultadoFinalTab = ({
       y += 8;
       doc.setFontSize(13);
       doc.text("Resultado Final", 14, y);
-      y += 6;
+      y += 10;
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Filtros: ${filterText}`, 14, y);
@@ -1052,7 +1052,7 @@ y += cardH + 14;
           },
         });
 
-        y = (doc as any).lastAutoTable.finalY + 14;
+        y = (doc as any).lastAutoTable.finalY + 12;
       }
 
       doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
