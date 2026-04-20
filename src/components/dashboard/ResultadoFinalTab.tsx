@@ -1068,35 +1068,69 @@ export const ResultadoFinalTab = ({
         </Button>
       </div>
 
-      {/* Ranking Cards */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        <Card className={`border shadow-md ${getNotaFinalBg(geral.notaFinal)} border-l-4`}>
-          <CardContent className="p-3 text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Trophy className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold uppercase text-primary">Geral</span>
-            </div>
-            <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(geral.notaFinal)}`}>
-              {geral.notaFinal.toFixed(2).replace(".", ",")}
-            </p>
-            <p className="text-muted-foreground text-xs">Nota Final</p>
-          </CardContent>
-        </Card>
-        {sortedEquipes.map((eq, idx) => (
-          <Card key={eq.equipe} className={`border shadow-md ${getNotaFinalBg(eq.notaFinal)} border-l-4`}>
-            <CardContent className="p-3 text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Award className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
-              </div>
-              <p className="text-xs font-semibold truncate mb-1">{eq.equipe}</p>
-              <p className={`text-2xl font-bold font-mono ${getNotaFinalColor(eq.notaFinal)}`}>
-                {eq.notaFinal.toFixed(2).replace(".", ",")}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Ranking Cards — linha única com scroll */}
+<div className="relative">
+  <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted">
+
+    {/* Card Geral */}
+    <div className={`
+      flex-shrink-0 flex flex-col items-center justify-center gap-0.5
+      px-5 py-3 rounded-xl border-2 shadow-md min-w-[110px]
+      bg-gradient-to-b from-white to-primary/5 border-primary/30
+    `}>
+      <div className="flex items-center gap-1 mb-0.5">
+        <Trophy className="h-3.5 w-3.5 text-primary" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Geral</span>
       </div>
+      <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(geral.notaFinal)}`}>
+        {geral.notaFinal.toFixed(2).replace(".", ",")}
+      </p>
+      <p className="text-[10px] text-muted-foreground">Nota Final</p>
+    </div>
+
+    {/* Divisor vertical */}
+    <div className="self-stretch w-px bg-border mx-1" />
+
+    {/* Cards por equipe */}
+    {sortedEquipes.map((eq, idx) => {
+      const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
+      const ringClass =
+        idx === 0 ? "border-yellow-300 shadow-yellow-100" :
+        idx === 1 ? "border-slate-300 shadow-slate-100" :
+        idx === 2 ? "border-orange-300 shadow-orange-100" :
+                    "border-border shadow-sm";
+      const bgClass =
+        idx === 0 ? "from-yellow-50 to-white" :
+        idx === 1 ? "from-slate-50 to-white" :
+        idx === 2 ? "from-orange-50 to-white" :
+                    "from-white to-white";
+
+      return (
+        <div
+          key={eq.equipe}
+          className={`
+            flex-shrink-0 flex flex-col items-center justify-center gap-0.5
+            px-4 py-3 rounded-xl border-2 shadow-md min-w-[110px] max-w-[140px]
+            bg-gradient-to-b ${bgClass} ${ringClass}
+          `}
+        >
+          <div className="flex items-center gap-1 mb-0.5">
+            {medal
+              ? <span className="text-sm leading-none">{medal}</span>
+              : <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
+            }
+          </div>
+          <p className="text-[10px] font-semibold text-center leading-tight text-foreground truncate w-full text-center px-1" title={eq.equipe}>
+            {eq.equipe}
+          </p>
+          <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
+            {eq.notaFinal.toFixed(2).replace(".", ",")}
+          </p>
+        </div>
+      );
+    })}
+  </div>
+</div>
 
       {/* Conteúdo principal */}
       {indicadorFiltro !== "todos" ? (
