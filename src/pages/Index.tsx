@@ -184,7 +184,9 @@ const Index = () => {
   const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
 
-  // ── Dados brutos filtrados apenas por equipe ──────────────────────────────
+  // ── Dados brutos filtrados apenas por equipe — usados pelos cards de
+  // quadrimestre, mensais e MetaCard, que calculam numerador e denominador
+  // internamente sobre o período correto. ───────────────────────────────────
   const tratamentoPatientsByEquipe = useMemo(() =>
     (tratamentoPatients || []).filter(p =>
       filtersTratamento.equipe === "all" || p.equipe === filtersTratamento.equipe
@@ -291,15 +293,11 @@ const Index = () => {
   const withConsultation = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
 
   // ── Denominador Aba 2: primeiraConsulta no período ────────────────────────
-  // Quando mesReferencia está ativo, filteredTratamentoNoQuad já filtra o
-  // denominador por primeiraConsulta no(s) mês(es) (via hook corrigido).
   const totalTratamento = filteredTratamentoNoQuad.filter(
     p => !isTratamentoPendente(p.primeiraConsulta)
   ).length;
 
   // ── Numerador Aba 2: tratamentoConcluido no período ───────────────────────
-  // Quando mesReferencia está ativo, só contamos tratamentos cujo
-  // tratamentoConcluido cai no(s) mês(es) selecionado(s).
   const withTratamento = useMemo(() => {
     const selected = filtersTratamento.mesReferencia || [];
     return filteredTratamento.filter(p => {
@@ -474,13 +472,15 @@ const Index = () => {
                   <>
                     <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    {/* Cards de quadrimestre e mensais recebem dados brutos por equipe
+                        e calculam numerador/denominador internamente */}
                     <TratamentoQuadrimesterCards
                       patients={tratamentoPatientsByEquipe}
                       allPatients={tratamentoPatientsByEquipe}
                       totalComConsulta={totalTratamento}
                       quadrimestre={filtersTratamento.quadrimestre}
-                       mesReferencia={filtersTratamento.mesReferencia}
-                   />
+                      mesReferencia={filtersTratamento.mesReferencia}
+                    />
                     <TratamentoMetaCard
                       patients={tratamentoPatientsByEquipe}
                       allPatients={tratamentoPatientsByEquipe}
@@ -497,10 +497,10 @@ const Index = () => {
                 {isLoadingTratamento
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <TratamentoMonthlyCards
-  patients={tratamentoPatientsByEquipe}
-  allPatients={tratamentoPatientsByEquipe}
-  mesReferencia={filtersTratamento.mesReferencia}
-/>}
+                      patients={tratamentoPatientsByEquipe}
+                      allPatients={tratamentoPatientsByEquipe}
+                      mesReferencia={filtersTratamento.mesReferencia}
+                    />}
               </div>
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
             </div>
