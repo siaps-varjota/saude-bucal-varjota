@@ -1,34 +1,16 @@
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { parse, isValid, format, subMonths } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Card } from "@/components/ui/card";
+import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 
-interface TratamentoMonthlyCardsProps {
-  patients: TratamentoPatient[];    // filtrado por equipe+microarea (sem filtro de período)
-  allPatients: TratamentoPatient[]; // mantido por compatibilidade — não usado internamente
+interface TratamentoQuadrimesterCardsProps {
+  patients: TratamentoPatient[];
+  allPatients: TratamentoPatient[];
+  totalComConsulta: number;
   quadrimestre?: string;
-  mesReferencia?: string[];
+  mesReferencia?: string[]; // ← novo
 }
-
-const getQuadrimesterMonths = (quadKey: string): number[] | null => {
-  if (!quadKey || quadKey === "todos") return null;
-  const match = quadKey.match(/Q(\d)-(\d{4})/);
-  if (!match) return null;
-  switch (parseInt(match[1])) {
-    case 1: return [0, 1, 2, 3];
-    case 2: return [4, 5, 6, 7];
-    case 3: return [8, 9, 10, 11];
-    default: return null;
-  }
-};
-
-const getQuadrimesterYear = (quadKey: string): number | null => {
-  if (!quadKey || quadKey === "todos") return null;
-  const match = quadKey.match(/Q(\d)-(\d{4})/);
-  return match ? parseInt(match[2]) : null;
-};
 
 const parseTratamentoDate = (str: string): Date | null => {
   if (!str || str === "-" || str.trim() === "") return null;
@@ -42,114 +24,131 @@ const parseTratamentoDate = (str: string): Date | null => {
   return null;
 };
 
-type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
-
-const getScoreCategory = (percentage: number, consultaCount: number): ScoreCategory => {
-  if (consultaCount === 0) return "none";
-  if (percentage <= 25) return "regular";
-  if (percentage <= 50) return "suficiente";
-  if (percentage <= 75) return "bom";
-  return "otimo";
+const getScoreCategory = (percentage: number, total: number): string => {
+  if (total === 0) return "none";
+  if (percentage > 75) return "otimo";
+  if (percentage > 50) return "bom";
+  if (percentage > 25) return "suficiente";
+  return "regular";
 };
 
-const getScoreStyles = (category: ScoreCategory) => {
+const getScoreStyles = (category: string) => {
   switch (category) {
-    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",             border: "border-l-red-500",     label: "text-red-700",     count: "text-red-700"     };
-    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       border: "border-l-amber-500",   label: "text-amber-700",   count: "text-amber-700"   };
-    case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", border: "border-l-emerald-500", label: "text-emerald-700", count: "text-emerald-700" };
-    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           border: "border-l-blue-500",    label: "text-blue-700",    count: "text-blue-700"    };
-    default:           return { bg: "bg-muted/30",                                                                       border: "border-l-muted",       label: "text-muted-foreground", count: "text-muted-foreground" };
+    case "regular":    return { bg: "bg-gradient-to-br from-red-100 to-red-50 border-l-4 border-l-red-500",             icon: "text-red-600",     label: "text-red-700",     count: "text-red-700"     };
+    case "suficiente": return { bg: "bg-gradient-to-br from-amber-100 to-amber-50 border-l-4 border-l-amber-500",       icon: "text-amber-600",   label: "text-amber-700",   count: "text-amber-700"   };
+    case "bom":        return { bg: "bg-gradient-to-br from-emerald-100 to-emerald-50 border-l-4 border-l-emerald-500", icon: "text-emerald-600", label: "text-emerald-700", count: "text-emerald-700" };
+    case "otimo":      return { bg: "bg-gradient-to-br from-blue-100 to-blue-50 border-l-4 border-l-blue-500",           icon: "text-blue-600",    label: "text-blue-700",    count: "text-blue-700"    };
+    default:           return { bg: "bg-muted/30", icon: "text-muted-foreground", label: "text-muted-foreground", count: "text-muted-foreground" };
   }
 };
 
-export const TratamentoMonthlyCards = ({
+const getQuadrimesterInfo = (date: Date) => {
+  const month = date.getMonth();
+  const year  = date.getFullYear();
+  if (month <= 3) return { quad: 1, year };
+  if (month <= 7) return { quad: 2, year };
+  return { quad: 3, year };
+};
+
+// Verifica se uma data cai no período: mesReferencia tem prioridade sobre o range
+const inPeriod = (
+  dateStr: string,
+  startDate: Date,
+  endDate: Date,
+  mesReferencia: string[]
+): boolean => {
+  const d = parseTratamentoDate(dateStr);
+  if (!d) return false;
+  if (mesReferencia.length > 0) {
+    const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    return mesReferencia.includes(key);
+  }
+  return isWithinInterval(d, { start: startDate, end: endDate });
+};
+
+export const TratamentoQuadrimesterCards = ({
   patients,
   quadrimestre = "todos",
-  mesReferencia = [],
-}: TratamentoMonthlyCardsProps) => {
-  const quadMonths = getQuadrimesterMonths(quadrimestre);
-  const quadYear   = getQuadrimesterYear(quadrimestre);
-
-  const monthlyData = useMemo(() => {
+  mesReferencia = [], // ← novo
+}: TratamentoQuadrimesterCardsProps) => {
+  const quadrimesterData = useMemo(() => {
     const now = new Date();
-    return Array.from({ length: 12 }, (_, i) => {
-      const month    = subMonths(now, 11 - i);
-      const monthKey = format(month, "MM/yyyy");
-      const label    = format(month, "MMM/yy", { locale: ptBR });
+    const currentQuad = getQuadrimesterInfo(now);
+    const result: {
+      label: string; total: number; totalConsultasQuad: number;
+      average: number; months: number; percentage: number; quadKey: string;
+    }[] = [];
 
-      // ── NUMERADOR: tratamentoConcluido no mês ─────────────────────────────
-      const tratamentoCount = patients.filter(p => {
-        const d = parseTratamentoDate(p.tratamentoConcluido);
-        return d ? format(d, "MM/yyyy") === monthKey : false;
-      }).length;
+    for (let i = 2; i >= 0; i--) {
+      let targetYear = currentQuad.year;
+      let targetQuad = currentQuad.quad - i;
+      while (targetQuad <= 0) { targetQuad += 3; targetYear -= 1; }
 
-      // ── DENOMINADOR: primeiraConsulta no mês ──────────────────────────────
-      const consultaCount = patients.filter(p => {
-        const d = parseTratamentoDate(p.primeiraConsulta);
-        return d ? format(d, "MM/yyyy") === monthKey : false;
-      }).length;
+      let startMonth: number, endMonth: number, label: string;
+      if (targetQuad === 1)      { startMonth = 0; endMonth = 3;  label = `1º Quad/${targetYear}`; }
+      else if (targetQuad === 2) { startMonth = 4; endMonth = 7;  label = `2º Quad/${targetYear}`; }
+      else                       { startMonth = 8; endMonth = 11; label = `3º Quad/${targetYear}`; }
 
-      return {
-        label: label.charAt(0).toUpperCase() + label.slice(1),
-        monthKey,
-        tratamentoCount,
-        consultaCount,
-        date: month,
-      };
-    });
-  }, [patients]); // ← só patients (bruto por equipe); cálculo mês a mês interno
+      const isCurrentQuad  = i === 0;
+      const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
+      const monthsCount    = actualEndMonth - startMonth + 1;
 
-  // ── Filtro por quadrimestre ───────────────────────────────────────────────
-  let filtered = quadMonths && quadYear
-    ? monthlyData.filter(m =>
-        m.date.getFullYear() === quadYear &&
-        quadMonths.includes(m.date.getMonth())
-      )
-    : monthlyData;
+      const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
+      const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
 
-  // ── Filtro por mês de referência ──────────────────────────────────────────
-  // Mantém os cards dos meses selecionados com os valores reais;
-  // os demais ficam zerados (mesma lógica visual anterior).
-  if (mesReferencia.length > 0) {
-    filtered = filtered.map(m =>
-      mesReferencia.includes(m.monthKey)
-        ? m
-        : { ...m, tratamentoCount: 0, consultaCount: 0 }
-    );
-  }
+      // ── DENOMINADOR: primeiraConsulta no período ──────────────────────────
+      const consultasQuad = patients.filter(p =>
+        inPeriod(p.primeiraConsulta, startDate, endDate, mesReferencia)
+      ).length;
+
+      // ── NUMERADOR: tratamentoConcluido no período ─────────────────────────
+      const tratamentoCount = patients.filter(p =>
+        inPeriod(p.tratamentoConcluido, startDate, endDate, mesReferencia)
+      ).length;
+
+      const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
+      const average    = monthsCount    > 0 ? tratamentoCount / monthsCount          : 0;
+
+      result.push({
+        label,
+        total: tratamentoCount,
+        totalConsultasQuad: consultasQuad,
+        average,
+        months: monthsCount,
+        percentage,
+        quadKey: `Q${targetQuad}-${targetYear}`,
+      });
+    }
+
+    return result;
+  }, [patients, mesReferencia]); // ← mesReferencia na dep
+
+  const visibleCards = quadrimestre !== "todos"
+    ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
+    : quadrimesterData;
 
   return (
-    <div className="space-y-4">
-      <div className={`grid gap-3 ${filtered.length <= 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12"}`}>
-        {filtered.map(({ label, monthKey, tratamentoCount, consultaCount }) => {
-          const percentage = consultaCount > 0 ? (tratamentoCount / consultaCount) * 100 : 0;
-          const category   = getScoreCategory(percentage, consultaCount);
-          const styles     = getScoreStyles(category);
-          return (
-            <Card key={monthKey} className={`p-3 border-l-4 ${styles.border} ${styles.bg} transition-all hover:shadow-md text-center`}>
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Calendar className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <>
+      {visibleCards.map(({ label, total, totalConsultasQuad, average, percentage }) => {
+        const category = getScoreCategory(percentage, total);
+        const styles   = getScoreStyles(category);
+        return (
+          <Card key={label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
+            <CardContent className="p-4">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Calendar className={`w-3.5 h-3.5 ${styles.icon}`} />
+                  <span className={`text-xs font-medium ${styles.label}`}>{label}</span>
+                </div>
+                <span className={`text-3xl font-bold ${styles.count}`}>{total}</span>
+                <span className="text-xs text-muted-foreground mt-1">de {totalConsultasQuad}</span>
+                <span className="text-xs text-muted-foreground">Média/mês: {average.toFixed(1)}</span>
+                <span className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</span>
               </div>
-              <div className={`text-2xl font-bold ${styles.count}`}>{tratamentoCount}</div>
-              <p className="text-xs">
-                <span className="text-muted-foreground font-medium">de {consultaCount}</span>
-                <span className={`font-medium ${styles.label}`}> | {percentage.toFixed(1)}%</span>
-              </p>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center justify-center gap-2 text-sm">
-        <span className="font-medium text-muted-foreground">Pontuação</span>
-        <div className="flex items-center gap-1 flex-wrap justify-center">
-          <span className="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-medium border border-red-200">Regular ≤ 25%</span>
-          <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 text-xs font-medium border border-amber-200">Suficiente &gt; 25% e ≤ 50%</span>
-          <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-medium border border-emerald-200">Bom &gt; 50% e ≤ 75%</span>
-          <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium border border-blue-200">Ótimo &gt; 75%</span>
-        </div>
-      </div>
-    </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </>
   );
 };
