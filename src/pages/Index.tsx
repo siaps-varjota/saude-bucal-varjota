@@ -18,7 +18,7 @@ import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/components/LoginPage";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
-import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
@@ -52,7 +52,7 @@ import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 
-// ── Wrapper isolado — só monta quando todos os dados estão prontos ─────────────
+// ── Wrapper ResultadoFinal ────────────────────────────────────────────────────
 const ResultadoFinalWrapper = ({
   patients, tratamentoPatients, tab3Patients, tab4Patients,
   tab5Patients, tab6Patients, quadrimestre, equipeResultado,
@@ -76,7 +76,6 @@ const ResultadoFinalWrapper = ({
     tab4Patients, tab5Patients, tab6Patients,
     quadrimestre, equipeResultado, denominadorB1Data
   );
-
   return (
     <ResultadoFinalTab
       geral={resultadoFinal.geral}
@@ -90,7 +89,7 @@ const ResultadoFinalWrapper = ({
   );
 };
 
-// ── Helper: parseia data em vários formatos ───────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const parseDateFlexible = (str: string): Date | null => {
   if (!str || str === "-" || str.trim() === "") return null;
   const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
@@ -103,7 +102,6 @@ const parseDateFlexible = (str: string): Date | null => {
   return null;
 };
 
-// ── Helper: retorna quadKey atual ─────────────────────────────────────────────
 const getCurrentQuadKey = (): string => {
   const now = new Date();
   const m = now.getMonth();
@@ -113,7 +111,6 @@ const getCurrentQuadKey = (): string => {
   return `Q3-${y}`;
 };
 
-// ── Helper: retorna range de datas de um quadKey ──────────────────────────────
 const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null => {
   const match = quadKey.match(/Q(\d)-(\d{4})/);
   if (!match) return null;
@@ -129,30 +126,13 @@ const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null
   };
 };
 
-// ── Componente principal ──────────────────────────────────────────────────────
-const Index = () => {
-  // ── Autenticação ─────────────────────────────────────────────────────────
-  const { user, loading: authLoading, logout } = useAuth();
-
-  // Enquanto verifica sessão salva, mostra spinner para evitar flash
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
-  // Se não autenticado, exibe tela de login
-  if (!user) return <LoginPage />;
-
-  // ── Estado da UI ──────────────────────────────────────────────────────────
+// ── Dashboard (só renderiza quando autenticado) ───────────────────────────────
+const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState("consulta");
-
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey as unknown as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,          isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
   const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
   const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
   const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
@@ -167,59 +147,23 @@ const Index = () => {
   const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
 
-  const mesRefOptionsConsulta = useMemo(() => {
-    if (!patients) return [];
-    return extractMesesFromDates(patients.map(p => p.primeiraConsulta));
-  }, [patients]);
-
-  const mesRefOptionsTratamento = useMemo(() => {
-    if (!tratamentoPatients) return [];
-    return extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta));
-  }, [tratamentoPatients]);
-
-  const mesRefOptionsTab3 = useMemo(() => {
-    if (!tab3Patients) return [];
-    return extractMesesFromMesAno(tab3Patients.map(r => r.mesAno));
-  }, [tab3Patients]);
-
-  const mesRefOptionsTab4 = useMemo(() => {
-    if (!tab4Patients) return [];
-    return extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta));
-  }, [tab4Patients]);
-
-  const mesRefOptionsTab5 = useMemo(() => {
-    if (!tab5Patients) return [];
-    return extractMesesFromMesAno(tab5Patients.map(r => r.mesAno));
-  }, [tab5Patients]);
-
-  const mesRefOptionsTab6 = useMemo(() => {
-    if (!tab6Patients) return [];
-    return extractMesesFromMesAno(tab6Patients.map(r => r.mesAno));
-  }, [tab6Patients]);
+  const mesRefOptionsConsulta   = useMemo(() => !patients          ? [] : extractMesesFromDates(patients.map(p => p.primeiraConsulta)),          [patients]);
+  const mesRefOptionsTratamento = useMemo(() => !tratamentoPatients ? [] : extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta)), [tratamentoPatients]);
+  const mesRefOptionsTab3       = useMemo(() => !tab3Patients       ? [] : extractMesesFromMesAno(tab3Patients.map(r => r.mesAno)),               [tab3Patients]);
+  const mesRefOptionsTab4       = useMemo(() => !tab4Patients       ? [] : extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta)),      [tab4Patients]);
+  const mesRefOptionsTab5       = useMemo(() => !tab5Patients       ? [] : extractMesesFromMesAno(tab5Patients.map(r => r.mesAno)),               [tab5Patients]);
+  const mesRefOptionsTab6       = useMemo(() => !tab6Patients       ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),               [tab6Patients]);
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
   const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
   const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-
-  // ── Sem filtro de período — usado pelo TratamentoMetaCard para calcular internamente ──
-  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], {
-    ...filtersTratamento,
-    quadrimestre: "todos",
-    mesReferencia: [],
-  });
-
+  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos", mesReferencia: [] });
   const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
   const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
   const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], {
-    equipe: filtersTab5.equipe,
-    microarea: "all",
-    status: "all",
-    quadrimestre: "todos",
-    mesReferencia: [],
-  });
+  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], { equipe: filtersTab5.equipe, microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
@@ -228,17 +172,17 @@ const Index = () => {
   );
 
   const equipeOptions = useMemo(() => {
-    const normalizeEquipeOption = (name: string) => {
-      const normalized = name.replace(/^ESF\b/i, "ESB").trim();
-      return normalized === "ESB SEDE 1" ? "ESB CENTRO" : normalized;
+    const norm = (name: string) => {
+      const n = name.replace(/^ESF\b/i, "ESB").trim();
+      return n === "ESB SEDE 1" ? "ESB CENTRO" : n;
     };
     const set = new Set<string>();
-    (patients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
-    (tratamentoPatients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
-    (tab4Patients || []).forEach(p => p.equipe && set.add(normalizeEquipeOption(p.equipe)));
-    (tab3Patients || []).forEach(r => r.equipe && set.add(normalizeEquipeOption(r.equipe)));
-    (tab5Patients || []).forEach(r => r.equipe && set.add(normalizeEquipeOption(r.equipe)));
-    (tab6Patients || []).forEach(r => r.equipe && set.add(normalizeEquipeOption(r.equipe)));
+    (patients || []).forEach(p => p.equipe && set.add(norm(p.equipe)));
+    (tratamentoPatients || []).forEach(p => p.equipe && set.add(norm(p.equipe)));
+    (tab4Patients || []).forEach(p => p.equipe && set.add(norm(p.equipe)));
+    (tab3Patients || []).forEach(r => r.equipe && set.add(norm(r.equipe)));
+    (tab5Patients || []).forEach(r => r.equipe && set.add(norm(r.equipe)));
+    (tab6Patients || []).forEach(r => r.equipe && set.add(norm(r.equipe)));
     return Array.from(set).sort();
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
 
@@ -251,11 +195,8 @@ const Index = () => {
       ?? 0;
   };
 
-  // ── Consultas da Aba 1 já realizadas no quadrimestre do filtro da Aba 2 ──────
   const consultasAba1Quad = useMemo(() => {
-    const quadKey = filtersTratamento.quadrimestre !== "todos"
-      ? filtersTratamento.quadrimestre
-      : getCurrentQuadKey();
+    const quadKey = filtersTratamento.quadrimestre !== "todos" ? filtersTratamento.quadrimestre : getCurrentQuadKey();
     const range = getQuadRangeFromKey(quadKey);
     if (!range) return 0;
     return (patients || []).filter(p => {
@@ -265,11 +206,8 @@ const Index = () => {
     }).length;
   }, [patients, filtersTratamento.quadrimestre, filtersTratamento.equipe]);
 
-  // ── Consultas da Aba 1 já realizadas no quadrimestre do filtro da Aba 5 ──────
   const consultasAba1QuadTab5 = useMemo(() => {
-    const quadKey = filtersTab5.quadrimestre !== "todos"
-      ? filtersTab5.quadrimestre
-      : getCurrentQuadKey();
+    const quadKey = filtersTab5.quadrimestre !== "todos" ? filtersTab5.quadrimestre : getCurrentQuadKey();
     const range = getQuadRangeFromKey(quadKey);
     if (!range) return 0;
     return (patients || []).filter(p => {
@@ -279,26 +217,22 @@ const Index = () => {
     }).length;
   }, [patients, filtersTab5.quadrimestre, filtersTab5.equipe]);
 
-  const refetchAll = () => {
-    refetchPatients(); refetchTratamento(); refetchTab3();
-    refetchTab4(); refetchTab5(); refetchTab6();
-  };
+  const refetchAll = () => { refetchPatients(); refetchTratamento(); refetchTab3(); refetchTab4(); refetchTab5(); refetchTab6(); };
 
   const getTabState = () => {
     switch (activeTab) {
-      case "consulta":   return { isLoading: isLoadingPatients,   error: errorPatients,   isFetching: isFetchingPatients,   refetch: refetchPatients   };
-      case "tratamento": return { isLoading: isLoadingTratamento, error: errorTratamento, isFetching: isFetchingTratamento, refetch: refetchTratamento };
-      case "tab3":       return { isLoading: isLoadingTab3,       error: errorTab3,       isFetching: isFetchingTab3,       refetch: refetchTab3       };
-      case "tab4":       return { isLoading: isLoadingTab4,       error: errorTab4,       isFetching: isFetchingTab4,       refetch: refetchTab4       };
-      case "tab5":       return { isLoading: isLoadingTab5,       error: errorTab5,       isFetching: isFetchingTab5,       refetch: refetchTab5       };
-      case "tab6":       return { isLoading: isLoadingTab6,       error: errorTab6,       isFetching: isFetchingTab6,       refetch: refetchTab6       };
+      case "consulta":   return { error: errorPatients,   isFetching: isFetchingPatients,   refetch: refetchPatients   };
+      case "tratamento": return { error: errorTratamento, isFetching: isFetchingTratamento, refetch: refetchTratamento };
+      case "tab3":       return { error: errorTab3,       isFetching: isFetchingTab3,       refetch: refetchTab3       };
+      case "tab4":       return { error: errorTab4,       isFetching: isFetchingTab4,       refetch: refetchTab4       };
+      case "tab5":       return { error: errorTab5,       isFetching: isFetchingTab5,       refetch: refetchTab5       };
+      case "tab6":       return { error: errorTab6,       isFetching: isFetchingTab6,       refetch: refetchTab6       };
       case "resultado":  return {
-        isLoading: isLoadingPatients || isLoadingTratamento || isLoadingTab3 || isLoadingTab4 || isLoadingTab5 || isLoadingTab6 || isLoadingDenominadorB1,
         error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
         isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
         refetch: refetchAll,
       };
-      default: return { isLoading: false, error: null, isFetching: false, refetch: () => {} };
+      default: return { error: null, isFetching: false, refetch: () => {} };
     }
   };
 
@@ -317,12 +251,18 @@ const Index = () => {
   const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
   const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
-  const pendentesTab1ForTab5 = useMemo(() => {
-    return (patients || []).filter(p => {
+  const pendentesTab1ForTab5 = useMemo(() =>
+    (patients || []).filter(p => {
       if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
       return isConsultaPendente(p.primeiraConsulta);
-    }).length;
-  }, [patients, filtersTab5.equipe]);
+    }).length,
+    [patients, filtersTab5.equipe]
+  );
+
+  const resultadoPronto =
+    !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
+    !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
+    !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
 
   if (error) {
     return (
@@ -336,35 +276,28 @@ const Index = () => {
     );
   }
 
-  const resultadoPronto =
-    !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
-    !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
-    !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-card shadow-sm">
         <div className="container mx-auto px-[14px] py-[14px]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl ml-0 mt-0 mr-0">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                 Indicadores de Saúde Bucal de Varjota
               </h1>
               <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
             </div>
-
-            {/* Botões do header */}
             <div className="flex items-center gap-2">
-              {user.nome && (
+              {userName && (
                 <span className="hidden sm:inline text-sm text-muted-foreground">
-                  Olá, <strong>{user.nome}</strong>
+                  Olá, <strong>{userName}</strong>
                 </span>
               )}
               <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Atualizar dados
               </Button>
-              <Button variant="ghost" size="icon" onClick={logout} title="Sair">
+              <Button variant="ghost" size="icon" onClick={onLogout} title="Sair">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -431,11 +364,7 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingPatients
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <MonthlyCards
-                      patients={filteredPatients}
-                      totalPatients={totalPatients}
-                      mesReferencia={filtersConsulta.mesReferencia}
-                    />}
+                  : <MonthlyCards patients={filteredPatients} totalPatients={totalPatients} mesReferencia={filtersConsulta.mesReferencia} />}
               </div>
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
             </div>
@@ -563,10 +492,7 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab3
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab3MonthlyCards
-                      records={filteredTab3}
-                      mesReferencia={filtersTab3.mesReferencia}
-                    />}
+                  : <Tab3MonthlyCards records={filteredTab3} mesReferencia={filtersTab3.mesReferencia} />}
               </div>
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
@@ -619,11 +545,7 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingTab4
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab4MonthlyCards
-                      patients={filteredTab4}
-                      totalPatients={filteredTab4NoQuad.length}
-                      mesReferencia={filtersTab4.mesReferencia}
-                    />}
+                  : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} mesReferencia={filtersTab4.mesReferencia} />}
               </div>
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
@@ -683,10 +605,7 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
                 {isLoadingTab5
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab5MonthlyCards
-                      records={filteredTab5}
-                      mesReferencia={filtersTab5.mesReferencia}
-                    />}
+                  : <Tab5MonthlyCards records={filteredTab5} mesReferencia={filtersTab5.mesReferencia} />}
               </div>
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
@@ -736,10 +655,7 @@ const Index = () => {
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab6
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab6MonthlyCards
-                      records={filteredTab6}
-                      mesReferencia={filtersTab6.mesReferencia}
-                    />}
+                  : <Tab6MonthlyCards records={filteredTab6} mesReferencia={filtersTab6.mesReferencia} />}
               </div>
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
@@ -776,6 +692,23 @@ const Index = () => {
       </footer>
     </div>
   );
+};
+
+// ── Componente raiz — só gerencia auth, não tem outros hooks ──────────────────
+const Index = () => {
+  const { user, loading: authLoading, logout } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
+
+  return <Dashboard userName={user.nome ?? ""} onLogout={logout} />;
 };
 
 export default Index;
