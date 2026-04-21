@@ -15,6 +15,8 @@ import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
 import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
+import { useAuth } from "@/hooks/useAuth";
+import { LoginPage } from "@/components/LoginPage";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -40,7 +42,7 @@ import { Tab6QuadrimesterCards } from "@/components/dashboard/Tab6QuadrimesterCa
 import { Tab3Table } from "@/components/dashboard/Tab3Table";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserCheck, RefreshCw } from "lucide-react";
+import { Users, UserCheck, RefreshCw, LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/hooks/usePatientData";
@@ -129,6 +131,22 @@ const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null
 
 // ── Componente principal ──────────────────────────────────────────────────────
 const Index = () => {
+  // ── Autenticação ─────────────────────────────────────────────────────────
+  const { user, loading: authLoading, logout } = useAuth();
+
+  // Enquanto verifica sessão salva, mostra spinner para evitar flash
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Se não autenticado, exibe tela de login
+  if (!user) return <LoginPage />;
+
+  // ── Estado da UI ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("consulta");
 
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey as unknown as Quadrimestre);
@@ -334,10 +352,22 @@ const Index = () => {
               </h1>
               <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
             </div>
-            <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
-              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              Atualizar dados
-            </Button>
+
+            {/* Botões do header */}
+            <div className="flex items-center gap-2">
+              {user.nome && (
+                <span className="hidden sm:inline text-sm text-muted-foreground">
+                  Olá, <strong>{user.nome}</strong>
+                </span>
+              )}
+              <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                Atualizar dados
+              </Button>
+              <Button variant="ghost" size="icon" onClick={logout} title="Sair">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -456,7 +486,6 @@ const Index = () => {
                   <>
                     <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    {/* QuadrimesterCards: dados sem filtro de mês + mesReferencia para cálculo interno */}
                     <TratamentoQuadrimesterCards
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
@@ -464,7 +493,6 @@ const Index = () => {
                       quadrimestre={filtersTratamento.quadrimestre}
                       mesReferencia={filtersTratamento.mesReferencia}
                     />
-                    {/* MetaCard: dados sem filtro de mês + mesReferencia para cálculo interno */}
                     <TratamentoMetaCard
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
