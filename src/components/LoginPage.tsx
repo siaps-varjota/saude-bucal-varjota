@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2, Stethoscope } from "lucide-react";
 
-// Formata CPF enquanto o usuário digita: 000.000.000-00
 const formatCpfDisplay = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 11);
   if (digits.length <= 3)  return digits;
@@ -25,13 +24,13 @@ export const LoginPage = () => {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // Remove formatação antes de enviar
     login(cpfDisplay.replace(/\D/g, ""));
   };
 
+  const digits = cpfDisplay.replace(/\D/g, "");
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header igual ao dashboard */}
       <header className="border-b border-border/50 bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
@@ -48,7 +47,6 @@ export const LoginPage = () => {
         </div>
       </header>
 
-      {/* Formulário centralizado */}
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="rounded-xl border border-border/60 bg-card p-8 shadow-md">
@@ -75,7 +73,7 @@ export const LoginPage = () => {
                   disabled={loginLoading}
                   autoComplete="off"
                   className="text-center tracking-widest text-lg font-mono"
-                  maxLength={14} /* 000.000.000-00 */
+                  maxLength={14}
                 />
                 <p className="text-xs text-muted-foreground text-center">
                   Pode digitar com ou sem pontuação
@@ -92,7 +90,7 @@ export const LoginPage = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={loginLoading || cpfDisplay.replace(/\D/g, "").length !== 11}
+                disabled={loginLoading || digits.length !== 11}
               >
                 {loginLoading ? (
                   <>
