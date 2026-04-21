@@ -15,7 +15,6 @@ export interface Patient {
 
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmWTBTuo3l7yKebZuk-qJxQfpG_qvoKSHK6_DxSmaV0cT_iKHZQkZLAakrvYeDPh1oe20_vlOJJ7ex/pub?gid=424984913&single=true&output=csv";
-
 const parseCSV = (csv: string): Patient[] => {
   const lines = csv.split("\n");
   // Começa da linha 4 (índice 3) conforme solicitado
