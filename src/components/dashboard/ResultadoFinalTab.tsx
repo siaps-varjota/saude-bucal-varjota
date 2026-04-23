@@ -126,23 +126,14 @@ const MetaQuadrimestreCard = ({
   denominador: number;
   numerador: number;
   thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
-  /** Quanto cada ação adiciona ao numerador (padrão: 1) */
   deltaNum?: number;
-  /** Quanto cada ação adiciona ao denominador (padrão: 0) */
   deltaDenom?: number;
-  /** Unidade exibida no "Faltam" quando deltaDenom > 0 */
   faltaUnit?: string;
 }) => {
   const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
   const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  /**
-   * Quando cada ação muda num (+dn) E denom (+dd):
-   *   (num + dn·X) / (denom + dd·X) > t  →  X = ceil((t·denom − num) / (dn − dd·t))
-   * Quando só o numerador cresce (dd = 0):
-   *   X = ceil(t·denom − num)
-   */
   const calcFaltam = (threshold: number): number => {
     if (denominador > 0 && numerador / denominador >= threshold) return 0;
     const dn = deltaNum  ?? 1;
@@ -199,7 +190,7 @@ const MetaQuadrimestreCard = ({
   );
 };
 
-// ── ProjecaoBloco — bloco de projeção individual (fora do SimulacaoCard!) ──────
+// ── ProjecaoBloco ─────────────────────────────────────────────────────────────
 const ProjecaoBloco = ({
   titulo,
   descricao,
@@ -244,7 +235,7 @@ const ProjecaoBloco = ({
   );
 };
 
-// ── InputStepper — input numérico com botões +/− (fora do SimulacaoCard!) ──────
+// ── InputStepper ──────────────────────────────────────────────────────────────
 const InputStepper = ({
   label,
   sublabel,
@@ -287,8 +278,7 @@ const InputStepper = ({
   </div>
 );
 
-// ── Card de Simulação — inputs de 1ªs consultas + trat. concluídos ────────────
-// Projeções: B1, B2, B5 (Proced. Odont. Preventivos)
+// ── Card de Simulação ─────────────────────────────────────────────────────────
 const SimulacaoCard = ({
   b1Numerador,
   b1Denominador,
@@ -317,28 +307,24 @@ const SimulacaoCard = ({
   const b2Thresh = META_THRESHOLDS["Tratamento Concluído"]!;
   const b5Thresh = META_THRESHOLDS["Proced. Odont. Preventivos"]!;
 
-  // ── B1: consulta → +1 num (denominador fixo) ─────────────────────────────
   const b1NovoNum   = b1Numerador + extraConsultas;
   const b1NovaDenom = b1Denominador;
   const b1NovaPct   = b1NovaDenom > 0 ? (b1NovoNum / b1NovaDenom) * 100 : 0;
   const b1PctAtual  = b1NovaDenom > 0 ? (b1Numerador / b1NovaDenom) * 100 : 0;
   const b1Conceito  = derivaConceito(b1NovaPct, b1Thresh);
 
-  // ── B2: consulta → +0,5 num / +1 den; conclusão → +1 num ─────────────────
   const b2NovoNum   = b2Numerador + extraConsultas * 0.5 + extraConclusoes;
   const b2NovaDenom = b2Denominador + extraConsultas;
   const b2NovaPct   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
   const b2PctAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
   const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
-  // ── B5: consulta ou trat. concluído → +2 num / +2 den ────────────────────
   const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
   const b5NovaDenom = b5Denominador + (extraConsultas + extraConclusoes) * 2;
   const b5NovaPct   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
   const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
-  // ── Nota Final Atual e Projetada ──────────────────────────────────────────
   const notaFinalAtual = todosIndicadores?.reduce((s, i) => s + i.notaFinal, 0) ?? 0;
 
   const notaNum = (c: ReturnType<typeof derivaConceito>): number =>
@@ -360,17 +346,12 @@ const SimulacaoCard = ({
 
   return (
     <div className="flex flex-col h-full bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 shadow-sm">
-
-      {/* Cabeçalho */}
       <div className="flex items-center gap-1.5 mb-3">
         <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
         <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Simulação</span>
       </div>
 
-      {/* Linha de inputs + painel de nota lado a lado */}
       <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
-
-        {/* Inputs */}
         <div className="flex items-start gap-5 flex-wrap">
           <InputStepper
             label="+ adicionar"
@@ -390,7 +371,6 @@ const SimulacaoCard = ({
           />
         </div>
 
-        {/* Painel Nota Final */}
         {hasNota && (
           <div className="flex flex-col items-end gap-1 shrink-0">
             <div className="flex items-center gap-2">
@@ -412,13 +392,10 @@ const SimulacaoCard = ({
             </div>
           </div>
         )}
-
       </div>
 
-      {/* Divisor */}
       <div className="w-full h-px bg-orange-200 mb-3" />
 
-      {/* Projeções: B1, B2, B5 */}
       <div className="flex flex-wrap gap-x-5 gap-y-3 flex-grow content-start">
         <ProjecaoBloco
           titulo="Projeção B1"
@@ -458,14 +435,12 @@ const SimulacaoCard = ({
 };
 
 // ── Configuração dos cards de status relacionados ────────────────────────────
-/** Quais indicadores relacionados exibir ao lado da Meta de cada indicador */
 const STATUS_RELACIONADOS: Partial<Record<string, string[]>> = {
   "1ª Consulta Odontológica": ["Tratamento Concluído", "Proced. Odont. Preventivos"],
   "Tratamento Concluído":     ["1ª Consulta Odontológica", "Proced. Odont. Preventivos"],
   "Proced. Odont. Preventivos": ["1ª Consulta Odontológica", "Tratamento Concluído"],
 };
 
-/** Rótulo curto e configuração de delta por indicador */
 const STATUS_CONFIG: Record<string, { label: string; unit: string; deltaNum: number; deltaDenom: number }> = {
   "1ª Consulta Odontológica": { label: "B1",  unit: "atend.",    deltaNum: 1, deltaDenom: 0 },
   "Tratamento Concluído":     { label: "B2",  unit: "trat.",     deltaNum: 1, deltaDenom: 0 },
@@ -479,11 +454,8 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
   if (!thresholds || !cfg) return null;
 
   const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
-
-  // Conceito atual
   const conceito = derivaConceito(pct, thresholds);
 
-  // Calcula faltam para o próximo nível
   const calcFaltam = (threshold: number): number => {
     if (ind.denominador > 0 && ind.numerador / ind.denominador >= threshold) return 0;
     const { deltaNum: dn, deltaDenom: dd } = cfg;
@@ -495,7 +467,6 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
     return Math.max(0, Math.ceil(ind.denominador * threshold) - ind.numerador);
   };
 
-  // Próximo nível: se já é Ótimo → nenhum; se Bom → mostra faltam Ótimo; senão → mostra faltam Bom
   const isOtimo   = pct > thresholds.thresholdOtimo * 100;
   const isBom     = pct > thresholds.thresholdBom   * 100;
   const proximoLabel    = isOtimo ? null : isBom ? `Ótimo (${thresholds.labelOtimo})` : `Bom (${thresholds.labelBom})`;
@@ -504,25 +475,18 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
 
   return (
     <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 shadow-sm min-w-[150px]">
-      {/* Cabeçalho */}
       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">{cfg.label}</p>
       <p className="text-[10px] text-muted-foreground leading-snug mb-1.5 truncate" title={ind.indicador}>
         {ind.indicador}
       </p>
-
-      {/* Num / Denom e % */}
       <p className="text-sm font-mono font-bold leading-tight">
         {fmtNum(ind.numerador)}
         <span className="text-xs font-normal text-muted-foreground"> / {fmtNum(ind.denominador)}</span>
       </p>
       <p className="text-xs text-muted-foreground mb-1.5">{pct.toFixed(1)}%</p>
-
-      {/* Badge conceito atual */}
       <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit mb-1.5 ${conceito.bgBorder} ${conceito.textColor}`}>
         {conceito.label}
       </div>
-
-      {/* Faltam para próximo nível */}
       {isOtimo ? (
         <p className="text-[10px] font-medium text-blue-600">✓ Ótimo atingido!</p>
       ) : faltamProximo > 0 ? (
@@ -564,12 +528,8 @@ const DetalheRow = ({
       <TableCell colSpan={colSpan} className="py-2 px-2">
         <div className="flex items-center justify-center">
           <div className="flex items-stretch gap-2">
-
-            {/* Coluna esquerda: Meta + Status relacionados (topo) + Detalhamento Mensal (baixo) */}
             {hasLeftCol && (
               <div className="flex flex-col gap-2">
-
-                {/* Linha superior: Meta do Quadrimestre + cards de Status relacionados */}
                 {metaThresholds && (
                   <div className="flex items-stretch gap-2 flex-wrap">
                     <MetaQuadrimestreCard
@@ -582,7 +542,6 @@ const DetalheRow = ({
                         faltaUnit: "consultas",
                       })}
                     />
-                    {/* Status dos indicadores relacionados */}
                     {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
                       const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);
                       return relInd ? (
@@ -620,11 +579,9 @@ const DetalheRow = ({
                     </div>
                   </div>
                 )}
-
               </div>
             )}
 
-            {/* Coluna direita: Simulação */}
             {hasSimCard && (
               <div className="self-stretch flex flex-col">
                 <SimulacaoCard
@@ -638,7 +595,6 @@ const DetalheRow = ({
                 />
               </div>
             )}
-
           </div>
         </div>
       </TableCell>
@@ -770,6 +726,18 @@ const IndicadorComparativo = ({
   porEquipe: EquipeResult[];
   showMeses: boolean;
 }) => {
+  // ── Estado de expansão (igual ao ResultTable) ─────────────────────────────
+  const [expandedGeral, setExpandedGeral] = useState(false);
+  const [expandedEquipes, setExpandedEquipes] = useState<Set<string>>(new Set());
+
+  const toggleEquipe = (equipe: string) => {
+    setExpandedEquipes(prev => {
+      const next = new Set(prev);
+      next.has(equipe) ? next.delete(equipe) : next.add(equipe);
+      return next;
+    });
+  };
+
   const getInd = (result: EquipeResult): IndicadorResult | undefined =>
     result.indicadores.find(i => i.indicador === indicadorNome);
 
@@ -787,6 +755,9 @@ const IndicadorComparativo = ({
 
   const hasMetaCard = !!META_THRESHOLDS[indicadorNome];
 
+  // Verifica se uma linha é expansível
+  const geralExpandable = showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard);
+
   return (
     <Card className="border shadow-md">
       <CardHeader className="pb-3">
@@ -800,6 +771,8 @@ const IndicadorComparativo = ({
           <Table>
             <TableHeader>
               <TableRow>
+                {/* Coluna do chevron — sempre presente quando showMeses */}
+                {showMeses && <TableHead className="w-8" />}
                 <TableHead className="font-semibold">Equipe</TableHead>
                 <TableHead className="text-center font-semibold">Numerador</TableHead>
                 <TableHead className="text-center font-semibold">Denominador</TableHead>
@@ -810,7 +783,20 @@ const IndicadorComparativo = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow className="bg-muted/30 font-semibold">
+              {/* ── Linha Geral ── */}
+              <TableRow
+                className={`bg-muted/30 font-semibold ${geralExpandable ? "cursor-pointer hover:bg-muted/40" : ""}`}
+                onClick={() => geralExpandable && setExpandedGeral(v => !v)}
+              >
+                {showMeses && (
+                  <TableCell className="w-8 pr-0">
+                    {geralExpandable
+                      ? (expandedGeral
+                          ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          : <ChevronRight className="h-4 w-4 text-muted-foreground" />)
+                      : null}
+                  </TableCell>
+                )}
                 <TableCell>🏆 Geral</TableCell>
                 <TableCell className="text-center font-mono text-sm">{fmtNum(geralInd.numerador)}</TableCell>
                 <TableCell className="text-center font-mono text-sm">{fmtNum(geralInd.denominador)}</TableCell>
@@ -826,44 +812,65 @@ const IndicadorComparativo = ({
                 </TableCell>
               </TableRow>
 
-              {showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard) && (
+              {/* Detalhe Geral — só renderiza quando expandido */}
+              {geralExpandable && expandedGeral && (
                 <DetalheRow
                   ind={geralInd}
-                  colSpan={7}
+                  colSpan={showMeses ? 8 : 7}
                   cardMinWidth="80px"
                   todosIndicadores={geral.indicadores}
                 />
               )}
 
-              {equipeRows.map(({ equipe, ind }, idx) => (
-                <>
-                  <TableRow key={equipe}>
-                    <TableCell className="font-medium">#{idx + 1} {equipe}</TableCell>
-                    <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
-                    <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
-                    <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
-                        {CONCEITO_LABELS[ind.conceito]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
-                    <TableCell className="text-center font-mono font-semibold">
-                      {ind.notaFinal.toFixed(2).replace(".", ",")}
-                    </TableCell>
-                  </TableRow>
+              {/* ── Linhas por equipe ── */}
+              {equipeRows.map(({ equipe, ind }, idx) => {
+                const isExpandable = showMeses && (ind.mesesDetalhe?.length > 0 || hasMetaCard);
+                const isExpanded   = expandedEquipes.has(equipe);
 
-                  {showMeses && (ind.mesesDetalhe?.length > 0 || hasMetaCard) && (
-                    <DetalheRow
-                      key={`${equipe}-detail`}
-                      ind={ind}
-                      colSpan={7}
-                      cardMinWidth="80px"
-                      todosIndicadores={porEquipe.find(e => e.equipe === equipe)?.indicadores}
-                    />
-                  )}
-                </>
-              ))}
+                return (
+                  <>
+                    <TableRow
+                      key={equipe}
+                      className={isExpandable ? "cursor-pointer hover:bg-muted/40" : ""}
+                      onClick={() => isExpandable && toggleEquipe(equipe)}
+                    >
+                      {showMeses && (
+                        <TableCell className="w-8 pr-0">
+                          {isExpandable
+                            ? (isExpanded
+                                ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                : <ChevronRight className="h-4 w-4 text-muted-foreground" />)
+                            : null}
+                        </TableCell>
+                      )}
+                      <TableCell className="font-medium">#{idx + 1} {equipe}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
+                      <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
+                          {CONCEITO_LABELS[ind.conceito]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
+                      <TableCell className="text-center font-mono font-semibold">
+                        {ind.notaFinal.toFixed(2).replace(".", ",")}
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Detalhe equipe — só renderiza quando expandido */}
+                    {isExpandable && isExpanded && (
+                      <DetalheRow
+                        key={`${equipe}-detail`}
+                        ind={ind}
+                        colSpan={showMeses ? 8 : 7}
+                        cardMinWidth="80px"
+                        todosIndicadores={porEquipe.find(e => e.equipe === equipe)?.indicadores}
+                      />
+                    )}
+                  </>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -926,69 +933,64 @@ export const ResultadoFinalTab = ({
       y += 9;
 
       const rankEquipes = [
-  { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
-  ...[...porEquipe]
-    .sort((a, b) => b.notaFinal - a.notaFinal)
-    .map((eq, i) => ({ label: eq.equipe, nota: eq.notaFinal, isGeral: false, rank: i + 1 })),
-];
+        { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
+        ...[...porEquipe]
+          .sort((a, b) => b.notaFinal - a.notaFinal)
+          .map((eq, i) => ({ label: eq.equipe, nota: eq.notaFinal, isGeral: false, rank: i + 1 })),
+      ];
 
-const pageW   = 297; // landscape A4
-const gap     = 2;
-const geralGap = 6; // espaço extra depois do card Geral
-const cardH   = 19;
-const totalC  = rankEquipes.length;
-const cardW   = (pageW - 14 * 2 - gap * (totalC - 1)) / totalC;
+      const pageW   = 297;
+      const gap     = 2;
+      const cardH   = 19;
+      const totalC  = rankEquipes.length;
+      const cardW   = (pageW - 14 * 2 - gap * (totalC - 1)) / totalC;
 
-rankEquipes.forEach((item, i) => {
-  const x = 14 + i * (cardW + gap);
+      rankEquipes.forEach((item, i) => {
+        const x = 14 + i * (cardW + gap);
 
-  // Fundo e borda por posição
-  if (item.isGeral) {
-    doc.setFillColor(238, 242, 255); doc.setDrawColor(99, 102, 241);
-  } else if (item.rank === 1) {
-    doc.setFillColor(254, 252, 232); doc.setDrawColor(202, 138, 4);
-  } else if (item.rank === 2) {
-    doc.setFillColor(248, 250, 252); doc.setDrawColor(148, 163, 184);
-  } else if (item.rank === 3) {
-    doc.setFillColor(255, 247, 237); doc.setDrawColor(194, 120, 53);
-  } else {
-    doc.setFillColor(250, 250, 250); doc.setDrawColor(210, 210, 210);
-  }
-  doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
+        if (item.isGeral) {
+          doc.setFillColor(238, 242, 255); doc.setDrawColor(99, 102, 241);
+        } else if (item.rank === 1) {
+          doc.setFillColor(254, 252, 232); doc.setDrawColor(202, 138, 4);
+        } else if (item.rank === 2) {
+          doc.setFillColor(248, 250, 252); doc.setDrawColor(148, 163, 184);
+        } else if (item.rank === 3) {
+          doc.setFillColor(255, 247, 237); doc.setDrawColor(194, 120, 53);
+        } else {
+          doc.setFillColor(250, 250, 250); doc.setDrawColor(210, 210, 210);
+        }
+        doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
 
-  // Linha 1 — rótulo topo (GERAL ou #N)
-  doc.setFontSize(6);
-  doc.setFont("helvetica", "bold");
-  if (item.isGeral) {
-    doc.setTextColor(79, 70, 229);
-    doc.text("GERAL", x + cardW / 2, y + 4.5, { align: "center" });
-  } else {
-    doc.setTextColor(120, 120, 120);
-    doc.text(`#${item.rank}`, x + cardW / 2, y + 4.5, { align: "center" });
-  }
+        doc.setFontSize(6);
+        doc.setFont("helvetica", "bold");
+        if (item.isGeral) {
+          doc.setTextColor(79, 70, 229);
+          doc.text("GERAL", x + cardW / 2, y + 4.5, { align: "center" });
+        } else {
+          doc.setTextColor(120, 120, 120);
+          doc.text(`#${item.rank}`, x + cardW / 2, y + 4.5, { align: "center" });
+        }
 
-  // Linha 2 — nome da equipe (truncado)
-  if (!item.isGeral) {
-    const maxChars = Math.floor(cardW / 1.6);
-    const nome = item.label.length > maxChars ? item.label.slice(0, maxChars) + "…" : item.label;
-    doc.setFontSize(5.5);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(60, 60, 60);
-    doc.text(nome, x + cardW / 2, y + 9, { align: "center" });
-  }
+        if (!item.isGeral) {
+          const maxChars = Math.floor(cardW / 1.6);
+          const nome = item.label.length > maxChars ? item.label.slice(0, maxChars) + "…" : item.label;
+          doc.setFontSize(5.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(60, 60, 60);
+          doc.text(nome, x + cardW / 2, y + 9, { align: "center" });
+        }
 
-  // Linha 3 — nota
-  const [nr, ng, nb] =
-    item.nota > 7.5  ? [29, 78, 216]  :
-    item.nota >= 5   ? [4, 120, 87]   :
-    item.nota >= 2.6 ? [180, 83, 9]   : [185, 28, 28];
-  doc.setTextColor(nr, ng, nb);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + (item.isGeral ? 14 : 16), { align: "center" });
-});
+        const [nr, ng, nb] =
+          item.nota > 7.5  ? [29, 78, 216]  :
+          item.nota >= 5   ? [4, 120, 87]   :
+          item.nota >= 2.6 ? [180, 83, 9]   : [185, 28, 28];
+        doc.setTextColor(nr, ng, nb);
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + (item.isGeral ? 14 : 16), { align: "center" });
+      });
 
-y += cardH + 12;
+      y += cardH + 12;
 
       const equipesList =
         equipe !== "all"
@@ -1001,19 +1003,18 @@ y += cardH + 12;
       ];
 
       for (const { label, result } of resultsList) {
-        // Evita título solto no fim da página (mín. 40mm para título + pelo menos 2 linhas)
-const pageH = 210; // landscape A4 height
-const margin = 15;
-if (y > pageH - margin - 40) {
-  doc.addPage();
-  y = 15;
-}
+        const pageH = 210;
+        const margin = 15;
+        if (y > pageH - margin - 40) {
+          doc.addPage();
+          y = 15;
+        }
 
-doc.setFontSize(11);
-doc.setFont("helvetica", "bold");
-doc.setTextColor(30);
-doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
-y += 4;
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30);
+        doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
+        y += 4;
 
         const rows = result.indicadores
           .filter(ind => indicadorFiltro === "todos" || ind.indicador === indicadorFiltro)
@@ -1116,69 +1117,65 @@ y += 4;
         </Button>
       </div>
 
-      {/* Ranking Cards — linha única com scroll */}
-<div className="relative">
-  <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted">
-
-    {/* Card Geral */}
-    <div className={`
-      flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
-      px-5 py-3 rounded-xl border-2 shadow-md
-      bg-gradient-to-b from-white to-primary/5 border-primary/30
-    `}>
-      <div className="flex items-center gap-1 mb-0.5">
-        <Trophy className="h-3.5 w-3.5 text-primary" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Geral</span>
-      </div>
-      <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(geral.notaFinal)}`}>
-        {geral.notaFinal.toFixed(2).replace(".", ",")}
-      </p>
-      <p className="text-[10px] text-muted-foreground">Nota Final</p>
-    </div>
-
-    {/* Divisor vertical */}
-    <div className="self-stretch w-px bg-border mx-1" />
-
-    {/* Cards por equipe */}
-    {sortedEquipes.map((eq, idx) => {
-      const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
-      const ringClass =
-        idx === 0 ? "border-yellow-300 shadow-yellow-100" :
-        idx === 1 ? "border-slate-300 shadow-slate-100" :
-        idx === 2 ? "border-orange-300 shadow-orange-100" :
-                    "border-border shadow-sm";
-      const bgClass =
-        idx === 0 ? "from-yellow-50 to-white" :
-        idx === 1 ? "from-slate-50 to-white" :
-        idx === 2 ? "from-orange-50 to-white" :
-                    "from-white to-white";
-
-      return (
-        <div
-          key={eq.equipe}
-          className={`
+      {/* Ranking Cards */}
+      <div className="relative">
+        <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted">
+          <div className={`
             flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
-            px-4 py-3 rounded-xl border-2 shadow-md
-            bg-gradient-to-b ${bgClass} ${ringClass}
-          `}
-        >
-          <div className="flex items-center gap-1 mb-0.5">
-            {medal
-              ? <span className="text-sm leading-none">{medal}</span>
-              : <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
-            }
+            px-5 py-3 rounded-xl border-2 shadow-md
+            bg-gradient-to-b from-white to-primary/5 border-primary/30
+          `}>
+            <div className="flex items-center gap-1 mb-0.5">
+              <Trophy className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Geral</span>
+            </div>
+            <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(geral.notaFinal)}`}>
+              {geral.notaFinal.toFixed(2).replace(".", ",")}
+            </p>
+            <p className="text-[10px] text-muted-foreground">Nota Final</p>
           </div>
-          <p className="text-[10px] font-semibold text-center leading-tight text-foreground truncate w-full text-center px-1" title={eq.equipe}>
-            {eq.equipe}
-          </p>
-          <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
-            {eq.notaFinal.toFixed(2).replace(".", ",")}
-          </p>
+
+          <div className="self-stretch w-px bg-border mx-1" />
+
+          {sortedEquipes.map((eq, idx) => {
+            const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
+            const ringClass =
+              idx === 0 ? "border-yellow-300 shadow-yellow-100" :
+              idx === 1 ? "border-slate-300 shadow-slate-100" :
+              idx === 2 ? "border-orange-300 shadow-orange-100" :
+                          "border-border shadow-sm";
+            const bgClass =
+              idx === 0 ? "from-yellow-50 to-white" :
+              idx === 1 ? "from-slate-50 to-white" :
+              idx === 2 ? "from-orange-50 to-white" :
+                          "from-white to-white";
+
+            return (
+              <div
+                key={eq.equipe}
+                className={`
+                  flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
+                  px-4 py-3 rounded-xl border-2 shadow-md
+                  bg-gradient-to-b ${bgClass} ${ringClass}
+                `}
+              >
+                <div className="flex items-center gap-1 mb-0.5">
+                  {medal
+                    ? <span className="text-sm leading-none">{medal}</span>
+                    : <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
+                  }
+                </div>
+                <p className="text-[10px] font-semibold text-center leading-tight text-foreground truncate w-full text-center px-1" title={eq.equipe}>
+                  {eq.equipe}
+                </p>
+                <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
+                  {eq.notaFinal.toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-</div>
+      </div>
 
       {/* Conteúdo principal */}
       {indicadorFiltro !== "todos" ? (
