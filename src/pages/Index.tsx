@@ -43,6 +43,18 @@ import { Tab3Table } from "@/components/dashboard/Tab3Table";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserCheck, RefreshCw, LogOut } from "lucide-react";
+
+// Ícone de dente SVG (lucide-react não tem)
+const ToothIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M22 6C16 6 10 11 10 18C10 22 11.5 25.5 12 28C13 33 13 38 14 44C14.8 49 16 58 20 58C23 58 24 53 25 48C26 43 27 40 32 40C37 40 38 43 39 48C40 53 41 58 44 58C48 58 49.2 49 50 44C51 38 51 33 52 28C52.5 25.5 54 22 54 18C54 11 48 6 42 6C39 6 37 7.5 35 9C33.5 10.2 32 11 32 11C32 11 30.5 10.2 29 9C27 7.5 25 6 22 6Z"
+      fill="currentColor" fillOpacity="0.15"
+      stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"
+    />
+    <path d="M22 6C25 6 28 9 32 9C36 9 39 6 42 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/hooks/usePatientData";
@@ -281,11 +293,14 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
       <header className="border-b border-border/50 bg-card shadow-sm">
         <div className="container mx-auto px-[14px] py-[14px]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Indicadores de Saúde Bucal de Varjota
-              </h1>
-              <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
+            <div className="flex items-center gap-3">
+              <ToothIcon className="h-9 w-9 text-primary shrink-0" />
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  Indicadores de Saúde Bucal de Varjota
+                </h1>
+                <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {userName && (
