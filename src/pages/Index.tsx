@@ -290,7 +290,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 bg-card shadow-sm">
+      <header className="border-b border-border/50 bg-card shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-[14px] py-[14px]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
