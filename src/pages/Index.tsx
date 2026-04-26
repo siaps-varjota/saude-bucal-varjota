@@ -1,3 +1,4 @@
+import { useOficialData } from "@/hooks/useOficialData";
 import { useState, useMemo } from "react";
 import { parse, isValid } from "date-fns";
 import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
@@ -151,6 +152,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
   const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
+  const { data: oficialData, refetch: refetchOficial } = useOficialData();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
@@ -229,7 +231,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     }).length;
   }, [patients, filtersTab5.quadrimestre, filtersTab5.equipe]);
 
-  const refetchAll = () => { refetchPatients(); refetchTratamento(); refetchTab3(); refetchTab4(); refetchTab5(); refetchTab6(); };
+  const refetchAll = () => { refetchPatients(); refetchTratamento(); refetchTab3(); refetchTab4(); refetchTab5(); refetchTab6(); refetchOficial(); };
 
   const getTabState = () => {
     switch (activeTab) {
@@ -379,7 +381,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingPatients
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <MonthlyCards patients={filteredPatients} totalPatients={totalPatients} mesReferencia={filtersConsulta.mesReferencia} />}
+                  : <MonthlyCards patients={filteredPatients} totalPatients={totalPatients} mesReferencia={filtersConsulta.mesReferencia} equipe={filtersConsulta.equipe} oficialData={oficialData} />}
               </div>
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
             </div>
