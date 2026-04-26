@@ -160,20 +160,20 @@ export const Tab6QuadrimesterCards = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="border-r pr-4">
             <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 6%)</p>
-            <p className="text-2xl font-bold text-emerald-700">{metaBom} exod.</p>
+            <p className="text-2xl font-bold text-emerald-700">{metaBom} TRA</p>
             <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
             {atingiuBom
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} exod.</p>
+              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} TRA</p>
             }
           </div>
           <div>
             <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 8%)</p>
-            <p className="text-2xl font-bold text-blue-700">{metaOtimo} exod.</p>
+            <p className="text-2xl font-bold text-blue-700">{metaOtimo} TRA</p>
             <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
             {atingiuOtimo
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} exod.</p>
+              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} TRA</p>
             }
           </div>
         </div>
