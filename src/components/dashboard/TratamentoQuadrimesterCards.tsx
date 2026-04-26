@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
+import { FonteBadge } from "@/components/dashboard/FonteBadge";
+import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
+import { FonteDado } from "@/hooks/useOficialMerge";
 
 interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
@@ -10,12 +13,14 @@ interface TratamentoQuadrimesterCardsProps {
   totalComConsulta: number;
   quadrimestre?: string;
   mesReferencia?: string[];
+  equipe?: string;           // ← novo
+  oficialData?: OficialData; // ← novo
 }
 
 const parseTratamentoDate = (str: string): Date | null => {
   if (!str || str === "-" || str.trim() === "") return null;
-  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-  for (const fmt of formats) {
+  const fmts = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of fmts) {
     try {
       const parsed = parse(str.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
@@ -50,32 +55,25 @@ const getQuadrimesterInfo = (date: Date) => {
   return { quad: 3, year };
 };
 
-/** Retorna true se algum dos meses selecionados cai dentro do range do quadrimestre */
 const quadContainsMesReferencia = (
   mesReferencia: string[],
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): boolean => {
   if (mesReferencia.length === 0) return false;
   return mesReferencia.some(mmyyyy => {
     const [mm, yyyy] = mmyyyy.split("/").map(Number);
     if (!mm || !yyyy) return false;
-    const d = new Date(yyyy, mm - 1, 1);
-    return isWithinInterval(d, { start: startDate, end: endDate });
+    return isWithinInterval(new Date(yyyy, mm - 1, 1), { start: startDate, end: endDate });
   });
 };
 
-/**
- * Verifica se uma data cai no período.
- * Se o quadrimestre contém algum mês selecionado, aplica mesReferencia.
- * Caso contrário, usa o range normal do quadrimestre.
- */
 const inPeriod = (
   dateStr: string,
   startDate: Date,
   endDate: Date,
   mesReferencia: string[],
-  quadContainsMes: boolean
+  quadContainsMes: boolean,
 ): boolean => {
   const d = parseTratamentoDate(dateStr);
   if (!d) return false;
@@ -86,17 +84,43 @@ const inPeriod = (
   return isWithinInterval(d, { start: startDate, end: endDate });
 };
 
+// ── Resolve num/den B2 para um mês via oficial ou preliminar ──────────────────
+const resolveMonthB2 = (
+  monthDate: Date,
+  prelNum: number,
+  prelDen: number,
+  equipe: string,
+  oficialIndex: OficialData["index"] | undefined,
+): { num: number; den: number; fonte: FonteDado } => {
+  const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
+  const ofRow   = oficialIndex?.get(makeOficialKey(mesNorm, equipe));
+  if (ofRow && (ofRow.numB2 > 0 || ofRow.denB2 > 0)) {
+    return { num: ofRow.numB2, den: ofRow.denB2, fonte: "oficial" };
+  }
+  return { num: prelNum, den: prelDen, fonte: "preliminar" };
+};
+
 export const TratamentoQuadrimesterCards = ({
   patients,
   quadrimestre = "todos",
   mesReferencia = [],
+  equipe = "all",
+  oficialData,
 }: TratamentoQuadrimesterCardsProps) => {
+
   const quadrimesterData = useMemo(() => {
-    const now = new Date();
+    const now         = new Date();
     const currentQuad = getQuadrimesterInfo(now);
+
     const result: {
-      label: string; total: number; totalConsultasQuad: number;
-      average: number; months: number; percentage: number; quadKey: string;
+      label: string;
+      total: number;
+      totalConsultasQuad: number;
+      average: number;
+      months: number;
+      percentage: number;
+      quadKey: string;
+      fonte: FonteDado;
     }[] = [];
 
     for (let i = 2; i >= 0; i--) {
@@ -113,38 +137,51 @@ export const TratamentoQuadrimesterCards = ({
       const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
       const monthsCount    = actualEndMonth - startMonth + 1;
 
-      const startDate = startOfMonth(new Date(targetYear, startMonth, 1));
-      const endDate   = endOfMonth(new Date(targetYear, actualEndMonth, 1));
-
-      // Verifica se o mesReferencia selecionado pertence a este quadrimestre
+      const startDate  = startOfMonth(new Date(targetYear, startMonth, 1));
+      const endDate    = endOfMonth(new Date(targetYear, actualEndMonth, 1));
       const containsMes = quadContainsMesReferencia(mesReferencia, startDate, endDate);
 
-      // DENOMINADOR: primeiraConsulta no período
-      const consultasQuad = patients.filter(p =>
-        inPeriod(p.primeiraConsulta, startDate, endDate, mesReferencia, containsMes)
-      ).length;
+      // ── Agrega meses com merge oficial ────────────────────────────────────
+      let totalNum          = 0;
+      let totalDen          = 0;
+      let todosMesesOficiais = true;
 
-      // NUMERADOR: tratamentoConcluido no período
-      const tratamentoCount = patients.filter(p =>
-        inPeriod(p.tratamentoConcluido, startDate, endDate, mesReferencia, containsMes)
-      ).length;
+      for (let m = startMonth; m <= actualEndMonth; m++) {
+        const monthDate = new Date(targetYear, m, 1);
 
-      const percentage = consultasQuad > 0 ? (tratamentoCount / consultasQuad) * 100 : 0;
-      const average    = monthsCount    > 0 ? tratamentoCount / monthsCount          : 0;
+        // Preliminar: filtra pacientes no mês
+        const prelNum = patients.filter(p =>
+          inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+        ).length;
+        const prelDen = patients.filter(p =>
+          inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+        ).length;
+
+        const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
+        totalNum += resolved.num;
+        totalDen += resolved.den;
+        if (resolved.fonte !== "oficial") todosMesesOficiais = false;
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
+      const percentage = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
+      const average    = monthsCount > 0 ? totalNum / monthsCount    : 0;
+      const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
 
       result.push({
         label,
-        total: tratamentoCount,
-        totalConsultasQuad: consultasQuad,
+        total: totalNum,
+        totalConsultasQuad: totalDen,
         average,
         months: monthsCount,
         percentage,
         quadKey: `Q${targetQuad}-${targetYear}`,
+        fonte,
       });
     }
 
     return result;
-  }, [patients, mesReferencia]);
+  }, [patients, mesReferencia, equipe, oficialData]);
 
   const visibleCards = quadrimestre !== "todos"
     ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
@@ -152,16 +189,17 @@ export const TratamentoQuadrimesterCards = ({
 
   return (
     <>
-      {visibleCards.map(({ label, total, totalConsultasQuad, average, percentage }) => {
+      {visibleCards.map(({ label, total, totalConsultasQuad, average, percentage, fonte }) => {
         const category = getScoreCategory(percentage, total);
         const styles   = getScoreStyles(category);
         return (
           <Card key={label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
             <CardContent className="p-4">
               <div className="flex flex-col">
-                <div className="flex items-center gap-1.5 mb-2">
+                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                   <Calendar className={`w-3.5 h-3.5 ${styles.icon}`} />
                   <span className={`text-xs font-medium ${styles.label}`}>{label}</span>
+                  <FonteBadge fonte={fonte} />
                 </div>
                 <span className={`text-3xl font-bold ${styles.count}`}>{total}</span>
                 <span className="text-xs text-muted-foreground mt-1">de {totalConsultasQuad}</span>
