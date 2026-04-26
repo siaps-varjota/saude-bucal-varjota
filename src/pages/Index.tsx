@@ -438,6 +438,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       totalComConsulta={filteredTratamentoSemMes.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
                       quadrimestre={filtersTratamento.quadrimestre}
                       mesReferencia={filtersTratamento.mesReferencia}
+                      equipe={filtersTratamento.equipe}
+                      oficialData={oficialData}
                     />
                     <TratamentoMetaCard
                       patients={filteredTratamentoSemMes}
