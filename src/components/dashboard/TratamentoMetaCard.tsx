@@ -57,7 +57,6 @@ const getQuadRange = (quadKey: string) => {
   };
 };
 
-// ── Resolve num/den B2 para um mês ────────────────────────────────────────────
 const resolveMonthB2 = (
   monthDate: Date,
   prelNum: number,
@@ -73,7 +72,6 @@ const resolveMonthB2 = (
   return { num: prelNum, den: prelDen, fonte: "preliminar" };
 };
 
-// ── Resolve num/den B1 para um mês (usado na simulação da Aba 1) ──────────────
 const resolveMonthB1 = (
   monthDate: Date,
   prelNum: number,
@@ -108,7 +106,7 @@ export const TratamentoMetaCard = ({
     const range = getQuadRange(quadKey);
     if (!range) return null;
 
-    const inPeriod = (dateStr: string): boolean => {
+    const inPeriodDate = (dateStr: string): boolean => {
       const d = parseDateStr(dateStr);
       if (!d) return false;
       if (mesReferencia.length > 0) {
@@ -118,25 +116,28 @@ export const TratamentoMetaCard = ({
       return isWithinInterval(d, { start: range.start, end: range.end });
     };
 
-    // ── Agrega meses com merge oficial (B2) ───────────────────────────────
+    // ── Agrega meses B2 com merge oficial ─────────────────────────────────
     let totalNum          = 0;
     let totalDen          = 0;
     let todosMesesOficiais = true;
 
     for (let m = range.startMonth; m <= range.actualEndMonth; m++) {
       const monthDate = new Date(range.year, m, 1);
+      const mStart    = startOfMonth(monthDate);
+      const mEnd      = endOfMonth(monthDate);
 
-      const prelNum = patients.filter(p =>
-        inPeriod(p.tratamentoConcluido) &&
-        parseDateStr(p.tratamentoConcluido)?.getMonth() === m &&
-        parseDateStr(p.tratamentoConcluido)?.getFullYear() === range.year
-      ).length;
+      const inMonth = (dateStr: string): boolean => {
+        const d = parseDateStr(dateStr);
+        if (!d) return false;
+        if (mesReferencia.length > 0) {
+          const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+          return mesReferencia.includes(key);
+        }
+        return isWithinInterval(d, { start: mStart, end: mEnd });
+      };
 
-      const prelDen = patients.filter(p =>
-        inPeriod(p.primeiraConsulta) &&
-        parseDateStr(p.primeiraConsulta)?.getMonth() === m &&
-        parseDateStr(p.primeiraConsulta)?.getFullYear() === range.year
-      ).length;
+      const prelNum = patients.filter(p => inMonth(p.tratamentoConcluido)).length;
+      const prelDen = patients.filter(p => inMonth(p.primeiraConsulta)).length;
 
       const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
@@ -144,88 +145,91 @@ export const TratamentoMetaCard = ({
       if (resolved.fonte !== "oficial") todosMesesOficiais = false;
     }
 
-    // Fallback: se merge mensal não produziu denominador, usa contagem geral
-    const consultasQuad   = totalDen > 0 ? totalDen : patients.filter(p => inPeriod(p.primeiraConsulta)).length;
-    const tratamentosQuad = totalNum > 0 ? totalNum : patients.filter(p => inPeriod(p.tratamentoConcluido)).length;
+    // Fallback para mesReferencia quando iteração mensal não captura
+    if (totalDen === 0 && mesReferencia.length > 0) {
+      totalNum = patients.filter(p => inPeriodDate(p.tratamentoConcluido)).length;
+      totalDen = patients.filter(p => inPeriodDate(p.primeiraConsulta)).length;
+      todosMesesOficiais = false;
+    }
+
     const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
-    // ─────────────────────────────────────────────────────────────────────
 
     const pendentes = patients.filter(p => {
-      if (!inPeriod(p.primeiraConsulta)) return false;
+      if (!inPeriodDate(p.primeiraConsulta)) return false;
       const trat = (p.tratamentoConcluido || "").trim();
       return !trat || trat === "-";
     }).length;
 
-    const currentPct  = consultasQuad > 0 ? (tratamentosQuad / consultasQuad) * 100 : 0;
-    const faltamBom   = Math.max(0, Math.ceil(consultasQuad * 0.501) - tratamentosQuad);
-    const faltamOtimo = Math.max(0, Math.ceil(consultasQuad * 0.751) - tratamentosQuad);
+    const currentPct  = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
+    const faltamBom   = Math.max(0, Math.ceil(totalDen * 0.501) - totalNum);
+    const faltamOtimo = Math.max(0, Math.ceil(totalDen * 0.751) - totalNum);
 
-    // ── Simulação — usa denominadorB1 oficial se disponível ──────────────
+    // ── Simulações ────────────────────────────────────────────────────────
     const simulations = (() => {
       const match = quadKey.match(/Q(\d)-(\d{4})/);
       if (!match) return null;
-
       const q          = parseInt(match[1]);
-      const y          = parseInt(match[2]);
       const startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
       const isCurrentQ = `Q${currentQuad.quad}-${currentQuad.year}` === quadKey;
       const endMonth   = isCurrentQ ? now.getMonth() : startMonth + 3;
       const meses      = endMonth - startMonth + 1;
 
-      // Resolve denominadorB1 com oficial se disponível (média dos meses)
-      let denB1Total = 0;
-      let denB1Count = 0;
+      // Resolve B1 acumulado com oficial
+      let denB1Quad = 0;
+      let numB1Quad = 0;
       for (let m = startMonth; m <= endMonth; m++) {
-        const monthDate = new Date(y, m, 1);
-        const res = resolveMonthB1(monthDate, 0, denominadorB1, equipe, oficialData?.index);
-        if (res.den > 0) { denB1Total += res.den; denB1Count++; }
+        const monthDate = new Date(range.year, m, 1);
+        const prelNumB1 = patients.filter(p => {
+          const d = parseDateStr(p.primeiraConsulta);
+          return d?.getMonth() === m && d?.getFullYear() === range.year;
+        }).length;
+        const resolved = resolveMonthB1(monthDate, prelNumB1, denominadorB1, equipe, oficialData?.index);
+        denB1Quad += resolved.den;
+        numB1Quad += resolved.num;
       }
-      const denB1Efetivo = denB1Count > 0 ? Math.round(denB1Total / denB1Count) : denominadorB1;
-      if (denB1Efetivo <= 0) return null;
 
-      // Resolve consultasAba1Quad com oficial se disponível
-      let aba1NumTotal = 0;
-      for (let m = startMonth; m <= endMonth; m++) {
-        const monthDate = new Date(y, m, 1);
-        const res = resolveMonthB1(monthDate, 0, denominadorB1, equipe, oficialData?.index);
-        aba1NumTotal += res.num;
-      }
-      const aba1Efetivo = aba1NumTotal > 0 ? aba1NumTotal : consultasAba1Quad;
+      const denB1Rep = meses > 0 ? Math.round(denB1Quad / meses) : denominadorB1;
 
-      const consultasBom   = (Math.floor(denB1Efetivo * 0.03) + 1) * meses;
-      const consultasOtimo = (Math.floor(denB1Efetivo * 0.05) + 1) * meses;
+      const consultasBom   = (Math.floor(denB1Rep * 0.03) + 1) * meses;
+      const consultasOtimo = (Math.floor(denB1Rep * 0.05) + 1) * meses;
 
-      const aba1JaAtingiuBom   = aba1Efetivo >= consultasBom;
-      const aba1JaAtingiuOtimo = aba1Efetivo >= consultasOtimo;
-      const faltamAba1Bom   = Math.max(0, consultasBom   - aba1Efetivo);
-      const faltamAba1Otimo = Math.max(0, consultasOtimo - aba1Efetivo);
+      const aba1Real = numB1Quad > 0 ? numB1Quad : consultasAba1Quad;
 
-      const novasConsultasBom   = Math.max(0, consultasBom   - consultasQuad);
-      const novasConsultasOtimo = Math.max(0, consultasOtimo - consultasQuad);
+      const aba1JaAtingiuBom   = aba1Real >= consultasBom;
+      const aba1JaAtingiuOtimo = aba1Real >= consultasOtimo;
+      const faltamAba1Bom      = Math.max(0, consultasBom   - aba1Real);
+      const faltamAba1Otimo    = Math.max(0, consultasOtimo - aba1Real);
 
-      const denomSimBom   = consultasQuad + novasConsultasBom;
-      const denomSimOtimo = consultasQuad + novasConsultasOtimo;
-      const numeradorSimBom   = tratamentosQuad + novasConsultasBom   * 0.5;
-      const numeradorSimOtimo = tratamentosQuad + novasConsultasOtimo * 0.5;
+      const novasConsultasBom   = Math.max(0, consultasBom   - totalDen);
+      const novasConsultasOtimo = Math.max(0, consultasOtimo - totalDen);
+
+      const denomSimBom   = totalDen + novasConsultasBom;
+      const denomSimOtimo = totalDen + novasConsultasOtimo;
+      const numeradorSimBom   = totalNum + novasConsultasBom   * 0.5;
+      const numeradorSimOtimo = totalNum + novasConsultasOtimo * 0.5;
 
       return {
         consultasBom, consultasOtimo,
         aba1JaAtingiuBom, aba1JaAtingiuOtimo,
         faltamAba1Bom, faltamAba1Otimo,
-        tratNeedBomBom:    Math.max(0, Math.ceil(denomSimBom   * 0.501 - numeradorSimBom)),
-        tratNeedBomOtimo:  Math.max(0, Math.ceil(denomSimBom   * 0.751 - numeradorSimBom)),
-        tratNeedOtimoBom:  Math.max(0, Math.ceil(denomSimOtimo * 0.501 - numeradorSimOtimo)),
+        tratNeedBomBom:     Math.max(0, Math.ceil(denomSimBom   * 0.501 - numeradorSimBom)),
+        tratNeedBomOtimo:   Math.max(0, Math.ceil(denomSimBom   * 0.751 - numeradorSimBom)),
+        tratNeedOtimoBom:   Math.max(0, Math.ceil(denomSimOtimo * 0.501 - numeradorSimOtimo)),
         tratNeedOtimoOtimo: Math.max(0, Math.ceil(denomSimOtimo * 0.751 - numeradorSimOtimo)),
       };
     })();
 
     return {
-      consultasQuad, tratamentosQuad, pendentes, currentPct,
-      faltamBom, faltamOtimo,
+      consultasQuad: totalDen,
+      tratamentosQuad: totalNum,
+      pendentes,
+      currentPct,
+      faltamBom,
+      faltamOtimo,
       alreadyBom:   currentPct > 50,
       alreadyOtimo: currentPct > 75,
-      simulations,
       fonte,
+      simulations,
     };
   }, [patients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia, equipe, oficialData]);
 
@@ -233,7 +237,7 @@ export const TratamentoMetaCard = ({
 
   const {
     consultasQuad, tratamentosQuad, pendentes, currentPct,
-    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, simulations, fonte,
+    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, fonte, simulations,
   } = metaData;
 
   return (
@@ -294,16 +298,14 @@ export const TratamentoMetaCard = ({
       {simulations && (
         <Card className="border-0 shadow-md bg-orange-50 border border-orange-200 col-span-2 lg:col-span-full">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <div className="flex items-center gap-2 mb-4">
               <FlaskConical className="w-4 h-4 text-orange-600" />
               <span className="text-sm font-semibold text-orange-700 uppercase tracking-wide">
                 Simulação — Se atingir meta na 1ª Consulta Odontológica (Aba 1)
               </span>
-              <FonteBadge fonte={fonte} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Se Aba 1 atingir Bom */}
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-emerald-700">
@@ -316,7 +318,7 @@ export const TratamentoMetaCard = ({
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">Para atingir Bom Trat. (&gt;50%)</p>
+                    <p className="text-xs text-muted-foreground">Para Bom Trat. (&gt;50%)</p>
                     {simulations.tratNeedBomBom === 0
                       ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedBomBom} <span className="text-xs font-normal">finalização(ões)</span></p>
@@ -324,7 +326,7 @@ export const TratamentoMetaCard = ({
                   </div>
                   <div className="w-px self-stretch bg-emerald-200" />
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">Para atingir Ótimo Trat. (&gt;75%)</p>
+                    <p className="text-xs text-muted-foreground">Para Ótimo Trat. (&gt;75%)</p>
                     {simulations.tratNeedBomOtimo === 0
                       ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-blue-700">{simulations.tratNeedBomOtimo} <span className="text-xs font-normal">finalização(ões)</span></p>
@@ -333,7 +335,6 @@ export const TratamentoMetaCard = ({
                 </div>
               </div>
 
-              {/* Se Aba 1 atingir Ótimo */}
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-blue-700">
@@ -346,7 +347,7 @@ export const TratamentoMetaCard = ({
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">Para atingir Bom Trat. (&gt;50%)</p>
+                    <p className="text-xs text-muted-foreground">Para Bom Trat. (&gt;50%)</p>
                     {simulations.tratNeedOtimoBom === 0
                       ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-emerald-700">{simulations.tratNeedOtimoBom} <span className="text-xs font-normal">finalização(ões)</span></p>
@@ -354,7 +355,7 @@ export const TratamentoMetaCard = ({
                   </div>
                   <div className="w-px self-stretch bg-blue-200" />
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">Para atingir Ótimo Trat. (&gt;75%)</p>
+                    <p className="text-xs text-muted-foreground">Para Ótimo Trat. (&gt;75%)</p>
                     {simulations.tratNeedOtimoOtimo === 0
                       ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-blue-700">{simulations.tratNeedOtimoOtimo} <span className="text-xs font-normal">finalização(ões)</span></p>
