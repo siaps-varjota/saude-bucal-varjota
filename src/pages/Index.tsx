@@ -505,7 +505,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <>
                     <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <Tab3QuadrimesterCards records={filteredTab3} />
+                    <Tab3QuadrimesterCards records={filteredTab3} equipe={filtersTab3.equipe} oficialData={oficialData} />
                   </>
                 )}
               </div>
@@ -513,7 +513,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab3
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab3MonthlyCards records={filteredTab3} mesReferencia={filtersTab3.mesReferencia} />}
+                  : <Tab3MonthlyCards records={filteredTab3} mesReferencia={filtersTab3.mesReferencia}  equipe={filtersTab3.equipe}  oficialData={oficialData} />}
               </div>
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
