@@ -459,6 +459,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       allPatients={filteredTratamentoSemMes}
                       quadrimestre={filtersTratamento.quadrimestre}
                       mesReferencia={filtersTratamento.mesReferencia}
+                      equipe={filtersTratamento.equipe}
+                      oficialData={oficialData} 
                     />}
               </div>
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
