@@ -3,7 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Target, TrendingUp, AlertCircle, FlaskConical } from "lucide-react";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
+import { FonteBadge } from "@/components/dashboard/FonteBadge";
+import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
+import { FonteDado } from "@/hooks/useOficialMerge";
 
 interface Tab5MetaCardProps {
   records: Tab5Record[];
@@ -12,6 +15,8 @@ interface Tab5MetaCardProps {
   pendentesTab1: number;
   denominadorB1?: number;
   consultasAba1Quad?: number;
+  equipe?: string;           // ← novo
+  oficialData?: OficialData; // ← novo
 }
 
 const MONTH_MAP: Record<string, number> = {
@@ -21,8 +26,8 @@ const MONTH_MAP: Record<string, number> = {
 
 const parseDateStr = (str: string): Date | null => {
   if (!str || str === "-" || str.trim() === "") return null;
-  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-  for (const fmt of formats) {
+  const fmts = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
+  for (const fmt of fmts) {
     try {
       const parsed = parse(str.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
@@ -33,7 +38,7 @@ const parseDateStr = (str: string): Date | null => {
 
 const getQuadrimesterInfo = (date: Date) => {
   const month = date.getMonth();
-  const year = date.getFullYear();
+  const year  = date.getFullYear();
   if (month <= 3) return { quad: 1, year };
   if (month <= 7) return { quad: 2, year };
   return { quad: 3, year };
@@ -51,16 +56,16 @@ const getQuadRange = (quadKey: string) => {
   const q = parseInt(match[1]);
   const y = parseInt(match[2]);
   const startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
-  const endMonth = startMonth + 3;
-
   const now = new Date();
   const currentQuad = getQuadrimesterInfo(now);
   const isCurrentQuad = `Q${currentQuad.quad}-${currentQuad.year}` === quadKey;
-  const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
-
+  const actualEndMonth = isCurrentQuad ? now.getMonth() : startMonth + 3;
   return {
     start: startOfMonth(new Date(y, startMonth, 1)),
-    end: endOfMonth(new Date(y, actualEndMonth, 1)),
+    end:   endOfMonth(new Date(y, actualEndMonth, 1)),
+    startMonth,
+    actualEndMonth,
+    year: y,
   };
 };
 
@@ -71,11 +76,14 @@ export const Tab5MetaCard = ({
   pendentesTab1,
   denominadorB1 = 0,
   consultasAba1Quad = 0,
+  equipe = "all",
+  oficialData,
 }: Tab5MetaCardProps) => {
+
   const metaData = useMemo(() => {
-    const now = new Date();
+    const now         = new Date();
     const currentQuad = getQuadrimesterInfo(now);
-    const quadKey = quadrimestre !== "todos" ? quadrimestre : `Q${currentQuad.quad}-${currentQuad.year}`;
+    const quadKey     = quadrimestre !== "todos" ? quadrimestre : `Q${currentQuad.quad}-${currentQuad.year}`;
 
     const match = quadKey.match(/Q(\d)-(\d{4})/);
     if (!match) return null;
@@ -85,17 +93,39 @@ export const Tab5MetaCard = ({
     const range = getQuadRange(quadKey);
     if (!range) return null;
 
-    let preventivos = 0;
-    let totalIndividuais = 0;
-    records.forEach((r) => {
-      const parts = r.mesAno.split("/");
-      const mesName = parts[0]?.toLowerCase().trim();
-      const ano = parseInt(parts[1]);
-      const mesIdx = MONTH_MAP[mesName];
-      if (mesIdx === undefined || ano !== y || !quadMonths.includes(mesIdx)) return;
-      preventivos += r.preventivos;
-      totalIndividuais += r.totalIndividuais;
+    // ── Agrega B5 mês a mês com merge oficial ─────────────────────────────
+    let preventivos       = 0;
+    let totalIndividuais  = 0;
+    let todosMesesOficiais = true;
+
+    quadMonths.forEach(mesIdx => {
+      const inPast = y < now.getFullYear() || (y === now.getFullYear() && mesIdx <= range.actualEndMonth);
+      if (!inPast) return;
+
+      const mmyyyy  = `${String(mesIdx + 1).padStart(2, "0")}/${y}`;
+      const mesNorm = normalizeMes(mmyyyy) ?? mmyyyy;
+      const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
+      const isOficial = !!ofRow && (ofRow.numB5 > 0 || ofRow.denB5 > 0);
+
+      if (isOficial) {
+        preventivos      += ofRow!.numB5;
+        totalIndividuais += ofRow!.denB5;
+      } else {
+        records.forEach((r) => {
+          const parts   = r.mesAno.split("/");
+          const rMesIdx = MONTH_MAP[parts[0]?.toLowerCase().trim()];
+          const rAno    = parseInt(parts[1]);
+          if (rMesIdx === mesIdx && rAno === y && quadMonths.includes(rMesIdx)) {
+            preventivos      += r.preventivos;
+            totalIndividuais += r.totalIndividuais;
+          }
+        });
+        todosMesesOficiais = false;
+      }
     });
+
+    const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
+    // ─────────────────────────────────────────────────────────────────────
 
     const currentPct = totalIndividuais > 0 ? (preventivos / totalIndividuais) * 100 : 0;
 
@@ -114,7 +144,7 @@ export const Tab5MetaCard = ({
     const calcNeeded = (target: number): number => {
       if (totalIndividuais > 0 && (preventivos / totalIndividuais) >= target) return 0;
       if (totalIndividuais === 0 && target <= 1) return 1;
-      const numerator = target * totalIndividuais - preventivos;
+      const numerator   = target * totalIndividuais - preventivos;
       const denominator = 2 * (1 - target);
       if (denominator <= 0) return 0;
       return Math.max(0, Math.ceil(numerator / denominator));
@@ -123,31 +153,51 @@ export const Tab5MetaCard = ({
     const faltamBom   = calcNeeded(0.60);
     const faltamOtimo = calcNeeded(0.80);
 
-    const simulations = denominadorB1 > 0 ? (() => {
-      const isCurrentQuad = `Q${currentQuad.quad}-${currentQuad.year}` === quadKey;
-      const startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
-      const endMonth = isCurrentQuad ? now.getMonth() : startMonth + 3;
-      const meses = endMonth - startMonth + 1;
+    // ── Simulações com B1 oficial ──────────────────────────────────────────
+    const simulations = (() => {
+      const isCurrentQ  = `Q${currentQuad.quad}-${currentQuad.year}` === quadKey;
+      const startMonth  = q === 1 ? 0 : q === 2 ? 4 : 8;
+      const endMonth    = isCurrentQ ? now.getMonth() : startMonth + 3;
+      const meses       = endMonth - startMonth + 1;
 
-      const consultasAlvo1Bom   = (Math.floor(denominadorB1 * 0.03) + 1) * meses;
-      const consultasAlvo1Otimo = (Math.floor(denominadorB1 * 0.05) + 1) * meses;
+      // Resolve B1 acumulado com oficial
+      let denB1Quad = 0;
+      let numB1Quad = 0;
+      for (let m = startMonth; m <= endMonth; m++) {
+        const mmyyyy  = `${String(m + 1).padStart(2, "0")}/${y}`;
+        const mesNorm = normalizeMes(mmyyyy) ?? mmyyyy;
+        const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
+        if (ofRow && (ofRow.numB1 > 0 || ofRow.denB1 > 0)) {
+          numB1Quad += ofRow.numB1;
+          denB1Quad += ofRow.denB1;
+        } else {
+          // fallback: usa denominadorB1 prop e consultasAba1Quad prop
+          denB1Quad += denominadorB1;
+        }
+      }
 
-      const aba1JaAtingiuBom   = consultasAba1Quad >= consultasAlvo1Bom;
-      const aba1JaAtingiuOtimo = consultasAba1Quad >= consultasAlvo1Otimo;
-      const faltamAba1Bom      = Math.max(0, consultasAlvo1Bom   - consultasAba1Quad);
-      const faltamAba1Otimo    = Math.max(0, consultasAlvo1Otimo - consultasAba1Quad);
+      const denB1Rep = meses > 0 ? Math.round(denB1Quad / meses) : denominadorB1;
+      const aba1Real = numB1Quad > 0 ? numB1Quad : consultasAba1Quad;
+
+      const consultasAlvo1Bom   = (Math.floor(denB1Rep * 0.03) + 1) * meses;
+      const consultasAlvo1Otimo = (Math.floor(denB1Rep * 0.05) + 1) * meses;
+
+      const aba1JaAtingiuBom   = aba1Real >= consultasAlvo1Bom;
+      const aba1JaAtingiuOtimo = aba1Real >= consultasAlvo1Otimo;
+      const faltamAba1Bom      = Math.max(0, consultasAlvo1Bom   - aba1Real);
+      const faltamAba1Otimo    = Math.max(0, consultasAlvo1Otimo - aba1Real);
 
       const novasConsultasBom   = Math.max(0, consultasAlvo1Bom   - consultasTab2Quad);
       const novasConsultasOtimo = Math.max(0, consultasAlvo1Otimo - consultasTab2Quad);
 
-      const prevSimBom    = preventivos     + novasConsultasBom   * 2;
+      const prevSimBom    = preventivos      + novasConsultasBom   * 2;
       const totalSimBom   = totalIndividuais + novasConsultasBom   * 2;
-      const prevSimOtimo  = preventivos     + novasConsultasOtimo * 2;
+      const prevSimOtimo  = preventivos      + novasConsultasOtimo * 2;
       const totalSimOtimo = totalIndividuais + novasConsultasOtimo * 2;
 
       const calcNeededSim = (prev: number, total: number, target: number): number => {
         if (total > 0 && prev / total >= target) return 0;
-        const numerator = target * total - prev;
+        const numerator   = target * total - prev;
         const denominator = 2 * (1 - target);
         if (denominator <= 0) return 0;
         return Math.max(0, Math.ceil(numerator / denominator));
@@ -162,7 +212,7 @@ export const Tab5MetaCard = ({
         faltamOtimoBom:   calcNeededSim(prevSimOtimo, totalSimOtimo, 0.60),
         faltamOtimoOtimo: calcNeededSim(prevSimOtimo, totalSimOtimo, 0.80),
       };
-    })() : null;
+    })();
 
     return {
       preventivos, totalIndividuais, currentPct,
@@ -170,16 +220,17 @@ export const Tab5MetaCard = ({
       alreadyBom:   currentPct >= 60,
       alreadyOtimo: currentPct >= 80,
       pendentesTab2,
+      fonte,
       simulations,
     };
-  }, [records, allTratamentoPatients, quadrimestre, denominadorB1, consultasAba1Quad]);
+  }, [records, allTratamentoPatients, quadrimestre, denominadorB1, consultasAba1Quad, equipe, oficialData]);
 
   if (!metaData) return null;
 
   const {
     preventivos, totalIndividuais, currentPct,
     faltamBom, faltamOtimo, alreadyBom, alreadyOtimo,
-    pendentesTab2, simulations,
+    pendentesTab2, fonte, simulations,
   } = metaData;
 
   return (
@@ -187,9 +238,10 @@ export const Tab5MetaCard = ({
       {/* ── Meta do Quadrimestre ─────────────────────────────────────────── */}
       <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
         <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Target className="w-4 h-4 text-violet-600" />
             <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Proced. Odont. Preventivos</span>
+            <FonteBadge fonte={fonte} />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 place-items-center">
@@ -223,15 +275,9 @@ export const Tab5MetaCard = ({
                 <p className="text-xs text-muted-foreground">Meta Bom (≥60%)</p>
               </div>
               {alreadyBom ? (
-                <>
-                  <p className="text-2xl font-bold text-emerald-600">✓</p>
-                  <p className="text-xs text-emerald-600 font-medium">Meta atingida!</p>
-                </>
+                <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
               ) : (
-                <>
-                  <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
-                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
-                </>
+                <><p className="text-2xl font-bold text-emerald-700">{faltamBom}</p><p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p></>
               )}
             </div>
 
@@ -241,27 +287,19 @@ export const Tab5MetaCard = ({
                 <p className="text-xs text-muted-foreground">Meta Ótimo (≥80%)</p>
               </div>
               {alreadyOtimo ? (
-                <>
-                  <p className="text-2xl font-bold text-blue-600">✓</p>
-                  <p className="text-xs text-blue-600 font-medium">Meta atingida!</p>
-                </>
+                <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
               ) : (
-                <>
-                  <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
-                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
-                </>
+                <><p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p><p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p></>
               )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Simulação — estilo laranja igual ao ResultadoFinalTab ────────── */}
+      {/* ── Simulação ────────────────────────────────────────────────────── */}
       {simulations && (
         <Card className="border-0 shadow-md bg-orange-50 border border-orange-200 col-span-2 lg:col-span-full">
           <CardContent className="p-4">
-
-            {/* Cabeçalho */}
             <div className="flex items-center gap-2 mb-4">
               <FlaskConical className="w-4 h-4 text-orange-600" />
               <span className="text-sm font-semibold text-orange-700 uppercase tracking-wide">
@@ -270,85 +308,63 @@ export const Tab5MetaCard = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-              {/* Se Aba 1 atingir Bom */}
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-emerald-700">
                     Se Aba 1 atingir Bom (&gt;3%) → {simulations.consultasAlvo1Bom} Consultas
                   </p>
-                  {simulations.aba1JaAtingiuBom ? (
-                    <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
-                  ) : (
-                    <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Bom} na Aba 1)</span>
-                  )}
+                  {simulations.aba1JaAtingiuBom
+                    ? <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
+                    : <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Bom} na Aba 1)</span>
+                  }
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥60%)</p>
-                    {simulations.faltamBomBom === 0 ? (
-                      <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
-                    ) : (
-                      <p className="text-lg font-bold text-emerald-700">
-                        {simulations.faltamBomBom}{" "}
-                        <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span>
-                      </p>
-                    )}
+                    {simulations.faltamBomBom === 0
+                      ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
+                      : <p className="text-lg font-bold text-emerald-700">{simulations.faltamBomBom} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                    }
                   </div>
                   <div className="w-px self-stretch bg-emerald-200" />
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥80%)</p>
-                    {simulations.faltamBomOtimo === 0 ? (
-                      <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
-                    ) : (
-                      <p className="text-lg font-bold text-blue-700">
-                        {simulations.faltamBomOtimo}{" "}
-                        <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span>
-                      </p>
-                    )}
+                    {simulations.faltamBomOtimo === 0
+                      ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
+                      : <p className="text-lg font-bold text-blue-700">{simulations.faltamBomOtimo} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                    }
                   </div>
                 </div>
               </div>
 
-              {/* Se Aba 1 atingir Ótimo */}
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-blue-700">
                     Se Aba 1 atingir Ótimo (&gt;5%) → {simulations.consultasAlvo1Otimo} Consultas
                   </p>
-                  {simulations.aba1JaAtingiuOtimo ? (
-                    <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
-                  ) : (
-                    <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Otimo} na Aba 1)</span>
-                  )}
+                  {simulations.aba1JaAtingiuOtimo
+                    ? <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
+                    : <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Otimo} na Aba 1)</span>
+                  }
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥60%)</p>
-                    {simulations.faltamOtimoBom === 0 ? (
-                      <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
-                    ) : (
-                      <p className="text-lg font-bold text-emerald-700">
-                        {simulations.faltamOtimoBom}{" "}
-                        <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span>
-                      </p>
-                    )}
+                    {simulations.faltamOtimoBom === 0
+                      ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
+                      : <p className="text-lg font-bold text-emerald-700">{simulations.faltamOtimoBom} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                    }
                   </div>
                   <div className="w-px self-stretch bg-blue-200" />
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥80%)</p>
-                    {simulations.faltamOtimoOtimo === 0 ? (
-                      <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
-                    ) : (
-                      <p className="text-lg font-bold text-blue-700">
-                        {simulations.faltamOtimoOtimo}{" "}
-                        <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span>
-                      </p>
-                    )}
+                    {simulations.faltamOtimoOtimo === 0
+                      ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
+                      : <p className="text-lg font-bold text-blue-700">{simulations.faltamOtimoOtimo} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                    }
                   </div>
                 </div>
               </div>
-
             </div>
 
             <p className="text-xs text-muted-foreground mt-3 italic">
