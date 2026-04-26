@@ -1,12 +1,17 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Patient } from "@/hooks/usePatientData";
 import { CalendarDays, Target } from "lucide-react";
-import { parse, isValid, getMonth, getYear } from "date-fns";
+import { parse, isValid, getMonth, getYear, format } from "date-fns";
+import { FonteBadge } from "@/components/dashboard/FonteBadge";
+import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
+import { FonteDado } from "@/hooks/useOficialMerge";
 
 interface QuadrimesterCardsProps {
   patients: Patient[];
   totalPatients: number;
   quadFiltered?: string;
+  equipe?: string;           // ← novo
+  oficialData?: OficialData; // ← novo
 }
 
 const parseConsultaDate = (consulta: string): Date | null => {
@@ -54,9 +59,8 @@ const getQuadrimesterForMonth = (month: number): number => {
   return 3;
 };
 
-const getQuadrimesterLabel = (quadNum: number, year: number): string => `${quadNum}º Quad/${year}`;
-
-const getQuadrimesterMonths = (quadNum: number): number[] => {
+const getQuadrimesterLabel   = (quadNum: number, year: number): string => `${quadNum}º Quad/${year}`;
+const getQuadrimesterMonths  = (quadNum: number): number[] => {
   switch (quadNum) {
     case 1: return [0, 1, 2, 3];
     case 2: return [4, 5, 6, 7];
@@ -65,90 +69,138 @@ const getQuadrimesterMonths = (quadNum: number): number[] => {
   }
 };
 
-export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "todos" }: QuadrimesterCardsProps) => {
-  const now = new Date();
+// ── Resolve num/den para um mês via oficial ou preliminar ─────────────────────
+const resolveMonth = (
+  monthDate: Date,
+  prelNum: number,
+  prelDen: number,
+  equipe: string,
+  oficialIndex: OficialData["index"] | undefined,
+): { num: number; den: number; fonte: FonteDado } => {
+  const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
+  const ofRow   = oficialIndex?.get(makeOficialKey(mesNorm, equipe));
+  if (ofRow && (ofRow.numB1 > 0 || ofRow.denB1 > 0)) {
+    return { num: ofRow.numB1, den: ofRow.denB1, fonte: "oficial" };
+  }
+  return { num: prelNum, den: prelDen, fonte: "preliminar" };
+};
+
+export const QuadrimesterCards = ({
+  patients,
+  totalPatients,
+  quadFiltered = "todos",
+  equipe = "all",
+  oficialData,
+}: QuadrimesterCardsProps) => {
+  const now          = new Date();
   const currentMonth = getMonth(now);
   const currentYear  = getYear(now);
   const currentQuad  = getQuadrimesterForMonth(currentMonth);
 
-  const denominador = totalPatients;
-
-  // Número de meses com dados no quadrimestre atual
-  const currentQuadMonths = getQuadrimesterMonths(currentQuad);
-  let mesesComDados = 0;
-  currentQuadMonths.forEach(m => {
-    if (m <= currentMonth) mesesComDados++;
-  });
-  if (mesesComDados === 0) mesesComDados = 1;
-
-  // Metas B1: Bom > 3%, Ótimo > 5% — por mês × nº de meses
-  const metaBomMensal   = Math.floor(denominador * 0.03) + 1;
-  const metaOtimoMensal = Math.floor(denominador * 0.05) + 1;
-  const metaBom   = metaBomMensal * mesesComDados;
-  const metaOtimo = metaOtimoMensal * mesesComDados;
-  const mediaMensalBom   = metaBomMensal;
-  const mediaMensalOtimo = metaOtimoMensal;
-
-  // Gera apenas os 2 últimos quadrimestres
+  // Gera os 2 últimos quadrimestres
   const quadrimesters: Quadrimester[] = [];
   let quad = currentQuad;
   let year = currentYear;
   for (let i = 0; i < 2; i++) {
-    quadrimesters.push({ label: getQuadrimesterLabel(quad, year), months: getQuadrimesterMonths(quad), year, quadKey: `Q${quad}-${year}` });
+    quadrimesters.push({
+      label:   getQuadrimesterLabel(quad, year),
+      months:  getQuadrimesterMonths(quad),
+      year,
+      quadKey: `Q${quad}-${year}`,
+    });
     quad--;
     if (quad < 1) { quad = 3; year--; }
   }
   quadrimesters.reverse();
 
+  // Para cada quadrimestre, agrega meses com merge oficial
   const quadCounts = quadrimesters.map(q => {
-    let count = 0;
-    patients.forEach(patient => {
-      const d = parseConsultaDate(patient.primeiraConsulta);
-      if (d && getYear(d) === q.year && q.months.includes(getMonth(d))) count++;
-    });
-    let monthsWithData = 0;
+    let totalNum = 0;
+    let totalDen = 0;
+    let todosMesesOficiais = true;
+    let monthsWithData    = 0;
+
     q.months.forEach(m => {
-      if (q.year < currentYear || (q.year === currentYear && m <= currentMonth)) monthsWithData++;
+      const inPast = q.year < currentYear || (q.year === currentYear && m <= currentMonth);
+      if (!inPast) return;
+      monthsWithData++;
+
+      const monthDate = new Date(q.year, m, 1);
+
+      // Preliminar: conta pacientes com consulta neste mês
+      const prelNum = patients.filter(p => {
+        const d = parseConsultaDate(p.primeiraConsulta);
+        return d && getYear(d) === q.year && getMonth(d) === m;
+      }).length;
+      const prelDen = totalPatients;
+
+      const resolved = resolveMonth(monthDate, prelNum, prelDen, equipe, oficialData?.index);
+      totalNum += resolved.num;
+      totalDen += resolved.den; // acumula denominadores (podem variar por mês no oficial)
+      if (resolved.fonte !== "oficial") todosMesesOficiais = false;
     });
-    const average = monthsWithData > 0 ? count / monthsWithData : 0;
-    return { ...q, total: count, average, monthsWithData };
+
+    if (monthsWithData === 0) monthsWithData = 1;
+
+    // Denominador representativo: média dos denominadores acumulados
+    const denRepresentativo = monthsWithData > 0 ? Math.round(totalDen / monthsWithData) : totalPatients;
+    const average           = totalNum / monthsWithData;
+    const fonte: FonteDado  = todosMesesOficiais ? "oficial" : "preliminar";
+
+    return {
+      ...q,
+      total: totalNum,
+      den:   denRepresentativo,
+      average,
+      monthsWithData,
+      fonte,
+    };
   });
 
   const visibleCards = quadFiltered !== "todos"
     ? quadCounts.filter(q => q.quadKey === quadFiltered)
     : quadCounts;
 
-  const totalAtual = visibleCards.length > 0 ? visibleCards[visibleCards.length - 1].total : 0;
-  const faltamBom   = Math.max(0, metaBom - totalAtual);
-  const faltamOtimo = Math.max(0, metaOtimo - totalAtual);
+  // ── Meta baseada no quadrimestre atual (último visível) ───────────────────
+  const currentQuadData = visibleCards[visibleCards.length - 1];
+  const mesesComDados   = currentQuadData?.monthsWithData ?? 1;
+  const denominador     = currentQuadData?.den ?? totalPatients;
+
+  const metaBomMensal   = Math.floor(denominador * 0.03) + 1;
+  const metaOtimoMensal = Math.floor(denominador * 0.05) + 1;
+  const metaBom         = metaBomMensal * mesesComDados;
+  const metaOtimo       = metaOtimoMensal * mesesComDados;
+
+  const totalAtual   = currentQuadData?.total ?? 0;
+  const faltamBom    = Math.max(0, metaBom - totalAtual);
+  const faltamOtimo  = Math.max(0, metaOtimo - totalAtual);
   const atingiuBom   = totalAtual >= metaBom;
   const atingiuOtimo = totalAtual >= metaOtimo;
+  const fonteMeta    = currentQuadData?.fonte ?? "preliminar";
 
-  // Card de meta ocupa 2 colunas via col-span-2
   const metaCard = (
     <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2">
       <CardContent className="p-4 flex flex-col justify-center h-full">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Target className="h-4 w-4 text-purple-600" />
           <span className="text-sm font-medium text-purple-700">Meta do Quadrimestre</span>
           <span className="text-xs text-muted-foreground ml-1">de {denominador}</span>
+          <FonteBadge fonte={fonteMeta} />
         </div>
         <div className="grid grid-cols-2 gap-4 place-items-center">
-          {/* Bom */}
           <div className="border-r pr-4">
             <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 3%)</p>
             <p className="text-2xl font-bold text-emerald-700">{metaBom} atend.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Média/mês: {metaBomMensal.toFixed(1)}</p>
             {atingiuBom
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} atend.</p>
             }
           </div>
-          {/* Ótimo */}
           <div>
             <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 5%)</p>
             <p className="text-2xl font-bold text-blue-700">{metaOtimo} atend.</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Média/mês: {metaOtimoMensal.toFixed(1)}</p>
             {atingiuOtimo
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} atend.</p>
@@ -161,20 +213,21 @@ export const QuadrimesterCards = ({ patients, totalPatients, quadFiltered = "tod
 
   return (
     <>
-      {visibleCards.map(quad => {
-        const percentage = denominador > 0 ? ((quad.total / denominador) * 100) / 4 : 0;
-        const category = getScoreCategory(percentage);
-        const styles   = getScoreStyles(category);
+      {visibleCards.map(q => {
+        const percentage = q.den > 0 ? ((q.total / q.den) * 100) / 4 : 0;
+        const category   = getScoreCategory(percentage);
+        const styles     = getScoreStyles(category);
         return (
-          <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg h-full ${styles.bg}`}>
+          <Card key={q.label} className={`border-0 shadow-md transition-all hover:shadow-lg h-full ${styles.bg}`}>
             <CardContent className="p-4 flex flex-col justify-center h-full">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <CalendarDays className={`h-4 w-4 ${styles.icon}`} />
-                <span className={`text-sm font-medium ${styles.label}`}>{quad.label}</span>
+                <span className={`text-sm font-medium ${styles.label}`}>{q.label}</span>
+                <FonteBadge fonte={q.fonte} />
               </div>
-              <p className={`text-3xl font-bold ${styles.count}`}>{quad.total}</p>
-              <p className="text-xs text-muted-foreground mt-1">de {denominador}</p>
-              <p className="text-xs text-muted-foreground">Média/mês: {quad.average.toFixed(1)}</p>
+              <p className={`text-3xl font-bold ${styles.count}`}>{q.total}</p>
+              <p className="text-xs text-muted-foreground mt-1">de {q.den}</p>
+              <p className="text-xs text-muted-foreground">Média/mês: {q.average.toFixed(1)}</p>
               <p className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</p>
             </CardContent>
           </Card>
