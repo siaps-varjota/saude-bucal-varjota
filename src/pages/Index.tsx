@@ -373,7 +373,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <>
                     <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <QuadrimesterCards patients={filteredPatients} totalPatients={totalPatients} />
+                    <QuadrimesterCards patients={filteredPatients} totalPatients={totalPatients} equipe={filtersConsulta.equipe}  oficialData={oficialData} />
                   </>
                 )}
               </div>
