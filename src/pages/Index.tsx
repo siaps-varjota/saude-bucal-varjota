@@ -87,7 +87,7 @@ const ResultadoFinalWrapper = ({
   const resultadoFinal = useResultadoFinal(
     patients, tratamentoPatients, tab3Patients,
     tab4Patients, tab5Patients, tab6Patients,
-    quadrimestre, equipeResultado, denominadorB1Data
+    quadrimestre, equipeResultado, denominadorB1Data, oficialData
   );
   return (
     <ResultadoFinalTab
