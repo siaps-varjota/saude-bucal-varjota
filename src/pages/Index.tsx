@@ -91,7 +91,7 @@ const ResultadoFinalWrapper = ({
     patients, tratamentoPatients, tab3Patients,
     tab4Patients, tab5Patients, tab6Patients,
     quadrimestre, equipeResultado, denominadorB1Data,
-    oficialData
+    oficialData,   // ← agora passado ao hook
   );
   return (
     <ResultadoFinalTab
