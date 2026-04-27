@@ -1,4 +1,5 @@
 import { useOficialData } from "@/hooks/useOficialData";
+import { OficialData } from "@/hooks/useOficialData";
 import { useState, useMemo } from "react";
 import { parse, isValid } from "date-fns";
 import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
@@ -44,8 +45,16 @@ import { Tab3Table } from "@/components/dashboard/Tab3Table";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserCheck, RefreshCw, LogOut } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Patient } from "@/hooks/usePatientData";
+import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { Tab3Record } from "@/hooks/useTab3Data";
+import { Tab4Patient } from "@/hooks/useTab4Data";
+import { Tab5Record } from "@/hooks/useTab5Data";
+import { Tab6Record } from "@/hooks/useTab6Data";
 
-// Ícone de dente SVG (lucide-react não tem)
+// Ícone de dente SVG
 const ToothIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
@@ -56,20 +65,13 @@ const ToothIcon = ({ className }: { className?: string }) => (
     <path d="M22 6C25 6 28 9 32 9C36 9 39 6 42 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Patient } from "@/hooks/usePatientData";
-import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { Tab3Record } from "@/hooks/useTab3Data";
-import { Tab4Patient } from "@/hooks/useTab4Data";
-import { Tab5Record } from "@/hooks/useTab5Data";
-import { Tab6Record } from "@/hooks/useTab6Data";
 
 // ── Wrapper ResultadoFinal ────────────────────────────────────────────────────
 const ResultadoFinalWrapper = ({
   patients, tratamentoPatients, tab3Patients, tab4Patients,
   tab5Patients, tab6Patients, quadrimestre, equipeResultado,
   denominadorB1Data, equipeOptions, onQuadrimestreChange, onEquipeChange,
+  oficialData,
 }: {
   patients: Patient[];
   tratamentoPatients: TratamentoPatient[];
@@ -83,11 +85,12 @@ const ResultadoFinalWrapper = ({
   equipeOptions: string[];
   onQuadrimestreChange: (q: Quadrimestre) => void;
   onEquipeChange: (e: string) => void;
+  oficialData?: OficialData;
 }) => {
   const resultadoFinal = useResultadoFinal(
     patients, tratamentoPatients, tab3Patients,
     tab4Patients, tab5Patients, tab6Patients,
-    quadrimestre, equipeResultado, denominadorB1Data, 
+    quadrimestre, equipeResultado, denominadorB1Data,
     oficialData
   );
   return (
@@ -140,7 +143,7 @@ const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null
   };
 };
 
-// ── Dashboard (só renderiza quando autenticado) ───────────────────────────────
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState("consulta");
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey as unknown as Quadrimestre);
@@ -153,7 +156,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
   const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
-  const { data: oficialData, refetch: refetchOficial } = useOficialData();
+  const { data: oficialData,        refetch: refetchOficial         } = useOficialData();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
@@ -162,12 +165,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
 
-  const mesRefOptionsConsulta   = useMemo(() => !patients          ? [] : extractMesesFromDates(patients.map(p => p.primeiraConsulta)),          [patients]);
+  const mesRefOptionsConsulta   = useMemo(() => !patients           ? [] : extractMesesFromDates(patients.map(p => p.primeiraConsulta)),           [patients]);
   const mesRefOptionsTratamento = useMemo(() => !tratamentoPatients ? [] : extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta)), [tratamentoPatients]);
-  const mesRefOptionsTab3       = useMemo(() => !tab3Patients       ? [] : extractMesesFromMesAno(tab3Patients.map(r => r.mesAno)),               [tab3Patients]);
-  const mesRefOptionsTab4       = useMemo(() => !tab4Patients       ? [] : extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta)),      [tab4Patients]);
-  const mesRefOptionsTab5       = useMemo(() => !tab5Patients       ? [] : extractMesesFromMesAno(tab5Patients.map(r => r.mesAno)),               [tab5Patients]);
-  const mesRefOptionsTab6       = useMemo(() => !tab6Patients       ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),               [tab6Patients]);
+  const mesRefOptionsTab3       = useMemo(() => !tab3Patients       ? [] : extractMesesFromMesAno(tab3Patients.map(r => r.mesAno)),                [tab3Patients]);
+  const mesRefOptionsTab4       = useMemo(() => !tab4Patients       ? [] : extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta)),       [tab4Patients]);
+  const mesRefOptionsTab5       = useMemo(() => !tab5Patients       ? [] : extractMesesFromMesAno(tab5Patients.map(r => r.mesAno)),                [tab5Patients]);
+  const mesRefOptionsTab6       = useMemo(() => !tab6Patients       ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),                [tab6Patients]);
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
@@ -232,7 +235,15 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     }).length;
   }, [patients, filtersTab5.quadrimestre, filtersTab5.equipe]);
 
-  const refetchAll = () => { refetchPatients(); refetchTratamento(); refetchTab3(); refetchTab4(); refetchTab5(); refetchTab6(); refetchOficial(); };
+  const refetchAll = () => {
+    refetchPatients();
+    refetchTratamento();
+    refetchTab3();
+    refetchTab4();
+    refetchTab5();
+    refetchTab6();
+    refetchOficial();
+  };
 
   const getTabState = () => {
     switch (activeTab) {
@@ -335,7 +346,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
           </TabsList>
 
-          {/* Tab 1 - 1ª Consulta */}
+          {/* ── Tab 1 — 1ª Consulta ─────────────────────────────────────────── */}
           <TabsContent value="consulta" className="mt-6">
             {!isLoadingPatients && patients && (
               <div className="mb-6">
@@ -374,7 +385,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <>
                     <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <QuadrimesterCards patients={filteredPatients} totalPatients={totalPatients} equipe={filtersConsulta.equipe}  oficialData={oficialData} />
+                    <QuadrimesterCards
+                      patients={filteredPatients}
+                      totalPatients={totalPatients}
+                      equipe={filtersConsulta.equipe}
+                      oficialData={oficialData}
+                    />
                   </>
                 )}
               </div>
@@ -382,13 +398,19 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingPatients
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <MonthlyCards patients={filteredPatients} totalPatients={totalPatients} mesReferencia={filtersConsulta.mesReferencia} equipe={filtersConsulta.equipe} oficialData={oficialData} />}
+                  : <MonthlyCards
+                      patients={filteredPatients}
+                      totalPatients={totalPatients}
+                      mesReferencia={filtersConsulta.mesReferencia}
+                      equipe={filtersConsulta.equipe}
+                      oficialData={oficialData}
+                    />}
               </div>
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
             </div>
           </TabsContent>
 
-          {/* Tab 2 - Tratamento Concluído */}
+          {/* ── Tab 2 — Tratamento Concluído ────────────────────────────────── */}
           <TabsContent value="tratamento" className="mt-6">
             {!isLoadingTratamento && tratamentoPatients && (
               <div className="mb-6">
@@ -449,6 +471,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
                       consultasAba1Quad={consultasAba1Quad}
                       mesReferencia={filtersTratamento.mesReferencia}
+                      equipe={filtersTratamento.equipe}
+                      oficialData={oficialData}
                     />
                   </>
                 )}
@@ -463,14 +487,14 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       quadrimestre={filtersTratamento.quadrimestre}
                       mesReferencia={filtersTratamento.mesReferencia}
                       equipe={filtersTratamento.equipe}
-                      oficialData={oficialData} 
+                      oficialData={oficialData}
                     />}
               </div>
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
             </div>
           </TabsContent>
 
-          {/* Tab 3 - Taxa Exodontias */}
+          {/* ── Tab 3 — Taxa Exodontias ─────────────────────────────────────── */}
           <TabsContent value="tab3" className="mt-6">
             {!isLoadingTab3 && tab3Patients && (
               <div className="mb-6">
@@ -506,7 +530,11 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <>
                     <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <Tab3QuadrimesterCards records={filteredTab3} equipe={filtersTab3.equipe} oficialData={oficialData} />
+                    <Tab3QuadrimesterCards
+                      records={filteredTab3}
+                      equipe={filtersTab3.equipe}
+                      oficialData={oficialData}
+                    />
                   </>
                 )}
               </div>
@@ -514,13 +542,18 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab3
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab3MonthlyCards records={filteredTab3} mesReferencia={filtersTab3.mesReferencia}  equipe={filtersTab3.equipe}  oficialData={oficialData} />}
+                  : <Tab3MonthlyCards
+                      records={filteredTab3}
+                      mesReferencia={filtersTab3.mesReferencia}
+                      equipe={filtersTab3.equipe}
+                      oficialData={oficialData}
+                    />}
               </div>
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
           </TabsContent>
 
-          {/* Tab 4 - Escovação Supervisionada */}
+          {/* ── Tab 4 — Escovação Supervisionada ────────────────────────────── */}
           <TabsContent value="tab4" className="mt-6">
             {!isLoadingTab4 && tab4Patients && (
               <div className="mb-6">
@@ -559,7 +592,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <>
                     <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <Tab4QuadrimesterCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} equipe={filtersTab4.equipe} oficialData={oficialData} />
+                    <Tab4QuadrimesterCards
+                      patients={filteredTab4}
+                      totalPatients={filteredTab4NoQuad.length}
+                      equipe={filtersTab4.equipe}
+                      oficialData={oficialData}
+                    />
                   </>
                 )}
               </div>
@@ -567,13 +605,19 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
                 {isLoadingTab4
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab4MonthlyCards patients={filteredTab4} totalPatients={filteredTab4NoQuad.length} mesReferencia={filtersTab4.mesReferencia} equipe={filtersTab4.equipe} oficialData={oficialData} />}
+                  : <Tab4MonthlyCards
+                      patients={filteredTab4}
+                      totalPatients={filteredTab4NoQuad.length}
+                      mesReferencia={filtersTab4.mesReferencia}
+                      equipe={filtersTab4.equipe}
+                      oficialData={oficialData}
+                    />}
               </div>
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
           </TabsContent>
 
-          {/* Tab 5 - Proced. Odont. Preventivos */}
+          {/* ── Tab 5 — Proced. Odont. Preventivos ──────────────────────────── */}
           <TabsContent value="tab5" className="mt-6">
             {!isLoadingTab5 && tab5Patients && (
               <div className="mb-6">
@@ -609,7 +653,11 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <>
                     <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <Tab5QuadrimesterCards records={filteredTab5} equipe={filtersTab5.equipe} oficialData={oficialData} />
+                    <Tab5QuadrimesterCards
+                      records={filteredTab5}
+                      equipe={filtersTab5.equipe}
+                      oficialData={oficialData}
+                    />
                     {!isLoadingPatients && !isLoadingTratamento && (
                       <Tab5MetaCard
                         records={filteredTab5}
@@ -629,13 +677,18 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
                 {isLoadingTab5
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab5MonthlyCards records={filteredTab5} mesReferencia={filtersTab5.mesReferencia} equipe={filtersTab5.equipe} oficialData={oficialData} />}
+                  : <Tab5MonthlyCards
+                      records={filteredTab5}
+                      mesReferencia={filtersTab5.mesReferencia}
+                      equipe={filtersTab5.equipe}
+                      oficialData={oficialData}
+                    />}
               </div>
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
           </TabsContent>
 
-          {/* Tab 6 - Trat. Restaurador Atraumático */}
+          {/* ── Tab 6 — Trat. Restaurador Atraumático ───────────────────────── */}
           <TabsContent value="tab6" className="mt-6">
             {!isLoadingTab6 && tab6Patients && (
               <div className="mb-6">
@@ -671,7 +724,11 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <>
                     <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
                     <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
-                    <Tab6QuadrimesterCards records={filteredTab6} />
+                    <Tab6QuadrimesterCards
+                      records={filteredTab6}
+                      equipe={filtersTab6.equipe}
+                      oficialData={oficialData}
+                    />
                   </>
                 )}
               </div>
@@ -679,13 +736,18 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
                 {isLoadingTab6
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
-                  : <Tab6MonthlyCards records={filteredTab6} mesReferencia={filtersTab6.mesReferencia} />}
+                  : <Tab6MonthlyCards
+                      records={filteredTab6}
+                      mesReferencia={filtersTab6.mesReferencia}
+                      equipe={filtersTab6.equipe}
+                      oficialData={oficialData}
+                    />}
               </div>
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
           </TabsContent>
 
-          {/* Tab 7 - Resultado Final */}
+          {/* ── Tab 7 — Resultado Final ──────────────────────────────────────── */}
           <TabsContent value="resultado" className="mt-6">
             {!resultadoPronto ? (
               <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
@@ -703,6 +765,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 equipeOptions={equipeOptions}
                 onQuadrimestreChange={setQuadrimestre}
                 onEquipeChange={setEquipeResultado}
+                oficialData={oficialData}
               />
             )}
           </TabsContent>
@@ -718,7 +781,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   );
 };
 
-// ── Componente raiz — só gerencia auth, não tem outros hooks ──────────────────
+// ── Componente raiz ───────────────────────────────────────────────────────────
 const Index = () => {
   const { user, loading: authLoading, logout } = useAuth();
 
