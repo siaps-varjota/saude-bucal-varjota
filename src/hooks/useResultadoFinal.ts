@@ -177,6 +177,24 @@ const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
 // ── Helper: resolve num/den de um indicador específico para um mês via oficial ──
 type BIndicador = "B1" | "B2" | "B3" | "B4" | "B5" | "B6";
 
+/**
+ * Mapeamento entre a chave interna do indicador e o campo real no CSV oficial.
+ *
+ * Atenção: no CSV oficial os campos numB4/denB4 correspondem à Escovação
+ * Supervisionada (indicador interno B5) e os campos numB5/denB5 correspondem
+ * a Procedimentos Preventivos (indicador interno B4). Os demais coincidem.
+ * Confirmado pelo Tab5QuadrimesterCards que usa numB5/denB5 para Preventivos
+ * e Tab4QuadrimesterCards que usa numB4/denB4 para Escovação.
+ */
+const INDICADOR_TO_CSV_FIELD: Record<BIndicador, "B1" | "B2" | "B3" | "B4" | "B5" | "B6"> = {
+  B1: "B1",
+  B2: "B2",
+  B3: "B3",
+  B4: "B5", // Proced. Preventivos (interno B4) → campo CSV numB5/denB5
+  B5: "B4", // Escovação Supervisionada (interno B5) → campo CSV numB4/denB4
+  B6: "B6",
+};
+
 function resolveOficialMes(
   monthIdx: number,
   year: number,
@@ -206,8 +224,10 @@ function resolveOficialMes(
 
   if (!ofRow) return null;
 
-  const numKey = `num${indicador}` as keyof typeof ofRow;
-  const denKey = `den${indicador}` as keyof typeof ofRow;
+  // Usa o campo CSV correto para este indicador (B4 e B5 são trocados no CSV)
+  const csvField = INDICADOR_TO_CSV_FIELD[indicador];
+  const numKey = `num${csvField}` as keyof typeof ofRow;
+  const denKey = `den${csvField}` as keyof typeof ofRow;
   const num = ofRow[numKey] as number;
   const den = ofRow[denKey] as number;
 
