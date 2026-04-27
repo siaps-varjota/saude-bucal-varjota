@@ -54,7 +54,7 @@ import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 
-// Ícone de dente SVG
+// ── Ícone de dente SVG ────────────────────────────────────────────────────────
 const ToothIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
@@ -70,8 +70,8 @@ const ToothIcon = ({ className }: { className?: string }) => (
 const ResultadoFinalWrapper = ({
   patients, tratamentoPatients, tab3Patients, tab4Patients,
   tab5Patients, tab6Patients, quadrimestre, equipeResultado,
-  denominadorB1Data, equipeOptions, onQuadrimestreChange, onEquipeChange,
-  oficialData,
+  denominadorB1Data, equipeOptions, oficialData,
+  onQuadrimestreChange, onEquipeChange,
 }: {
   patients: Patient[];
   tratamentoPatients: TratamentoPatient[];
@@ -83,9 +83,9 @@ const ResultadoFinalWrapper = ({
   equipeResultado: string;
   denominadorB1Data: { porEquipe: Record<string, number>; total: number };
   equipeOptions: string[];
+  oficialData?: OficialData;
   onQuadrimestreChange: (q: Quadrimestre) => void;
   onEquipeChange: (e: string) => void;
-  oficialData?: OficialData;
 }) => {
   const resultadoFinal = useResultadoFinal(
     patients, tratamentoPatients, tab3Patients,
@@ -156,7 +156,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
   const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
-  const { data: oficialData,        refetch: refetchOficial         } = useOficialData();
+  const { data: oficialData, refetch: refetchOficial } = useOficialData();
 
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
   const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
@@ -166,11 +166,11 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
 
   const mesRefOptionsConsulta   = useMemo(() => !patients           ? [] : extractMesesFromDates(patients.map(p => p.primeiraConsulta)),           [patients]);
-  const mesRefOptionsTratamento = useMemo(() => !tratamentoPatients ? [] : extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta)), [tratamentoPatients]);
-  const mesRefOptionsTab3       = useMemo(() => !tab3Patients       ? [] : extractMesesFromMesAno(tab3Patients.map(r => r.mesAno)),                [tab3Patients]);
-  const mesRefOptionsTab4       = useMemo(() => !tab4Patients       ? [] : extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta)),       [tab4Patients]);
-  const mesRefOptionsTab5       = useMemo(() => !tab5Patients       ? [] : extractMesesFromMesAno(tab5Patients.map(r => r.mesAno)),                [tab5Patients]);
-  const mesRefOptionsTab6       = useMemo(() => !tab6Patients       ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),                [tab6Patients]);
+  const mesRefOptionsTratamento = useMemo(() => !tratamentoPatients  ? [] : extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta)),  [tratamentoPatients]);
+  const mesRefOptionsTab3       = useMemo(() => !tab3Patients        ? [] : extractMesesFromMesAno(tab3Patients.map(r => r.mesAno)),                [tab3Patients]);
+  const mesRefOptionsTab4       = useMemo(() => !tab4Patients        ? [] : extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta)),       [tab4Patients]);
+  const mesRefOptionsTab5       = useMemo(() => !tab5Patients        ? [] : extractMesesFromMesAno(tab5Patients.map(r => r.mesAno)),                [tab5Patients]);
+  const mesRefOptionsTab6       = useMemo(() => !tab6Patients        ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),                [tab6Patients]);
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
   const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
@@ -346,7 +346,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
           </TabsList>
 
-          {/* ── Tab 1 — 1ª Consulta ─────────────────────────────────────────── */}
+          {/* ── Tab 1 — 1ª Consulta ───────────────────────────────────────── */}
           <TabsContent value="consulta" className="mt-6">
             {!isLoadingPatients && patients && (
               <div className="mb-6">
@@ -410,7 +410,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 2 — Tratamento Concluído ────────────────────────────────── */}
+          {/* ── Tab 2 — Tratamento Concluído ──────────────────────────────── */}
           <TabsContent value="tratamento" className="mt-6">
             {!isLoadingTratamento && tratamentoPatients && (
               <div className="mb-6">
@@ -494,7 +494,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 3 — Taxa Exodontias ─────────────────────────────────────── */}
+          {/* ── Tab 3 — Taxa Exodontias ───────────────────────────────────── */}
           <TabsContent value="tab3" className="mt-6">
             {!isLoadingTab3 && tab3Patients && (
               <div className="mb-6">
@@ -553,7 +553,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 4 — Escovação Supervisionada ────────────────────────────── */}
+          {/* ── Tab 4 — Escovação Supervisionada ──────────────────────────── */}
           <TabsContent value="tab4" className="mt-6">
             {!isLoadingTab4 && tab4Patients && (
               <div className="mb-6">
@@ -617,7 +617,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 5 — Proced. Odont. Preventivos ──────────────────────────── */}
+          {/* ── Tab 5 — Proced. Odont. Preventivos ───────────────────────── */}
           <TabsContent value="tab5" className="mt-6">
             {!isLoadingTab5 && tab5Patients && (
               <div className="mb-6">
@@ -688,7 +688,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 6 — Trat. Restaurador Atraumático ───────────────────────── */}
+          {/* ── Tab 6 — Trat. Restaurador Atraumático ────────────────────── */}
           <TabsContent value="tab6" className="mt-6">
             {!isLoadingTab6 && tab6Patients && (
               <div className="mb-6">
@@ -747,7 +747,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 7 — Resultado Final ──────────────────────────────────────── */}
+          {/* ── Tab 7 — Resultado Final ───────────────────────────────────── */}
           <TabsContent value="resultado" className="mt-6">
             {!resultadoPronto ? (
               <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
@@ -763,9 +763,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 equipeResultado={equipeResultado}
                 denominadorB1Data={denominadorB1Data!}
                 equipeOptions={equipeOptions}
+                oficialData={oficialData}
                 onQuadrimestreChange={setQuadrimestre}
                 onEquipeChange={setEquipeResultado}
-                oficialData={oficialData}
               />
             )}
           </TabsContent>
