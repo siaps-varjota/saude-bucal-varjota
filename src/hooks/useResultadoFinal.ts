@@ -1,732 +1,1240 @@
-import { parse, isValid, getMonth, getYear } from "date-fns";
-import { Patient } from "@/hooks/usePatientData";
-import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { Tab3Record } from "@/hooks/useTab3Data";
-import { Tab4Patient } from "@/hooks/useTab4Data";
-import { Tab5Record } from "@/hooks/useTab5Data";
-import { Tab6Record } from "@/hooks/useTab6Data";
-import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
-import { OficialData, makeOficialKey } from "@/hooks/useOficialData";
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  Trophy, Award, Filter, ChevronDown, ChevronRight,
+  BarChart2, Target, FileDown, FlaskConical,
+} from "lucide-react";
+import { toast } from "sonner";
+import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-const parseDate = (val: string): Date | null => {
-  if (!val || val === "-" || val.trim() === "") return null;
-  const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
-  for (const fmt of formats) {
-    try {
-      const parsed = parse(val.trim(), fmt, new Date());
-      if (isValid(parsed)) return parsed;
-    } catch { continue; }
-  }
-  return null;
-};
-
-const QUAD_MONTHS: Record<string, number[]> = {
-  Q1: [0, 1, 2, 3],
-  Q2: [4, 5, 6, 7],
-  Q3: [8, 9, 10, 11],
-};
-
-const MONTH_NAME_TO_NUM: Record<string, number> = {
-  janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
-  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
-};
-
-const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-export type Conceito = "regular" | "suficiente" | "bom" | "otimo" | "none";
-
-export interface MesDetalhe {
-  mes: string;
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-}
-
-export interface IndicadorResult {
-  indicador: string;
-  peso: number;
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-  conceito: Conceito;
-  nota: number;
-  notaFinal: number;
-  mesesDetalhe: MesDetalhe[];
-  // Campos auxiliares usados pela simulação do B4
-  b1Numerador?: number;
-  b1Denominador?: number;
-  b2Numerador?: number;
-  b2Denominador?: number;
-}
-
-export interface EquipeResult {
+interface ResultadoFinalTabProps {
+  geral: EquipeResult;
+  porEquipe: EquipeResult[];
+  quadrimestre: Quadrimestre;
+  onQuadrimestreChange: (q: Quadrimestre) => void;
   equipe: string;
-  indicadores: IndicadorResult[];
-  notaFinal: number;
+  onEquipeChange: (e: string) => void;
+  equipeOptions: string[];
 }
 
-const CONCEITO_SCORES: Record<Conceito, number> = {
-  regular: 0.25, suficiente: 0.50, bom: 0.75, otimo: 1.00, none: 0,
-};
-
-const getConceitoB1 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct <= 1) return "regular";
-  if (pct <= 3) return "suficiente";
-  if (pct <= 5) return "bom";
-  return "otimo";
-};
-
-const getConceitoB2 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct <= 25) return "regular";
-  if (pct <= 50) return "suficiente";
-  if (pct <= 75) return "bom";
-  return "otimo";
-};
-
-const getConceitoB3 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct >= 8 && pct <= 10) return "otimo";
-  if (pct > 10 && pct < 12) return "bom";
-  if (pct >= 12 && pct < 14) return "suficiente";
-  return "regular";
-};
-
-const getConceitoB4 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct >= 80 && pct <= 85) return "otimo";
-  if (pct >= 60 && pct < 80)  return "bom";
-  if (pct >= 40 && pct < 60)  return "suficiente";
-  return "regular";
-};
-
-const getConceitoB5 = (pct: number): Conceito => {
-  if (pct <= 0)   return "none";
-  if (pct > 1)    return "otimo";
-  if (pct > 0.5)  return "bom";
-  if (pct > 0.25) return "suficiente";
-  return "regular";
-};
-
-const getConceitoB6 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct > 8) return "otimo";
-  if (pct > 6) return "bom";
-  if (pct > 3) return "suficiente";
-  return "regular";
-};
-
-const INDICADORES = [
-  { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
-  { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
-  { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-  { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
-  { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
-  { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
+const INDICADOR_OPTIONS = [
+  { value: "todos",                          label: "Todos os Indicadores" },
+  { value: "1ª Consulta Odontológica",       label: "B1 — 1ª Consulta Odontológica" },
+  { value: "Tratamento Concluído",           label: "B2 — Tratamento Concluído" },
+  { value: "Taxa de Exodontias",             label: "B3 — Taxa de Exodontias" },
+  { value: "Escovação Supervisionada",       label: "B4 — Escovação Supervisionada" },
+  { value: "Proced. Odont. Preventivos",     label: "B5 — Proced. Odont. Preventivos" },
+  { value: "Trat. Restaurador Atraumático",  label: "B6 — Trat. Restaurador Atraumático" },
 ];
 
-interface RawCalc {
-  numerador: number;
+const CONCEITO_LABELS: Record<Conceito, string> = {
+  regular: "Regular", suficiente: "Suficiente", bom: "Bom", otimo: "Ótimo", none: "-",
+};
+
+const CONCEITO_COLORS: Record<Conceito, string> = {
+  regular:    "bg-red-100 text-red-700 border-red-200",
+  suficiente: "bg-amber-100 text-amber-700 border-amber-200",
+  bom:        "bg-emerald-100 text-emerald-700 border-emerald-200",
+  otimo:      "bg-blue-100 text-blue-700 border-blue-200",
+  none:       "bg-muted text-muted-foreground border-border",
+};
+
+const NOTA_SCORE: Record<Conceito, string> = {
+  regular: "0,25", suficiente: "0,50", bom: "0,75", otimo: "1,00", none: "0,00",
+};
+
+// ── Thresholds para Meta do Quadrimestre ─────────────────────────────────────
+const META_THRESHOLDS: Partial<Record<string, {
+  labelBom: string;
+  thresholdBom: number;
+  labelOtimo: string;
+  thresholdOtimo: number;
+  unit?: string;
+}>> = {
+  "1ª Consulta Odontológica": {
+    labelBom: "> 3%",    thresholdBom: 0.03,
+    labelOtimo: "> 5%",  thresholdOtimo: 0.05,
+  },
+  "Tratamento Concluído": {
+    labelBom: "> 50%",   thresholdBom: 0.501,
+    labelOtimo: "> 75%", thresholdOtimo: 0.751,
+    unit: "trat.",
+  },
+  "Proced. Odont. Preventivos": {
+    labelBom: "> 60%",   thresholdBom: 0.601,
+    labelOtimo: "> 80%", thresholdOtimo: 0.801,
+    unit: "prev.",
+  },
+  "Escovação Supervisionada": {
+    labelBom: "> 0,5%",  thresholdBom: 0.005,
+    labelOtimo: "> 1%",  thresholdOtimo: 0.01,
+  },
+};
+
+// ── Indicadores que exibem o card de Simulação ────────────────────────────────
+const INDICADORES_COM_SIMULACAO = new Set([
+  "1ª Consulta Odontológica",
+  "Tratamento Concluído",
+  "Proced. Odont. Preventivos",
+]);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getNotaFinalColor(nota: number): string {
+  if (nota > 7.5)  return "text-blue-700";
+  if (nota >= 5)   return "text-emerald-700";
+  if (nota >= 2.6) return "text-amber-700";
+  return "text-red-700";
+}
+
+function getNotaFinalBg(nota: number): string {
+  if (nota > 7.5)  return "bg-gradient-to-br from-blue-100 to-blue-50 border-blue-200";
+  if (nota >= 5)   return "bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-200";
+  if (nota >= 2.6) return "bg-gradient-to-br from-amber-100 to-amber-50 border-amber-200";
+  return "bg-gradient-to-br from-red-100 to-red-50 border-red-200";
+}
+
+function fmtNum(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHOLDS[string]>): {
+  label: string; textColor: string; bgBorder: string; nota: string;
+} {
+  if (pct > thresholds.thresholdOtimo * 100)
+    return { label: "Ótimo",      textColor: "text-blue-700",    bgBorder: "bg-blue-50 border-blue-200",       nota: "1,00" };
+  if (pct > thresholds.thresholdBom * 100)
+    return { label: "Bom",        textColor: "text-emerald-700", bgBorder: "bg-emerald-50 border-emerald-200", nota: "0,75" };
+  if (pct > 0)
+    return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "0,50" };
+  return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
+}
+
+// ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
+const MetaQuadrimestreCard = ({
+  denominador,
+  numerador,
+  thresholds,
+  deltaNum,
+  deltaDenom,
+  faltaUnit: faltaUnitProp,
+}: {
   denominador: number;
-  porcentagem: number;
-  mesesDetalhe: MesDetalhe[];
-}
+  numerador: number;
+  thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
+  deltaNum?: number;
+  deltaDenom?: number;
+  faltaUnit?: string;
+}) => {
+  const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
+  const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
+  const unit      = thresholds.unit || "atend.";
 
-function buildIndicador(
-  key: string,
-  raw: RawCalc,
-  extras?: {
-    b1Numerador?: number;
-    b1Denominador?: number;
-    b2Numerador?: number;
-    b2Denominador?: number;
-  }
-): IndicadorResult {
-  const config = INDICADORES.find((i) => i.key === key)!;
-  const conceito = config.getConceito(raw.porcentagem);
-  const nota = CONCEITO_SCORES[conceito];
-  return {
-    indicador: config.label,
-    peso: config.peso,
-    numerador: Math.round(raw.numerador),
-    denominador: Math.round(raw.denominador),
-    porcentagem: raw.porcentagem,
-    conceito,
-    nota,
-    notaFinal: nota * config.peso,
-    mesesDetalhe: raw.mesesDetalhe,
-    ...extras,
+  const calcFaltam = (threshold: number): number => {
+    if (denominador > 0 && numerador / denominador >= threshold) return 0;
+    const dn = deltaNum  ?? 1;
+    const dd = deltaDenom ?? 0;
+    if (dd > 0) {
+      const den = dn - dd * threshold;
+      if (den <= 0) return 0;
+      return Math.max(0, Math.ceil((threshold * denominador - numerador) / den));
+    }
+    return Math.max(0, Math.ceil(denominador * threshold) - numerador);
   };
-}
 
-/** Normaliza nomes de equipe: ESF → ESB para consistência */
-const normalizeEquipe = (name: string): string =>
-  name.replace(/^ESF\b/i, "ESB").trim();
+  const faltamBom   = calcFaltam(thresholds.thresholdBom);
+  const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
+  const exibeUnit   = faltaUnitProp ?? unit;
 
-/** Verifica se a equipe do registro corresponde ao filtro (ESF/ESB equivalentes) */
-const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
-  normalizeEquipe(recordEquipe) === normalizeEquipe(filterEquipe);
+  return (
+    <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
+        <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
+          Meta do Quadrimestre
+        </span>
+        <span className="text-xs text-muted-foreground ml-0.5">
+          de {denominador.toLocaleString("pt-BR")}
+        </span>
+      </div>
 
-function getAllEquipes(
-  patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
-  tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[]
-): string[] {
-  const set = new Set<string>();
-  patients.forEach((p) => p.equipe && set.add(normalizeEquipe(p.equipe)));
-  tratamento.forEach((p) => p.equipe && set.add(normalizeEquipe(p.equipe)));
-  tab3.forEach((r) => set.add(normalizeEquipe(r.equipe)));
-  tab4.forEach((p) => p.equipe && set.add(normalizeEquipe(p.equipe)));
-  tab5.forEach((r) => set.add(normalizeEquipe(r.equipe)));
-  tab6.forEach((r) => set.add(normalizeEquipe(r.equipe)));
-  return Array.from(set).sort();
-}
-
-// ── Oficial merge helper ──────────────────────────────────────────────────────
-interface OficialMesValues {
-  B1num: number; B1den: number;
-  B2num: number; B2den: number;
-  B3num: number; B3den: number;
-  B4num: number; B4den: number;
-  B5num: number; B5den: number;
-  B6num: number; B6den: number;
-}
-
-/**
- * Retorna valores oficiais para um determinado mês.
- * - Se `equipe` for fornecida: busca a linha daquela equipe.
- * - Se `equipe` for undefined: agrega todas as equipes daquele mês.
- * Retorna null se não houver dados oficiais para o mês.
- */
-function getOficialMes(
-  oficialData: OficialData | undefined,
-  monthNum: number, // 0-indexed (0 = jan)
-  year: number,
-  equipe?: string,
-): OficialMesValues | null {
-  if (!oficialData) return null;
-  const mesStr = `${String(monthNum + 1).padStart(2, "0")}/${year}`;
-
-  if (equipe) {
-    const row = oficialData.index.get(makeOficialKey(mesStr, equipe));
-    if (!row) return null;
-    return {
-      B1num: row.numB1, B1den: row.denB1,
-      B2num: row.numB2, B2den: row.denB2,
-      B3num: row.numB3, B3den: row.denB3,
-      B4num: row.numB4, B4den: row.denB4,
-      B5num: row.numB5, B5den: row.denB5,
-      B6num: row.numB6, B6den: row.denB6,
-    };
-  }
-
-  // Agrega todas as equipes para este mês
-  const monthRows = oficialData.rows.filter(r => r.mes === mesStr);
-  if (monthRows.length === 0) return null;
-
-  return monthRows.reduce<OficialMesValues>(
-    (acc, row) => ({
-      B1num: acc.B1num + row.numB1, B1den: acc.B1den + row.denB1,
-      B2num: acc.B2num + row.numB2, B2den: acc.B2den + row.denB2,
-      B3num: acc.B3num + row.numB3, B3den: acc.B3den + row.denB3,
-      B4num: acc.B4num + row.numB4, B4den: acc.B4den + row.denB4,
-      B5num: acc.B5num + row.numB5, B5den: acc.B5den + row.denB5,
-      B6num: acc.B6num + row.numB6, B6den: acc.B6den + row.denB6,
-    }),
-    { B1num: 0, B1den: 0, B2num: 0, B2den: 0, B3num: 0, B3den: 0,
-      B4num: 0, B4den: 0, B5num: 0, B5den: 0, B6num: 0, B6den: 0 }
+      <div className="flex gap-6">
+        <div>
+          <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
+          <p className="text-xl font-bold font-mono text-emerald-700 leading-tight">
+            {metaBom.toLocaleString("pt-BR")}{" "}
+            <span className="text-sm font-normal">{unit}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / 4).toFixed(1)}</p>
+          {faltamBom > 0
+            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {exibeUnit}</p>
+            : <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>}
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
+          <p className="text-xl font-bold font-mono text-blue-700 leading-tight">
+            {metaOtimo.toLocaleString("pt-BR")}{" "}
+            <span className="text-sm font-normal">{unit}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / 4).toFixed(1)}</p>
+          {faltamOtimo > 0
+            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {exibeUnit}</p>
+            : <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>}
+        </div>
+      </div>
+    </div>
   );
-}
+};
 
-// ── calcB1 ────────────────────────────────────────────────────────────────────
-// Denominador fixo = população × 4 (meta quadrimestral).
-// Numerador: oficial por mês quando disponível, preliminar caso contrário.
-function calcB1(
-  allPatients: Patient[],
-  quad: Quadrimestre,
-  denominadorExterno: number,
-  oficialData?: OficialData,
-  equipe?: string,
-): RawCalc {
-  const source = equipe ? allPatients.filter((p) => equipeMatch(p.equipe, equipe)) : allPatients;
-  if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
+// ── ProjecaoBloco ─────────────────────────────────────────────────────────────
+const ProjecaoBloco = ({
+  titulo,
+  descricao,
+  novoNum,
+  novoDenom,
+  novaPct,
+  pctAtual,
+  anyInput,
+  conceitoInfo,
+}: {
+  titulo: string;
+  descricao: string;
+  novoNum: number;
+  novoDenom: number;
+  novaPct: number;
+  pctAtual: number;
+  anyInput: boolean;
+  conceitoInfo: ReturnType<typeof derivaConceito>;
+}) => {
+  const ganho = novaPct - pctAtual;
+  return (
+    <div className="flex flex-col gap-1 min-w-[130px]">
+      <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">{titulo}</p>
+      <p className="text-[9px] text-muted-foreground leading-snug">{descricao}</p>
+      <p className="text-sm font-mono font-bold leading-tight mt-0.5">
+        {Number.isInteger(novoNum) ? novoNum.toLocaleString("pt-BR") : novoNum.toFixed(1)}
+        <span className="text-xs font-normal text-muted-foreground"> / {novoDenom.toLocaleString("pt-BR")}</span>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {novaPct.toFixed(1)}%
+        {anyInput && (
+          <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
+          </span>
+        )}
+      </p>
+      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit ${conceitoInfo.bgBorder} ${conceitoInfo.textColor}`}>
+        {conceitoInfo.label}
+        <span className="font-normal opacity-60">({conceitoInfo.nota})</span>
+      </div>
+    </div>
+  );
+};
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+// ── InputStepper ──────────────────────────────────────────────────────────────
+const InputStepper = ({
+  label,
+  sublabel,
+  rawValue,
+  onRawChange,
+  onDecrement,
+  onIncrement,
+}: {
+  label: string;
+  sublabel: string;
+  rawValue: string;
+  onRawChange: (v: string) => void;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}) => (
+  <div className="flex flex-col items-center gap-0.5">
+    <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
+    <div className="flex items-center gap-1">
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onDecrement(); }}
+        className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+      >−</button>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={rawValue}
+        onChange={(e) => {
+          const v = e.target.value.replace(/\D/g, "");
+          onRawChange(v === "" ? "0" : v);
+        }}
+        onFocus={(e) => e.target.select()}
+        className="w-16 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+      />
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onIncrement(); }}
+        className="w-6 h-6 flex items-center justify-center rounded border border-orange-300 bg-white text-orange-700 font-bold text-sm hover:bg-orange-100 transition-colors select-none"
+      >+</button>
+    </div>
+    <span className="text-[10px] text-muted-foreground">{sublabel}</span>
+  </div>
+);
 
-  if (quad === "todos") {
-    const totalConsultas = source.filter(p => parseDate(p.primeiraConsulta)).length;
-    return {
-      numerador: totalConsultas,
-      denominador: denominadorExterno,
-      porcentagem: (totalConsultas / denominadorExterno) * 100,
-      mesesDetalhe: [],
-    };
-  }
+// ── Card de Simulação ─────────────────────────────────────────────────────────
+const SimulacaoCard = ({
+  b1Numerador,
+  b1Denominador,
+  b2Numerador,
+  b2Denominador,
+  b5Numerador,
+  b5Denominador,
+  todosIndicadores,
+}: {
+  b1Numerador: number;
+  b1Denominador: number;
+  b2Numerador: number;
+  b2Denominador: number;
+  b5Numerador: number;
+  b5Denominador: number;
+  todosIndicadores?: IndicadorResult[];
+}) => {
+  const [rawConsultas,  setRawConsultas]  = useState("0");
+  const [rawConclusoes, setRawConclusoes] = useState("0");
 
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let sumNum = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
+  const extraConsultas  = Math.max(0, parseInt(rawConsultas,  10) || 0);
+  const extraConclusoes = Math.max(0, parseInt(rawConclusoes, 10) || 0);
+  const anyInput = extraConsultas > 0 || extraConclusoes > 0;
 
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
+  const b1Thresh = META_THRESHOLDS["1ª Consulta Odontológica"]!;
+  const b2Thresh = META_THRESHOLDS["Tratamento Concluído"]!;
+  const b5Thresh = META_THRESHOLDS["Proced. Odont. Preventivos"]!;
 
-    const ofMes = getOficialMes(oficialData, m, year, equipe);
-    const hasOf = !!ofMes && (ofMes.B1num > 0 || ofMes.B1den > 0);
+  const b1NovoNum   = b1Numerador + extraConsultas;
+  const b1NovaDenom = b1Denominador;
+  const b1NovaPct   = b1NovaDenom > 0 ? (b1NovoNum / b1NovaDenom) * 100 : 0;
+  const b1PctAtual  = b1NovaDenom > 0 ? (b1Numerador / b1NovaDenom) * 100 : 0;
+  const b1Conceito  = derivaConceito(b1NovaPct, b1Thresh);
 
-    let mesNum: number;
-    let mesDen: number;
+  const b2NovoNum   = b2Numerador + extraConsultas * 0.5 + extraConclusoes;
+  const b2NovaDenom = b2Denominador + extraConsultas;
+  const b2NovaPct   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
+  const b2PctAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
+  const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
-    if (hasOf) {
-      mesNum = ofMes!.B1num;
-      mesDen = ofMes!.B1den > 0 ? ofMes!.B1den : denominadorExterno;
-    } else {
-      mesNum = source.filter((p) => {
-        const d = parseDate(p.primeiraConsulta);
-        return d && getMonth(d) === m && getYear(d) === year;
-      }).length;
-      mesDen = denominadorExterno;
+  const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
+  const b5NovaDenom = b5Denominador + (extraConsultas + extraConclusoes) * 2;
+  const b5NovaPct   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
+  const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
+  const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
+
+  const notaFinalAtual = todosIndicadores?.reduce((s, i) => s + i.notaFinal, 0) ?? 0;
+
+  const notaNum = (c: ReturnType<typeof derivaConceito>): number =>
+    parseFloat(c.nota.replace(",", "."));
+
+  const b1Ind = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
+  const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
+  const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
+
+  const notaFinalProjetada = todosIndicadores
+    ? notaFinalAtual
+        - (b1Ind?.notaFinal ?? 0) + notaNum(b1Conceito) * (b1Ind?.peso ?? 0)
+        - (b2Ind?.notaFinal ?? 0) + notaNum(b2Conceito) * (b2Ind?.peso ?? 0)
+        - (b5Ind?.notaFinal ?? 0) + notaNum(b5Conceito) * (b5Ind?.peso ?? 0)
+    : 0;
+
+  const notaDelta = notaFinalProjetada - notaFinalAtual;
+  const hasNota   = notaFinalAtual > 0;
+
+  return (
+    <div className="flex flex-col h-full bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-3">
+        <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
+        <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Simulação</span>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+        <div className="flex items-start gap-5 flex-wrap">
+          <InputStepper
+            label="+ adicionar"
+            sublabel="1ªs consultas"
+            rawValue={rawConsultas}
+            onRawChange={setRawConsultas}
+            onDecrement={() => setRawConsultas(String(Math.max(0, extraConsultas - 1)))}
+            onIncrement={() => setRawConsultas(String(extraConsultas + 1))}
+          />
+          <InputStepper
+            label="+ adicionar"
+            sublabel="trat. concluídos"
+            rawValue={rawConclusoes}
+            onRawChange={setRawConclusoes}
+            onDecrement={() => setRawConclusoes(String(Math.max(0, extraConclusoes - 1)))}
+            onIncrement={() => setRawConclusoes(String(extraConclusoes + 1))}
+          />
+        </div>
+
+        {hasNota && (
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Nota atual</span>
+              <span className={`text-lg font-bold font-mono ${getNotaFinalColor(notaFinalAtual)}`}>
+                {notaFinalAtual.toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Com simulação</span>
+              <span className={`text-lg font-bold font-mono ${getNotaFinalColor(notaFinalProjetada)}`}>
+                {notaFinalProjetada.toFixed(2).replace(".", ",")}
+              </span>
+              {anyInput && notaDelta !== 0 && (
+                <span className={`text-xs font-medium ${notaDelta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                  ({notaDelta > 0 ? "+" : ""}{notaDelta.toFixed(2).replace(".", ",")})
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="w-full h-px bg-orange-200 mb-3" />
+
+      <div className="flex flex-wrap gap-x-5 gap-y-3 flex-grow content-start">
+        <ProjecaoBloco
+          titulo="Projeção B1"
+          descricao="consulta → +1 num (den fixo)"
+          novoNum={b1NovoNum}
+          novoDenom={b1NovaDenom}
+          novaPct={b1NovaPct}
+          pctAtual={b1PctAtual}
+          anyInput={anyInput}
+          conceitoInfo={b1Conceito}
+        />
+        <div className="w-px self-stretch bg-orange-200" />
+        <ProjecaoBloco
+          titulo="Projeção B2"
+          descricao="consulta → +0,5 num / +1 den · trat. → +1 num"
+          novoNum={b2NovoNum}
+          novoDenom={b2NovaDenom}
+          novaPct={b2NovaPct}
+          pctAtual={b2PctAtual}
+          anyInput={anyInput}
+          conceitoInfo={b2Conceito}
+        />
+        <div className="w-px self-stretch bg-orange-200" />
+        <ProjecaoBloco
+          titulo="Projeção B5"
+          descricao="consulta ou trat. → +2 num / +2 den"
+          novoNum={b5NovoNum}
+          novoDenom={b5NovaDenom}
+          novaPct={b5NovaPct}
+          pctAtual={b5PctAtual}
+          anyInput={anyInput}
+          conceitoInfo={b5Conceito}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ── Configuração dos cards de status relacionados ────────────────────────────
+const STATUS_RELACIONADOS: Partial<Record<string, string[]>> = {
+  "1ª Consulta Odontológica": ["Tratamento Concluído", "Proced. Odont. Preventivos"],
+  "Tratamento Concluído":     ["1ª Consulta Odontológica", "Proced. Odont. Preventivos"],
+  "Proced. Odont. Preventivos": ["1ª Consulta Odontológica", "Tratamento Concluído"],
+};
+
+const STATUS_CONFIG: Record<string, { label: string; unit: string; deltaNum: number; deltaDenom: number }> = {
+  "1ª Consulta Odontológica": { label: "B1",  unit: "atend.",    deltaNum: 1, deltaDenom: 0 },
+  "Tratamento Concluído":     { label: "B2",  unit: "trat.",     deltaNum: 1, deltaDenom: 0 },
+  "Proced. Odont. Preventivos": { label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2 },
+};
+
+// ── Card de status de um indicador relacionado ────────────────────────────────
+const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
+  const thresholds = META_THRESHOLDS[ind.indicador];
+  const cfg        = STATUS_CONFIG[ind.indicador];
+  if (!thresholds || !cfg) return null;
+
+  const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
+  const conceito = derivaConceito(pct, thresholds);
+
+  const calcFaltam = (threshold: number): number => {
+    if (ind.denominador > 0 && ind.numerador / ind.denominador >= threshold) return 0;
+    const { deltaNum: dn, deltaDenom: dd } = cfg;
+    if (dd > 0) {
+      const den = dn - dd * threshold;
+      if (den <= 0) return 0;
+      return Math.max(0, Math.ceil((threshold * ind.denominador - ind.numerador) / den));
     }
-
-    sumNum += mesNum;
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: mesNum,
-      denominador: mesDen,
-      porcentagem: mesDen > 0 ? (mesNum / mesDen) * 100 : 0,
-    });
-  });
-
-  const denominador = denominadorExterno * 4;
-  return {
-    numerador: sumNum,
-    denominador,
-    porcentagem: denominador > 0 ? (sumNum / denominador) * 100 : 0,
-    mesesDetalhe,
+    return Math.max(0, Math.ceil(ind.denominador * threshold) - ind.numerador);
   };
-}
 
-// ── calcB2 ────────────────────────────────────────────────────────────────────
-// Numerador e denominador ambos acumulados (tratamentos e consultas).
-function calcB2(
-  tratamento: TratamentoPatient[],
-  quad: Quadrimestre,
-  oficialData?: OficialData,
-  equipe?: string,
-): RawCalc {
-  const source = equipe ? tratamento.filter((p) => equipeMatch(p.equipe, equipe)) : tratamento;
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const isOtimo   = pct > thresholds.thresholdOtimo * 100;
+  const isBom     = pct > thresholds.thresholdBom   * 100;
+  const proximoLabel    = isOtimo ? null : isBom ? `Ótimo (${thresholds.labelOtimo})` : `Bom (${thresholds.labelBom})`;
+  const proximoThresh   = isOtimo ? null : isBom ? thresholds.thresholdOtimo : thresholds.thresholdBom;
+  const faltamProximo   = proximoThresh !== null ? calcFaltam(proximoThresh) : 0;
 
-  if (quad === "todos") {
-    let sumTrat = 0, sumCons = 0;
-    const consultaByMonth = new Map<string, number>();
-    const tratamentoByMonth = new Map<string, number>();
-    source.forEach(p => {
-      const dCons = parseDate(p.primeiraConsulta);
-      const dTrat = parseDate(p.tratamentoConcluido);
-      if (dCons) { const k = `${getMonth(dCons)}-${getYear(dCons)}`; consultaByMonth.set(k, (consultaByMonth.get(k) || 0) + 1); }
-      if (dTrat) { const k = `${getMonth(dTrat)}-${getYear(dTrat)}`; tratamentoByMonth.set(k, (tratamentoByMonth.get(k) || 0) + 1); }
+  return (
+    <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 shadow-sm min-w-[150px]">
+      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">{cfg.label}</p>
+      <p className="text-[10px] text-muted-foreground leading-snug mb-1.5 truncate" title={ind.indicador}>
+        {ind.indicador}
+      </p>
+      <p className="text-sm font-mono font-bold leading-tight">
+        {fmtNum(ind.numerador)}
+        <span className="text-xs font-normal text-muted-foreground"> / {fmtNum(ind.denominador)}</span>
+      </p>
+      <p className="text-xs text-muted-foreground mb-1.5">{pct.toFixed(1)}%</p>
+      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit mb-1.5 ${conceito.bgBorder} ${conceito.textColor}`}>
+        {conceito.label}
+      </div>
+      {isOtimo ? (
+        <p className="text-[10px] font-medium text-blue-600">✓ Ótimo atingido!</p>
+      ) : faltamProximo > 0 ? (
+        <p className="text-[10px] font-medium text-red-600 leading-snug">
+          Faltam {faltamProximo.toLocaleString("pt-BR")} {cfg.unit}<br />
+          <span className="text-muted-foreground">p/ {proximoLabel}</span>
+        </p>
+      ) : (
+        <p className="text-[10px] font-medium text-emerald-600">✓ {proximoLabel} atingido!</p>
+      )}
+    </div>
+  );
+};
+
+// ── Row de detalhe compartilhado ─────────────────────────────────────────────
+const DetalheRow = ({
+  ind,
+  colSpan,
+  cardMinWidth = "90px",
+  todosIndicadores,
+}: {
+  ind: IndicadorResult;
+  colSpan: number;
+  cardMinWidth?: string;
+  todosIndicadores?: IndicadorResult[];
+}) => {
+  const metaThresholds = META_THRESHOLDS[ind.indicador];
+  const hasMeses       = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+  const hasSimCard     = INDICADORES_COM_SIMULACAO.has(ind.indicador);
+
+  const b1 = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
+  const b2 = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
+  const b5 = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
+
+  const hasLeftCol = metaThresholds || hasMeses;
+
+  return (
+    <TableRow className="bg-muted/20">
+      <TableCell colSpan={colSpan} className="py-2 px-2">
+        <div className="flex items-center justify-center">
+          <div className="flex items-stretch gap-2">
+            {hasLeftCol && (
+              <div className="flex flex-col gap-2">
+                {metaThresholds && (
+                  <div className="flex items-stretch gap-2 flex-wrap">
+                    <MetaQuadrimestreCard
+                      denominador={ind.denominador}
+                      numerador={ind.numerador}
+                      thresholds={metaThresholds}
+                      {...(ind.indicador === "Proced. Odont. Preventivos" && {
+                        deltaNum: 2,
+                        deltaDenom: 2,
+                        faltaUnit: "consultas",
+                      })}
+                    />
+                    {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
+                      const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);
+                      return relInd ? (
+                        <StatusRelacionadoCard key={nomeRel} ind={relInd} />
+                      ) : null;
+                    })}
+                  </div>
+                )}
+
+                {hasMeses && (
+                  <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm flex-grow">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                      <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
+                        Detalhamento Mensal
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-stretch justify-center gap-3">
+                      {ind.mesesDetalhe.map((mes) => (
+                        <div
+                          key={mes.mes}
+                          className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+                          style={{ minWidth: cardMinWidth }}
+                        >
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            {mes.mes}
+                          </span>
+                          <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+                          <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
+                          <span className="text-xs font-medium text-primary mt-0.5">
+                            {mes.porcentagem.toFixed(1)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {hasSimCard && (
+              <div className="self-stretch flex flex-col">
+                <SimulacaoCard
+                  b1Numerador={b1?.numerador ?? 0}
+                  b1Denominador={b1?.denominador ?? 0}
+                  b2Numerador={b2?.numerador ?? 0}
+                  b2Denominador={b2?.denominador ?? 0}
+                  b5Numerador={b5?.numerador ?? 0}
+                  b5Denominador={b5?.denominador ?? 0}
+                  todosIndicadores={todosIndicadores}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+// ── Tabela completa por equipe ────────────────────────────────────────────────
+const ResultTable = ({
+  result,
+  title,
+  showMeses,
+}: {
+  result: EquipeResult;
+  title: string;
+  showMeses: boolean;
+}) => {
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (idx: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
     });
-    consultaByMonth.forEach((consultas, key) => {
-      const tratamentos = tratamentoByMonth.get(key) || 0;
-      if (consultas > 0) { sumTrat += tratamentos; sumCons += consultas; }
+  };
+
+  return (
+    <Card className="border shadow-md">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-4 text-lg">
+          <Trophy className="h-5 w-5 text-primary" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {showMeses && <TableHead className="w-8" />}
+                <TableHead className="font-semibold">Indicador (A)</TableHead>
+                <TableHead className="text-center font-semibold">Peso (B)</TableHead>
+                <TableHead className="text-center font-semibold">Numerador</TableHead>
+                <TableHead className="text-center font-semibold">Denominador</TableHead>
+                <TableHead className="text-center font-semibold">% Obtido</TableHead>
+                <TableHead className="text-center font-semibold">Conceito</TableHead>
+                <TableHead className="text-center font-semibold">Nota</TableHead>
+                <TableHead className="text-center font-semibold">A × B</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {result.indicadores.map((ind, idx) => {
+                const isExpanded   = expandedRows.has(idx);
+                const hasMeses     = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+                const hasMetaCard  = showMeses && !!META_THRESHOLDS[ind.indicador];
+                const isExpandable = hasMeses || hasMetaCard;
+
+                return (
+                  <>
+                    <TableRow
+                      key={idx}
+                      className={isExpandable ? "cursor-pointer hover:bg-muted/40" : ""}
+                      onClick={() => isExpandable && toggleRow(idx)}
+                    >
+                      {showMeses && (
+                        <TableCell className="w-8 pr-0">
+                          {isExpandable
+                            ? (isExpanded
+                                ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                : <ChevronRight className="h-4 w-4 text-muted-foreground" />)
+                            : null}
+                        </TableCell>
+                      )}
+                      <TableCell className="font-medium">{ind.indicador}</TableCell>
+                      <TableCell className="text-center">{ind.peso}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
+                      <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
+                          {CONCEITO_LABELS[ind.conceito]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
+                      <TableCell className="text-center font-mono font-semibold">
+                        {ind.notaFinal.toFixed(2).replace(".", ",")}
+                      </TableCell>
+                    </TableRow>
+
+                    {isExpandable && isExpanded && (
+                      <DetalheRow
+                        key={`${idx}-detail`}
+                        ind={ind}
+                        colSpan={showMeses ? 9 : 8}
+                        todosIndicadores={result.indicadores}
+                      />
+                    )}
+                  </>
+                );
+              })}
+              <TableRow className="bg-muted/30 font-bold">
+                {showMeses && <TableCell />}
+                <TableCell>Total</TableCell>
+                <TableCell className="text-center">10</TableCell>
+                <TableCell /><TableCell /><TableCell /><TableCell />
+                <TableCell className="text-center">Nota Final</TableCell>
+                <TableCell className={`text-center text-lg font-mono ${getNotaFinalColor(result.notaFinal)}`}>
+                  {result.notaFinal.toFixed(2).replace(".", ",")}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ── Visão comparativa por indicador ──────────────────────────────────────────
+const IndicadorComparativo = ({
+  indicadorNome,
+  geral,
+  porEquipe,
+  showMeses,
+}: {
+  indicadorNome: string;
+  geral: EquipeResult;
+  porEquipe: EquipeResult[];
+  showMeses: boolean;
+}) => {
+  // ── Estado de expansão (igual ao ResultTable) ─────────────────────────────
+  const [expandedGeral, setExpandedGeral] = useState(false);
+  const [expandedEquipes, setExpandedEquipes] = useState<Set<string>>(new Set());
+
+  const toggleEquipe = (equipe: string) => {
+    setExpandedEquipes(prev => {
+      const next = new Set(prev);
+      next.has(equipe) ? next.delete(equipe) : next.add(equipe);
+      return next;
     });
-    return { numerador: sumTrat, denominador: sumCons, porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0, mesesDetalhe: [] };
-  }
+  };
 
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let sumTrat = 0, sumCons = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
+  const getInd = (result: EquipeResult): IndicadorResult | undefined =>
+    result.indicadores.find(i => i.indicador === indicadorNome);
 
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
+  const geralInd = getInd(geral);
+  if (!geralInd) return null;
 
-    const ofMes = getOficialMes(oficialData, m, year, equipe);
-    const hasOf = !!ofMes && (ofMes.B2num > 0 || ofMes.B2den > 0);
+  const equipeRows = porEquipe
+    .map((eq, idx) => ({ equipe: eq.equipe, ind: getInd(eq), rank: idx + 1 }))
+    .filter((r): r is { equipe: string; ind: IndicadorResult; rank: number } => !!r.ind)
+    .sort((a, b) => {
+      const CONCEITO_ORDER: Record<string, number> = { otimo: 0, bom: 1, suficiente: 2, regular: 3, none: 4 };
+      const cc = (CONCEITO_ORDER[a.ind.conceito] ?? 4) - (CONCEITO_ORDER[b.ind.conceito] ?? 4);
+      return cc !== 0 ? cc : b.ind.porcentagem - a.ind.porcentagem;
+    });
 
-    let mTrat: number, mCons: number;
+  const hasMetaCard = !!META_THRESHOLDS[indicadorNome];
 
-    if (hasOf) {
-      mTrat = ofMes!.B2num;
-      mCons = ofMes!.B2den;
-    } else {
-      mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
-      mCons = source.filter(p => { const d = parseDate(p.primeiraConsulta); return d && getMonth(d) === m && getYear(d) === year; }).length;
+  // Verifica se uma linha é expansível
+  const geralExpandable = showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard);
+
+  return (
+    <Card className="border shadow-md">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <BarChart2 className="h-5 w-5 text-primary" />
+          Comparativo por Equipe — {indicadorNome}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {/* Coluna do chevron — sempre presente quando showMeses */}
+                {showMeses && <TableHead className="w-8" />}
+                <TableHead className="font-semibold">Equipe</TableHead>
+                <TableHead className="text-center font-semibold">Numerador</TableHead>
+                <TableHead className="text-center font-semibold">Denominador</TableHead>
+                <TableHead className="text-center font-semibold">% Obtido</TableHead>
+                <TableHead className="text-center font-semibold">Conceito</TableHead>
+                <TableHead className="text-center font-semibold">Nota</TableHead>
+                <TableHead className="text-center font-semibold">A × B</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* ── Linha Geral ── */}
+              <TableRow
+                className={`bg-muted/30 font-semibold ${geralExpandable ? "cursor-pointer hover:bg-muted/40" : ""}`}
+                onClick={() => geralExpandable && setExpandedGeral(v => !v)}
+              >
+                {showMeses && (
+                  <TableCell className="w-8 pr-0">
+                    {geralExpandable
+                      ? (expandedGeral
+                          ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          : <ChevronRight className="h-4 w-4 text-muted-foreground" />)
+                      : null}
+                  </TableCell>
+                )}
+                <TableCell>🏆 Geral</TableCell>
+                <TableCell className="text-center font-mono text-sm">{fmtNum(geralInd.numerador)}</TableCell>
+                <TableCell className="text-center font-mono text-sm">{fmtNum(geralInd.denominador)}</TableCell>
+                <TableCell className="text-center">{geralInd.porcentagem.toFixed(2)}%</TableCell>
+                <TableCell className="text-center">
+                  <Badge variant="outline" className={`${CONCEITO_COLORS[geralInd.conceito]} text-xs`}>
+                    {CONCEITO_LABELS[geralInd.conceito]}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center font-mono">{NOTA_SCORE[geralInd.conceito]}</TableCell>
+                <TableCell className="text-center font-mono font-semibold">
+                  {geralInd.notaFinal.toFixed(2).replace(".", ",")}
+                </TableCell>
+              </TableRow>
+
+              {/* Detalhe Geral — só renderiza quando expandido */}
+              {geralExpandable && expandedGeral && (
+                <DetalheRow
+                  ind={geralInd}
+                  colSpan={showMeses ? 8 : 7}
+                  cardMinWidth="80px"
+                  todosIndicadores={geral.indicadores}
+                />
+              )}
+
+              {/* ── Linhas por equipe ── */}
+              {equipeRows.map(({ equipe, ind }, idx) => {
+                const isExpandable = showMeses && (ind.mesesDetalhe?.length > 0 || hasMetaCard);
+                const isExpanded   = expandedEquipes.has(equipe);
+
+                return (
+                  <>
+                    <TableRow
+                      key={equipe}
+                      className={isExpandable ? "cursor-pointer hover:bg-muted/40" : ""}
+                      onClick={() => isExpandable && toggleEquipe(equipe)}
+                    >
+                      {showMeses && (
+                        <TableCell className="w-8 pr-0">
+                          {isExpandable
+                            ? (isExpanded
+                                ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                : <ChevronRight className="h-4 w-4 text-muted-foreground" />)
+                            : null}
+                        </TableCell>
+                      )}
+                      <TableCell className="font-medium">#{idx + 1} {equipe}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
+                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
+                      <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
+                          {CONCEITO_LABELS[ind.conceito]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
+                      <TableCell className="text-center font-mono font-semibold">
+                        {ind.notaFinal.toFixed(2).replace(".", ",")}
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Detalhe equipe — só renderiza quando expandido */}
+                    {isExpandable && isExpanded && (
+                      <DetalheRow
+                        key={`${equipe}-detail`}
+                        ind={ind}
+                        colSpan={showMeses ? 8 : 7}
+                        cardMinWidth="80px"
+                        todosIndicadores={porEquipe.find(e => e.equipe === equipe)?.indicadores}
+                      />
+                    )}
+                  </>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ── Componente principal ──────────────────────────────────────────────────────
+export const ResultadoFinalTab = ({
+  geral,
+  porEquipe,
+  quadrimestre,
+  onQuadrimestreChange,
+  equipe,
+  onEquipeChange,
+  equipeOptions,
+}: ResultadoFinalTabProps) => {
+  const [indicadorFiltro, setIndicadorFiltro] = useState("todos");
+
+  const sortedEquipes = useMemo(
+    () => [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal),
+    [porEquipe]
+  );
+
+  const showMeses = quadrimestre !== "todos";
+
+  // ── Geração de PDF ──────────────────────────────────────────────────────────
+  const handleGeneratePDF = async () => {
+    toast.info("Gerando PDF...");
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      await import("jspdf-autotable");
+
+      const doc = new (jsPDF as any)({ orientation: "landscape", unit: "mm", format: "a4" });
+      let y = 15;
+
+      const filterText = [
+        quadrimestre !== "todos"
+          ? QUADRIMESTRE_OPTIONS_SEM_TODOS.find(o => o.value === quadrimestre)?.label
+          : "Todos os quadrimestres",
+        equipe !== "all" ? equipe : "Todas as equipes",
+        indicadorFiltro !== "todos"
+          ? INDICADOR_OPTIONS.find(o => o.value === indicadorFiltro)?.label
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
+      y += 10;
+      doc.setFontSize(13);
+      doc.text("Resultado Final", 14, y);
+      y += 10;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Filtros: ${filterText}`, 14, y);
+      y += 9;
+
+      const rankEquipes = [
+        { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
+        ...[...porEquipe]
+          .sort((a, b) => b.notaFinal - a.notaFinal)
+          .map((eq, i) => ({ label: eq.equipe, nota: eq.notaFinal, isGeral: false, rank: i + 1 })),
+      ];
+
+      const pageW   = 297;
+      const gap     = 2;
+      const cardH   = 19;
+      const totalC  = rankEquipes.length;
+      const cardW   = (pageW - 14 * 2 - gap * (totalC - 1)) / totalC;
+
+      rankEquipes.forEach((item, i) => {
+        const x = 14 + i * (cardW + gap);
+
+        if (item.isGeral) {
+          doc.setFillColor(238, 242, 255); doc.setDrawColor(99, 102, 241);
+        } else if (item.rank === 1) {
+          doc.setFillColor(254, 252, 232); doc.setDrawColor(202, 138, 4);
+        } else if (item.rank === 2) {
+          doc.setFillColor(248, 250, 252); doc.setDrawColor(148, 163, 184);
+        } else if (item.rank === 3) {
+          doc.setFillColor(255, 247, 237); doc.setDrawColor(194, 120, 53);
+        } else {
+          doc.setFillColor(250, 250, 250); doc.setDrawColor(210, 210, 210);
+        }
+        doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
+
+        doc.setFontSize(6);
+        doc.setFont("helvetica", "bold");
+        if (item.isGeral) {
+          doc.setTextColor(79, 70, 229);
+          doc.text("GERAL", x + cardW / 2, y + 4.5, { align: "center" });
+        } else {
+          doc.setTextColor(120, 120, 120);
+          doc.text(`#${item.rank}`, x + cardW / 2, y + 4.5, { align: "center" });
+        }
+
+        if (!item.isGeral) {
+          const maxChars = Math.floor(cardW / 1.6);
+          const nome = item.label.length > maxChars ? item.label.slice(0, maxChars) + "…" : item.label;
+          doc.setFontSize(5.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(60, 60, 60);
+          doc.text(nome, x + cardW / 2, y + 9, { align: "center" });
+        }
+
+        const [nr, ng, nb] =
+          item.nota > 7.5  ? [29, 78, 216]  :
+          item.nota >= 5   ? [4, 120, 87]   :
+          item.nota >= 2.6 ? [180, 83, 9]   : [185, 28, 28];
+        doc.setTextColor(nr, ng, nb);
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + (item.isGeral ? 14 : 16), { align: "center" });
+      });
+
+      y += cardH + 12;
+
+      const equipesList =
+        equipe !== "all"
+          ? porEquipe.filter(e => e.equipe === equipe)
+          : [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal);
+
+      const resultsList = [
+        { label: "Geral", result: geral },
+        ...equipesList.map(e => ({ label: e.equipe, result: e })),
+      ];
+
+      for (const { label, result } of resultsList) {
+        const pageH = 210;
+        const margin = 15;
+        if (y > pageH - margin - 40) {
+          doc.addPage();
+          y = 15;
+        }
+
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30);
+        doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
+        y += 4;
+
+        const rows = result.indicadores
+          .filter(ind => indicadorFiltro === "todos" || ind.indicador === indicadorFiltro)
+          .map(ind => ({
+            indicador:   ind.indicador,
+            peso:        String(ind.peso),
+            numerador:   fmtNum(ind.numerador),
+            denominador: fmtNum(ind.denominador),
+            porcentagem: `${ind.porcentagem.toFixed(2)}%`,
+            conceito:    CONCEITO_LABELS[ind.conceito],
+            nota:        NOTA_SCORE[ind.conceito],
+            axb:         ind.notaFinal.toFixed(2).replace(".", ","),
+          }));
+
+        (doc as any).autoTable({
+          startY: y,
+          columns: [
+            { header: "Indicador (A)",  dataKey: "indicador" },
+            { header: "Peso (B)",       dataKey: "peso" },
+            { header: "Numerador",      dataKey: "numerador" },
+            { header: "Denominador",    dataKey: "denominador" },
+            { header: "% Obtido",       dataKey: "porcentagem" },
+            { header: "Conceito",       dataKey: "conceito" },
+            { header: "Nota",           dataKey: "nota" },
+            { header: "A × B",          dataKey: "axb" },
+          ],
+          body: rows,
+          theme: "grid",
+          headStyles: { fillColor: [245, 245, 245], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 8, halign: "center" },
+          bodyStyles: { fontSize: 8, halign: "center" },
+          columnStyles: { 0: { halign: "left" } },
+          showHead: "everyPage",
+          margin: { left: 14, right: 14 },
+          alternateRowStyles: { fillColor: [250, 250, 250] },
+          styles: { overflow: "linebreak", cellPadding: 2 },
+          didParseCell: (data: any) => {
+            if (data.section === "body" && data.column.dataKey === "conceito") {
+              const c = data.cell.raw as string;
+              if (c === "Ótimo")           data.cell.styles.textColor = [29, 78, 216];
+              else if (c === "Bom")        data.cell.styles.textColor = [4, 120, 87];
+              else if (c === "Suficiente") data.cell.styles.textColor = [180, 83, 9];
+              else if (c === "Regular")    data.cell.styles.textColor = [185, 28, 28];
+            }
+          },
+        });
+
+        y = (doc as any).lastAutoTable.finalY + 8;
+      }
+
+      doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF");
     }
-
-    sumTrat += mTrat;
-    sumCons += mCons;
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: mTrat,
-      denominador: mCons,
-      porcentagem: mCons > 0 ? (mTrat / mCons) * 100 : 0,
-    });
-  });
-
-  return {
-    numerador: sumTrat,
-    denominador: sumCons,
-    porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0,
-    mesesDetalhe,
-  };
-}
-
-// ── calcB3 ────────────────────────────────────────────────────────────────────
-function calcB3(
-  tab3: Tab3Record[],
-  quad: Quadrimestre,
-  oficialData?: OficialData,
-  equipe?: string,
-): RawCalc {
-  const source = equipe ? tab3.filter((r) => equipeMatch(r.equipe, equipe)) : tab3;
-
-  if (quad === "todos") {
-    let sumExo = 0, sumTot = 0;
-    source.forEach(r => { sumExo += r.exodontias; sumTot += r.totalAtendimentos; });
-    return { numerador: sumExo, denominador: sumTot, porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-
-  // Índice preliminar por mês
-  const byMonth = new Map<number, { exodontias: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
-    ex.exodontias += r.exodontias; ex.total += r.totalAtendimentos;
-    byMonth.set(mesIdx, ex);
-  });
-
-  let sumExo = 0, sumTot = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const ofMes = getOficialMes(oficialData, m, year, equipe);
-    const hasOf = !!ofMes && (ofMes.B3num > 0 || ofMes.B3den > 0);
-
-    let mExo: number, mTot: number;
-
-    if (hasOf) {
-      mExo = ofMes!.B3num;
-      mTot = ofMes!.B3den;
-    } else {
-      const data = byMonth.get(m) || { exodontias: 0, total: 0 };
-      mExo = data.exodontias;
-      mTot = data.total;
-    }
-
-    sumExo += mExo; sumTot += mTot;
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: mExo,
-      denominador: mTot,
-      porcentagem: mTot > 0 ? (mExo / mTot) * 100 : 0,
-    });
-  });
-
-  return {
-    numerador: sumExo,
-    denominador: sumTot,
-    porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0,
-    mesesDetalhe,
-  };
-}
-
-// ── calcB4 — Proced. Odont. Preventivos (aba 5 / tab5) ───────────────────────
-function calcB4(
-  tab5: Tab5Record[],
-  quad: Quadrimestre,
-  oficialData?: OficialData,
-  equipe?: string,
-): RawCalc {
-  const source = equipe ? tab5.filter((r) => equipeMatch(r.equipe, equipe)) : tab5;
-
-  if (quad === "todos") {
-    let sumPrev = 0, sumTot = 0;
-    source.forEach(r => { sumPrev += r.preventivos; sumTot += r.totalIndividuais; });
-    return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-
-  const byMonth = new Map<number, { preventivos: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
-    ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
-    byMonth.set(mesIdx, ex);
-  });
-
-  let sumPrev = 0, sumTot = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const ofMes = getOficialMes(oficialData, m, year, equipe);
-    const hasOf = !!ofMes && (ofMes.B4num > 0 || ofMes.B4den > 0);
-
-    let mPrev: number, mTot: number;
-
-    if (hasOf) {
-      mPrev = ofMes!.B4num;
-      mTot  = ofMes!.B4den;
-    } else {
-      const data = byMonth.get(m) || { preventivos: 0, total: 0 };
-      mPrev = data.preventivos;
-      mTot  = data.total;
-    }
-
-    sumPrev += mPrev; sumTot += mTot;
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: mPrev,
-      denominador: mTot,
-      porcentagem: mTot > 0 ? (mPrev / mTot) * 100 : 0,
-    });
-  });
-
-  return {
-    numerador: sumPrev,
-    denominador: sumTot,
-    porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0,
-    mesesDetalhe,
-  };
-}
-
-// ── calcB5 — Escovação Supervisionada (aba 4 / tab4) ─────────────────────────
-// Denominador fixo = totalPatients × 4 (meta quadrimestral), igual ao B1.
-function calcB5(
-  allTab4: Tab4Patient[],
-  quad: Quadrimestre,
-  oficialData?: OficialData,
-  equipe?: string,
-): RawCalc {
-  const source = equipe ? allTab4.filter((p) => equipeMatch(p.equipe, equipe)) : allTab4;
-  const totalPatients = source.length;
-  if (totalPatients === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
-
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-
-  if (quad === "todos") {
-    const byMonth = new Map<string, number>();
-    source.forEach(p => {
-      const d = parseDate(p.primeiraConsulta);
-      if (d) { const k = `${getMonth(d)}-${getYear(d)}`; byMonth.set(k, (byMonth.get(k) || 0) + 1); }
-    });
-    if (byMonth.size === 0) return { numerador: 0, denominador: totalPatients, porcentagem: 0, mesesDetalhe: [] };
-    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
-    return { numerador: totalConsultas, denominador: totalPatients, porcentagem: (totalConsultas / totalPatients) * 100, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let sumNum = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
-
-    const ofMes = getOficialMes(oficialData, m, year, equipe);
-    const hasOf = !!ofMes && (ofMes.B5num > 0 || ofMes.B5den > 0);
-
-    let mesNum: number;
-    let mesDen: number;
-
-    if (hasOf) {
-      mesNum = ofMes!.B5num;
-      mesDen = ofMes!.B5den > 0 ? ofMes!.B5den : totalPatients;
-    } else {
-      mesNum = source.filter((p) => {
-        const d = parseDate(p.primeiraConsulta);
-        return d && getMonth(d) === m && getYear(d) === year;
-      }).length;
-      mesDen = totalPatients;
-    }
-
-    sumNum += mesNum;
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: mesNum,
-      denominador: mesDen,
-      porcentagem: mesDen > 0 ? (mesNum / mesDen) * 100 : 0,
-    });
-  });
-
-  const denominador = totalPatients * 4;
-  return {
-    numerador: sumNum,
-    denominador,
-    porcentagem: denominador > 0 ? (sumNum / denominador) * 100 : 0,
-    mesesDetalhe,
-  };
-}
-
-// ── calcB6 ────────────────────────────────────────────────────────────────────
-function calcB6(
-  tab6: Tab6Record[],
-  quad: Quadrimestre,
-  oficialData?: OficialData,
-  equipe?: string,
-): RawCalc {
-  const source = equipe ? tab6.filter((r) => equipeMatch(r.equipe, equipe)) : tab6;
-
-  if (quad === "todos") {
-    let sumArt = 0, sumTot = 0;
-    source.forEach(r => { sumArt += r.exodontias; sumTot += r.totalProcedimentos; });
-    return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-
-  const byMonth = new Map<number, { exodontias: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
-    ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
-    byMonth.set(mesIdx, ex);
-  });
-
-  let sumArt = 0, sumTot = 0;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const ofMes = getOficialMes(oficialData, m, year, equipe);
-    const hasOf = !!ofMes && (ofMes.B6num > 0 || ofMes.B6den > 0);
-
-    let mArt: number, mTot: number;
-
-    if (hasOf) {
-      mArt = ofMes!.B6num;
-      mTot = ofMes!.B6den;
-    } else {
-      const data = byMonth.get(m) || { exodontias: 0, total: 0 };
-      mArt = data.exodontias;
-      mTot = data.total;
-    }
-
-    sumArt += mArt; sumTot += mTot;
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: mArt,
-      denominador: mTot,
-      porcentagem: mTot > 0 ? (mArt / mTot) * 100 : 0,
-    });
-  });
-
-  return {
-    numerador: sumArt,
-    denominador: sumTot,
-    porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0,
-    mesesDetalhe,
-  };
-}
-
-// ── hook principal ────────────────────────────────────────────────────────────
-export function useResultadoFinal(
-  patients: Patient[],
-  tratamento: TratamentoPatient[],
-  tab3: Tab3Record[],
-  tab4: Tab4Patient[],
-  tab5: Tab5Record[],
-  tab6: Tab6Record[],
-  quad: Quadrimestre = "todos",
-  equipeFilter: string = "all",
-  denominadorB1: { porEquipe: Record<string, number>; total: number },
-  oficialData?: OficialData,
-) {
-  // Helper to find denominadorB1 value trying aliases and ESB/ESF variants
-  const findDenomB1 = (eq: string): number => {
-    const normalized = normalizeEquipe(eq);
-    const aliases = [
-      normalized,
-      normalized.replace(/^ESB\b/i, "ESF"),
-      normalized.replace(/^ESB CENTRO$/i, "ESB SEDE 1"),
-      normalized.replace(/^ESF CENTRO$/i, "ESB SEDE 1"),
-      normalized.replace(/^ESB SEDE 1$/i, "ESB CENTRO"),
-      normalized.replace(/^ESB SEDE 1$/i, "ESF CENTRO"),
-    ];
-    for (const alias of aliases) {
-      if (denominadorB1.porEquipe[alias] !== undefined) return denominadorB1.porEquipe[alias];
-    }
-    return 0;
   };
 
-  const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-  const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
+  return (
+    <div className="space-y-8">
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+        </div>
+        <Select value={equipe} onValueChange={onEquipeChange}>
+          <SelectTrigger className="w-[280px] h-9">
+            <SelectValue placeholder="Selecione a equipe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Equipes</SelectItem>
+            {equipeOptions.map((eq) => (
+              <SelectItem key={eq} value={eq}>{eq}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={quadrimestre} onValueChange={(v) => onQuadrimestreChange(v as Quadrimestre)}>
+          <SelectTrigger className="w-[260px] h-9">
+            <SelectValue placeholder="Selecione o quadrimestre" />
+          </SelectTrigger>
+          <SelectContent>
+            {QUADRIMESTRE_OPTIONS_SEM_TODOS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={indicadorFiltro} onValueChange={setIndicadorFiltro}>
+          <SelectTrigger className="w-[280px] h-9">
+            <SelectValue placeholder="Selecione o indicador" />
+          </SelectTrigger>
+          <SelectContent>
+            {INDICADOR_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={handleGeneratePDF} className="h-9 gap-2 ml-auto">
+          <FileDown className="h-4 w-4" />
+          Gerar PDF
+        </Button>
+      </div>
 
-  const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-    const denomB1 = findDenomB1(equipe);
-    const rawB1 = calcB1(patients,   quad, denomB1, oficialData, equipe);
-    const rawB2 = calcB2(tratamento, quad,           oficialData, equipe);
-    const indicadores = [
-      buildIndicador("B1", rawB1),
-      buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, oficialData, equipe)),
-      buildIndicador("B5", calcB5(tab4, quad, oficialData, equipe)),
-      buildIndicador("B4", calcB4(tab5, quad, oficialData, equipe), {
-        b1Numerador:   Math.round(rawB1.numerador),
-        b1Denominador: Math.round(rawB1.denominador),
-        b2Numerador:   Math.round(rawB2.numerador),
-        b2Denominador: Math.round(rawB2.denominador),
-      }),
-      buildIndicador("B6", calcB6(tab6, quad, oficialData, equipe)),
-    ];
-    return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
-  });
+      {/* Ranking Cards */}
+      <div className="relative">
+        <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted">
+          <div className={`
+            flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
+            px-5 py-3 rounded-xl border-2 shadow-md
+            bg-gradient-to-b from-white to-primary/5 border-primary/30
+          `}>
+            <div className="flex items-center gap-1 mb-0.5">
+              <Trophy className="h-3.5 w-3.5 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Geral</span>
+            </div>
+            <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(geral.notaFinal)}`}>
+              {geral.notaFinal.toFixed(2).replace(".", ",")}
+            </p>
+            <p className="text-[10px] text-muted-foreground">Nota Final</p>
+          </div>
 
-  const buildGeral = (eq?: string) => {
-    const denomB1 = eq ? findDenomB1(eq) : denominadorB1.total;
-    const rawB1 = calcB1(patients,   quad, denomB1, oficialData, eq);
-    const rawB2 = calcB2(tratamento, quad,           oficialData, eq);
-    return [
-      buildIndicador("B1", rawB1),
-      buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, oficialData, eq)),
-      buildIndicador("B5", calcB5(tab4, quad, oficialData, eq)),
-      buildIndicador("B4", calcB4(tab5, quad, oficialData, eq), {
-        b1Numerador:   Math.round(rawB1.numerador),
-        b1Denominador: Math.round(rawB1.denominador),
-        b2Numerador:   Math.round(rawB2.numerador),
-        b2Denominador: Math.round(rawB2.denominador),
-      }),
-      buildIndicador("B6", calcB6(tab6, quad, oficialData, eq)),
-    ];
-  };
+          <div className="self-stretch w-px bg-border mx-1" />
 
-  const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
-  const geral: EquipeResult = {
-    equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
-    indicadores: geralIndicadores,
-    notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
-  };
+          {sortedEquipes.map((eq, idx) => {
+            const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
+            const ringClass =
+              idx === 0 ? "border-yellow-300 shadow-yellow-100" :
+              idx === 1 ? "border-slate-300 shadow-slate-100" :
+              idx === 2 ? "border-orange-300 shadow-orange-100" :
+                          "border-border shadow-sm";
+            const bgClass =
+              idx === 0 ? "from-yellow-50 to-white" :
+              idx === 1 ? "from-slate-50 to-white" :
+              idx === 2 ? "from-orange-50 to-white" :
+                          "from-white to-white";
 
-  return { geral, porEquipe };
-}
+            return (
+              <div
+                key={eq.equipe}
+                className={`
+                  flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
+                  px-4 py-3 rounded-xl border-2 shadow-md
+                  bg-gradient-to-b ${bgClass} ${ringClass}
+                `}
+              >
+                <div className="flex items-center gap-1 mb-0.5">
+                  {medal
+                    ? <span className="text-sm leading-none">{medal}</span>
+                    : <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
+                  }
+                </div>
+                <p className="text-[10px] font-semibold text-center leading-tight text-foreground truncate w-full text-center px-1" title={eq.equipe}>
+                  {eq.equipe}
+                </p>
+                <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
+                  {eq.notaFinal.toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Conteúdo principal */}
+      {indicadorFiltro !== "todos" ? (
+        <IndicadorComparativo
+          indicadorNome={indicadorFiltro}
+          geral={geral}
+          porEquipe={sortedEquipes}
+          showMeses={showMeses}
+        />
+      ) : (
+        <>
+          <ResultTable result={geral} title="Resultado Geral" showMeses={showMeses} />
+          <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Resultado por Equipe
+            </h2>
+            {sortedEquipes.map((eq) => (
+              <ResultTable key={eq.equipe} result={eq} title={eq.equipe} showMeses={showMeses} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Legendas */}
+      <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
+        <span className="font-medium text-muted-foreground">Conceito no Indicador:</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span><span className="text-red-600 text-xs">= 0,25</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span><span className="text-amber-600 text-xs">= 0,50</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span><span className="text-emerald-600 text-xs">= 0,75</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">= 1,00</span>
+        </div>
+        {showMeses && (
+          <span className="text-muted-foreground text-xs ml-2">· Clique na linha para expandir detalhes</span>
+        )}
+      </div>
+
+      <div className="gap-2 text-sm flex items-center justify-center flex-wrap">
+        <span className="font-medium text-muted-foreground">Nota Final:</span>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
+          <span className="text-red-700 font-medium">Regular</span><span className="text-red-600 text-xs">≥ 2,5</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
+          <span className="text-amber-700 font-medium">Suficiente</span><span className="text-amber-600 text-xs">2,6 a 4,9</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
+          <span className="text-emerald-700 font-medium">Bom</span><span className="text-emerald-600 text-xs">5 a 7,5</span>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
+          <span className="text-blue-700 font-medium">Ótimo</span><span className="text-blue-600 text-xs">&gt; 7,5</span>
+        </div>
+      </div>
+    </div>
+  );
+};
