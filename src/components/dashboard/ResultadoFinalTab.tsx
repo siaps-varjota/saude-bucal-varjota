@@ -181,7 +181,7 @@ const MetaQuadrimestreCard = ({
           {faltamBom > 0
             ? <>
                 <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {exibeUnit}</p>
-                <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+                <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamBom)}</p>
               </>
             : <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>}
         </div>
@@ -196,7 +196,7 @@ const MetaQuadrimestreCard = ({
           {faltamOtimo > 0
             ? <>
                 <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {exibeUnit}</p>
-                <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+                <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamOtimo)}</p>
               </>
             : <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>}
         </div>
