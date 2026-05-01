@@ -214,6 +214,8 @@ export const Tab5MetaCard = ({
       };
     })();
 
+    const mesesDecorridos = range.actualEndMonth - range.startMonth + 1;
+
     return {
       preventivos, totalIndividuais, currentPct,
       faltamBom, faltamOtimo,
@@ -222,6 +224,7 @@ export const Tab5MetaCard = ({
       pendentesTab2,
       fonte,
       simulations,
+      mesesDecorridos,
     };
   }, [records, allTratamentoPatients, quadrimestre, denominadorB1, consultasAba1Quad, equipe, oficialData]);
 
