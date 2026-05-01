@@ -122,6 +122,7 @@ const MetaQuadrimestreCard = ({
   deltaNum,
   deltaDenom,
   faltaUnit: faltaUnitProp,
+  mesesDecorridos,
 }: {
   denominador: number;
   numerador: number;
@@ -129,6 +130,7 @@ const MetaQuadrimestreCard = ({
   deltaNum?: number;
   deltaDenom?: number;
   faltaUnit?: string;
+  mesesDecorridos?: number;
 }) => {
   const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
   const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
@@ -149,6 +151,11 @@ const MetaQuadrimestreCard = ({
   const faltamBom   = calcFaltam(thresholds.thresholdBom);
   const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
   const exibeUnit   = faltaUnitProp ?? unit;
+
+  const mesesUsados      = mesesDecorridos ?? 0;
+  const semanasRestantes = Math.max(0, 4 - mesesUsados) * 4.33;
+  const fmtSemanal = (faltam: number) =>
+    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
   return (
     <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm">
@@ -172,7 +179,10 @@ const MetaQuadrimestreCard = ({
           <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / 4).toFixed(1)}</p>
           <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (4 * 4.33)).toFixed(1)}</p>
           {faltamBom > 0
-            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {exibeUnit}</p>
+            ? <>
+                <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {exibeUnit}</p>
+                <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+              </>
             : <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>}
         </div>
         <div>
@@ -184,7 +194,10 @@ const MetaQuadrimestreCard = ({
           <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / 4).toFixed(1)}</p>
           <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (4 * 4.33)).toFixed(1)}</p>
           {faltamOtimo > 0
-            ? <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {exibeUnit}</p>
+            ? <>
+                <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {exibeUnit}</p>
+                <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+              </>
             : <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>}
         </div>
       </div>
