@@ -147,6 +147,10 @@ export const Tab6QuadrimesterCards = ({
   const atingiuBom       = totalAtual >= metaBom  && metaBom  > 0;
   const atingiuOtimo     = totalAtual >= metaOtimo && metaOtimo > 0;
   const fonteMeta        = currentQuadData?.fonte ?? "preliminar";
+  const mesesComDados    = currentQuadData?.monthsWithData ?? 1;
+  const semanasRestantes = Math.max(0, (4 - mesesComDados)) * 4.33;
+  const fmtSemanal = (faltam: number) =>
+    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
   const metaCard = (
     <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2">
