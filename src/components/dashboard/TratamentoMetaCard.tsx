@@ -219,6 +219,8 @@ export const TratamentoMetaCard = ({
       };
     })();
 
+    const mesesDecorridos = range.actualEndMonth - range.startMonth + 1;
+
     return {
       consultasQuad: totalDen,
       tratamentosQuad: totalNum,
@@ -230,6 +232,7 @@ export const TratamentoMetaCard = ({
       alreadyOtimo: currentPct > 75,
       fonte,
       simulations,
+      mesesDecorridos,
     };
   }, [patients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia, equipe, oficialData]);
 
@@ -237,8 +240,12 @@ export const TratamentoMetaCard = ({
 
   const {
     consultasQuad, tratamentosQuad, pendentes, currentPct,
-    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, fonte, simulations,
+    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, fonte, simulations, mesesDecorridos,
   } = metaData;
+
+  const semanasRestantes = Math.max(0, 4 - mesesDecorridos) * 4.33;
+  const fmtSemanal = (faltam: number) =>
+    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
   return (
     <>
@@ -275,7 +282,11 @@ export const TratamentoMetaCard = ({
               {alreadyBom ? (
                 <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
               ) : (
-                <><p className="text-2xl font-bold text-emerald-700">{faltamBom}</p><p className="text-xs text-muted-foreground">tratamentos a concluir</p></>
+                <>
+                  <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
+                  <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+                </>
               )}
             </div>
 
@@ -287,7 +298,11 @@ export const TratamentoMetaCard = ({
               {alreadyOtimo ? (
                 <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
               ) : (
-                <><p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p><p className="text-xs text-muted-foreground">tratamentos a concluir</p></>
+                <>
+                  <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
+                  <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+                </>
               )}
             </div>
           </div>

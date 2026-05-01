@@ -177,6 +177,9 @@ export const QuadrimesterCards = ({
   const atingiuBom   = totalAtual >= metaBom;
   const atingiuOtimo = totalAtual >= metaOtimo;
   const fonteMeta    = currentQuadData?.fonte ?? "preliminar";
+  const semanasRestantes = Math.max(0, (4 - mesesComDados)) * 4.33;
+  const fmtSemanal = (faltam: number) =>
+    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
   const metaCard = (
     <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2">
@@ -195,7 +198,10 @@ export const QuadrimesterCards = ({
             <p className="text-xs text-muted-foreground">Média/semana: {(metaBomMensal / 4.33).toFixed(1)}</p>
             {atingiuBom
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} atend.</p>
+              : <>
+                  <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} atend.</p>
+                  <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+                </>
             }
           </div>
           <div>
@@ -205,7 +211,10 @@ export const QuadrimesterCards = ({
             <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimoMensal / 4.33).toFixed(1)}</p>
             {atingiuOtimo
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} atend.</p>
+              : <>
+                  <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} atend.</p>
+                  <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+                </>
             }
           </div>
         </div>
