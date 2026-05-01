@@ -285,7 +285,7 @@ export const TratamentoMetaCard = ({
                 <>
                   <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
                   <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
-                  <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(faltamBom)}</p>
                 </>
               )}
             </div>
@@ -301,7 +301,7 @@ export const TratamentoMetaCard = ({
                 <>
                   <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
                   <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
-                  <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(faltamOtimo)}</p>
                 </>
               )}
             </div>
