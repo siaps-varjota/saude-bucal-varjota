@@ -219,6 +219,8 @@ export const TratamentoMetaCard = ({
       };
     })();
 
+    const mesesDecorridos = range.actualEndMonth - range.startMonth + 1;
+
     return {
       consultasQuad: totalDen,
       tratamentosQuad: totalNum,
@@ -230,6 +232,7 @@ export const TratamentoMetaCard = ({
       alreadyOtimo: currentPct > 75,
       fonte,
       simulations,
+      mesesDecorridos,
     };
   }, [patients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia, equipe, oficialData]);
 
