@@ -240,8 +240,12 @@ export const TratamentoMetaCard = ({
 
   const {
     consultasQuad, tratamentosQuad, pendentes, currentPct,
-    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, fonte, simulations,
+    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, fonte, simulations, mesesDecorridos,
   } = metaData;
+
+  const semanasRestantes = Math.max(0, 4 - mesesDecorridos) * 4.33;
+  const fmtSemanal = (faltam: number) =>
+    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
   return (
     <>
