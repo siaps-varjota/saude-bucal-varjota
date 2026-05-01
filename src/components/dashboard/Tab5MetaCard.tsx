@@ -284,7 +284,11 @@ export const Tab5MetaCard = ({
               {alreadyBom ? (
                 <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
               ) : (
-                <><p className="text-2xl font-bold text-emerald-700">{faltamBom}</p><p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p></>
+                <>
+                  <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
+                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+                </>
               )}
             </div>
 
@@ -296,7 +300,11 @@ export const Tab5MetaCard = ({
               {alreadyOtimo ? (
                 <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
               ) : (
-                <><p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p><p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p></>
+                <>
+                  <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
+                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+                </>
               )}
             </div>
           </div>
