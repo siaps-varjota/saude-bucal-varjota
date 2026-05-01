@@ -233,8 +233,12 @@ export const Tab5MetaCard = ({
   const {
     preventivos, totalIndividuais, currentPct,
     faltamBom, faltamOtimo, alreadyBom, alreadyOtimo,
-    pendentesTab2, fonte, simulations,
+    pendentesTab2, fonte, simulations, mesesDecorridos,
   } = metaData;
+
+  const semanasRestantes = Math.max(0, 4 - mesesDecorridos) * 4.33;
+  const fmtSemanal = (faltam: number) =>
+    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
   return (
     <>
