@@ -139,7 +139,7 @@ export const Tab3QuadrimesterCards = ({
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <CalendarDays className={`h-4 w-4 ${styles.icon}`} />
                 <span className={`text-sm font-medium ${styles.label}`}>{quad.label}</span>
-                <FonteBadge fonte={quad.fonte} />
+                <FonteBadge fonte={quad.fonte} /> 
               </div>
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.totalExodontias}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalAtendimentos} atendimentos</p>
