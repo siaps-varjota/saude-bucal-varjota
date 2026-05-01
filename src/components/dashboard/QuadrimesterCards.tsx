@@ -192,6 +192,7 @@ export const QuadrimesterCards = ({
             <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 3%)</p>
             <p className="text-2xl font-bold text-emerald-700">{metaBom} atend.</p>
             <p className="text-xs text-muted-foreground">Média/mês: {metaBomMensal.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Média/semana: {(metaBomMensal / 4.33).toFixed(1)}</p>
             {atingiuBom
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} atend.</p>
@@ -201,6 +202,7 @@ export const QuadrimesterCards = ({
             <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 5%)</p>
             <p className="text-2xl font-bold text-blue-700">{metaOtimo} atend.</p>
             <p className="text-xs text-muted-foreground">Média/mês: {metaOtimoMensal.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimoMensal / 4.33).toFixed(1)}</p>
             {atingiuOtimo
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} atend.</p>
@@ -228,6 +230,7 @@ export const QuadrimesterCards = ({
               <p className={`text-3xl font-bold ${styles.count}`}>{q.total}</p>
               <p className="text-xs text-muted-foreground mt-1">de {q.den}</p>
               <p className="text-xs text-muted-foreground">Média/mês: {q.average.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">Média/semana: {(q.average / 4.33).toFixed(1)}</p>
               <p className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</p>
             </CardContent>
           </Card>

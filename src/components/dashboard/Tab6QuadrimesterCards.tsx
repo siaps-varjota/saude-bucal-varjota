@@ -162,6 +162,7 @@ export const Tab6QuadrimesterCards = ({
             <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 6%)</p>
             <p className="text-2xl font-bold text-emerald-700">{metaBom} TRA</p>
             <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Média/semana: {(mediaMensalBom / 4.33).toFixed(1)}</p>
             {atingiuBom
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} TRA</p>
@@ -171,6 +172,7 @@ export const Tab6QuadrimesterCards = ({
             <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 8%)</p>
             <p className="text-2xl font-bold text-blue-700">{metaOtimo} TRA</p>
             <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Média/semana: {(mediaMensalOtimo / 4.33).toFixed(1)}</p>
             {atingiuOtimo
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} TRA</p>
@@ -197,6 +199,7 @@ export const Tab6QuadrimesterCards = ({
               <p className={`text-3xl font-bold ${styles.count}`}>{quad.totalExodontias}</p>
               <p className="text-xs text-muted-foreground mt-1">de {quad.totalProcedimentos} procedimentos</p>
               <p className="text-xs text-muted-foreground">Média/mês: {quad.avgMonthlyExodontias.toFixed(1)}</p>
+              <p className="text-xs text-muted-foreground">Média/semana: {(quad.avgMonthlyExodontias / 4.33).toFixed(1)}</p>
               <p className={`text-xs mt-0.5 ${styles.label}`}>{quad.percentage.toFixed(1)}%</p>
             </CardContent>
           </Card>
