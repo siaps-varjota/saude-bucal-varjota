@@ -175,7 +175,10 @@ export const Tab4QuadrimesterCards = ({
             <p className="text-xs text-muted-foreground">Média/semana: {(mediaMensalBom / 4.33).toFixed(1)}</p>
             {atingiuBom
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} escov.</p>
+              : <>
+                  <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} escov.</p>
+                  <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+                </>
             }
           </div>
           <div>
@@ -185,7 +188,10 @@ export const Tab4QuadrimesterCards = ({
             <p className="text-xs text-muted-foreground">Média/semana: {(mediaMensalOtimo / 4.33).toFixed(1)}</p>
             {atingiuOtimo
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} escov.</p>
+              : <>
+                  <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} escov.</p>
+                  <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+                </>
             }
           </div>
         </div>
