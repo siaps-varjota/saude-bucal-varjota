@@ -551,6 +551,7 @@ const DetalheRow = ({
                       denominador={ind.denominador}
                       numerador={ind.numerador}
                       thresholds={metaThresholds}
+                      mesesDecorridos={ind.mesesDetalhe?.length ?? 0}
                       {...(ind.indicador === "Proced. Odont. Preventivos" && {
                         deltaNum: 2,
                         deltaDenom: 2,
