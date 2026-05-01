@@ -200,7 +200,7 @@ export const QuadrimesterCards = ({
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <>
                   <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} atend.</p>
-                  <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
+                  <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamBom)}</p>
                 </>
             }
           </div>
@@ -213,7 +213,7 @@ export const QuadrimesterCards = ({
               ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
               : <>
                   <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} atend.</p>
-                  <p className="text-xs text-red-600">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
+                  <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamOtimo)}</p>
                 </>
             }
           </div>
