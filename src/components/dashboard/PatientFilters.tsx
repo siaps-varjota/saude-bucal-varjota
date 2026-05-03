@@ -15,21 +15,9 @@ export interface FilterState {
   mesReferencia?: string[];
 }
 
-interface PDFSummaryCard {
-  label: string;
-  value: string;
-  percentage?: string;
-}
-
-interface PDFColumn {
-  key: string;
-  header: string;
-}
-
-interface StatusOption {
-  value: string;
-  label: string;
-}
+interface PDFSummaryCard { label: string; value: string; percentage?: string; }
+interface PDFColumn { key: string; header: string; }
+interface StatusOption { value: string; label: string; }
 
 interface PatientFiltersProps {
   patients: Patient[];
@@ -71,18 +59,13 @@ export const PatientFilters = ({
 
   const uniqueMicroareas = useMemo(() => {
     const microareas = [...new Set(patients.map(p => p.microarea).filter(m => m && m.trim() !== ""))];
-    return microareas.sort((a, b) => {
-      const numA = parseInt(a) || 0;
-      const numB = parseInt(b) || 0;
-      return numA - numB;
-    });
+    return microareas.sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
   }, [patients]);
 
   const defaultStatusOptions: StatusOption[] = [
     { value: "pendente", label: "Pendente" },
     { value: "concluido", label: "Concluído" },
   ];
-
   const resolvedStatusOptions = statusOptions ?? defaultStatusOptions;
 
   const clearFilters = () => {
@@ -97,7 +80,7 @@ export const PatientFilters = ({
     (filters.mesReferencia && filters.mesReferencia.length > 0);
 
   const filterInfo = useMemo(() => {
-    const parts = [];
+    const parts: string[] = [];
     if (filters.equipe !== "all") parts.push(`equipe: ${filters.equipe}`);
     if (filters.microarea !== "all") parts.push(`microárea: ${filters.microarea}`);
     if (filters.status !== "all") parts.push(`status: ${filters.status}`);
@@ -112,13 +95,11 @@ export const PatientFilters = ({
   return (
     <div className="w-full p-4 bg-card border-2 my-0 shadow-xl rounded-xl">
       <div className="flex items-center gap-3 w-full">
-        {/* Ícone de filtro */}
         <div className="flex items-center gap-2 shrink-0">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
         </div>
 
-        {/* Selects — crescem e encolhem juntos */}
         <div className="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
           <Select value={filters.equipe} onValueChange={value => onFiltersChange({ ...filters, equipe: value })}>
             <SelectTrigger className="w-[220px] h-9 shrink-0">
@@ -180,13 +161,11 @@ export const PatientFilters = ({
           </Select>
         </div>
 
-        {/* Ações — sempre à direita, nunca quebram linha */}
         <div className="flex items-center gap-2 shrink-0 ml-auto">
           {hasActiveFilters && (
-           <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 whitespace-normal text-center leading-tight h-auto max-w-[48px] text-xs px-1"
-        >
-       Limpar filtros
-       </Button>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 whitespace-normal text-center leading-tight h-auto max-w-[48px] text-xs px-1">
+              Limpar filtros
+            </Button>
           )}
           <PDFGenerator
             title={pdfTitle}
