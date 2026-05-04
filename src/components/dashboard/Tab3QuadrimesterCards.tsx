@@ -8,9 +8,9 @@ import { FonteDado } from "@/hooks/useOficialMerge";
 
 interface Tab3QuadrimesterCardsProps {
   records: Tab3Record[];
-  quadrimestre?: string;
-  equipe?: string;           // ← novo
-  oficialData?: OficialData; // ← novo
+  quadrimestres?: string[];
+  equipe?: string;
+  oficialData?: OficialData;
 }
 
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
@@ -56,7 +56,7 @@ const mesAnoToMMYYYY = (mesAno: string): string | null => {
 
 export const Tab3QuadrimesterCards = ({
   records,
-  quadrimestre = "todos",
+  quadrimestres = [],
   equipe = "all",
   oficialData,
 }: Tab3QuadrimesterCardsProps) => {
@@ -124,8 +124,8 @@ export const Tab3QuadrimesterCards = ({
     });
   }, [records, currentQuad, currentYear, currentMonth, equipe, oficialData]);
 
-  const visibleCards = quadrimestre !== "todos"
-    ? quadCounts.filter(q => q.quadKey === quadrimestre)
+  const visibleCards = quadrimestres.length > 0
+    ? quadCounts.filter(q => quadrimestres.includes(q.quadKey))
     : quadCounts;
 
   return (

@@ -11,10 +11,10 @@ interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
   allPatients: TratamentoPatient[];
   totalComConsulta: number;
-  quadrimestre?: string;
+  quadrimestres?: string[];
   mesReferencia?: string[];
-  equipe?: string;           // ← novo
-  oficialData?: OficialData; // ← novo
+  equipe?: string;
+  oficialData?: OficialData;
 }
 
 const parseTratamentoDate = (str: string): Date | null => {
@@ -102,7 +102,7 @@ const resolveMonthB2 = (
 
 export const TratamentoQuadrimesterCards = ({
   patients,
-  quadrimestre = "todos",
+  quadrimestres = [],
   mesReferencia = [],
   equipe = "all",
   oficialData,
@@ -183,8 +183,8 @@ export const TratamentoQuadrimesterCards = ({
     return result;
   }, [patients, mesReferencia, equipe, oficialData]);
 
-  const visibleCards = quadrimestre !== "todos"
-    ? quadrimesterData.filter(q => q.quadKey === quadrimestre)
+  const visibleCards = quadrimestres.length > 0
+    ? quadrimesterData.filter(q => quadrimestres.includes(q.quadKey))
     : quadrimesterData;
 
   return (
