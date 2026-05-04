@@ -26,13 +26,13 @@ export const isConsultaPendente = (primeiraConsulta: string): boolean => {
 
 export const useFilteredPatients = (patients: Patient[], filters: FilterState) => {
   return useMemo(() => {
-    let filtered = filterPatientsByQuadrimestre(patients, filters.quadrimestre);
+    let filtered = filterPatientsByQuadrimestre(patients, filters.quadrimestres);
     return filtered.filter((patient) => {
-      const matchesEquipe = filters.equipe === "all" || patient.equipe === filters.equipe;
-      const matchesMicroarea = filters.microarea === "all" || patient.microarea === filters.microarea;
+      const matchesEquipe = filters.equipes.length === 0 || filters.equipes.includes(patient.equipe);
+      const matchesMicroarea = filters.microareas.length === 0 || filters.microareas.includes(patient.microarea);
       const isPendente = isConsultaPendente(patient.primeiraConsulta);
-      const matchesStatus = 
-        filters.status === "all" || 
+      const matchesStatus =
+        filters.status === "all" ||
         (filters.status === "pendente" && isPendente) ||
         (filters.status === "concluido" && !isPendente);
 
