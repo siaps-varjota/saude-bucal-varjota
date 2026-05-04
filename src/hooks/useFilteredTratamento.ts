@@ -30,8 +30,8 @@ export const useFilteredTratamento = (patients: TratamentoPatient[], filters: Fi
 
     // ── Etapa 1: filtro de equipe + microarea (sempre aplicado) ──────────────
     const byEquipeMicroarea = patients.filter((patient) => {
-      const matchesEquipe    = filters.equipe    === "all" || patient.equipe    === filters.equipe;
-      const matchesMicroarea = filters.microarea === "all" || patient.microarea === filters.microarea;
+      const matchesEquipe    = filters.equipes.length === 0    || filters.equipes.includes(patient.equipe);
+      const matchesMicroarea = filters.microareas.length === 0 || filters.microareas.includes(patient.microarea);
       return matchesEquipe && matchesMicroarea;
     });
 
@@ -51,7 +51,7 @@ export const useFilteredTratamento = (patients: TratamentoPatient[], filters: Fi
         return matchesMesReferencia(mmyyyy, selected);
       });
     } else {
-      denominadorBase = filterTratamentoByQuadrimestre(byEquipeMicroarea, filters.quadrimestre);
+      denominadorBase = filterTratamentoByQuadrimestre(byEquipeMicroarea, filters.quadrimestres);
     }
 
     // ── Etapa 3: filtro de status ──────────────────────────────────────────

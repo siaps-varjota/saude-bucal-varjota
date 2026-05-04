@@ -10,10 +10,10 @@ export const isConsultaPendenteTab4 = (consulta: string): boolean => {
 
 export const useFilteredTab4 = (patients: Tab4Patient[], filters: FilterState): Tab4Patient[] => {
   return useMemo(() => {
-    let filtered = filterTab4ByQuadrimestre(patients, filters.quadrimestre);
+    let filtered = filterTab4ByQuadrimestre(patients, filters.quadrimestres);
     return filtered.filter((patient) => {
-      if (filters.equipe !== "all" && patient.equipe !== filters.equipe) return false;
-      if (filters.microarea !== "all" && patient.microarea !== filters.microarea) return false;
+      if (filters.equipes.length > 0 && !filters.equipes.includes(patient.equipe)) return false;
+      if (filters.microareas.length > 0 && !filters.microareas.includes(patient.microarea)) return false;
       if (filters.status !== "all") {
         const isPendente = isConsultaPendenteTab4(patient.primeiraConsulta);
         if (filters.status === "pendente" && !isPendente) return false;

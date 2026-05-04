@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Patient } from "@/hooks/usePatientData";
 import { PDFGenerator } from "./PDFGenerator";
-import { Quadrimestre, QUADRIMESTRE_OPTIONS } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
+import { MultiSelect } from "./MultiSelect";
 
 export interface FilterState {
-  equipe: string;
-  microarea: string;
-  status: string;
-  quadrimestre: Quadrimestre;
+  equipes: string[];          // [] = todas
+  microareas: string[];       // [] = todas
+  status: string;             // single
+  quadrimestres: Quadrimestre[]; // [] = todos
   mesReferencia?: string[];
 }
 
@@ -69,24 +70,24 @@ export const PatientFilters = ({
   const resolvedStatusOptions = statusOptions ?? defaultStatusOptions;
 
   const clearFilters = () => {
-    onFiltersChange({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+    onFiltersChange({ equipes: [], microareas: [], status: "all", quadrimestres: [], mesReferencia: [] });
   };
 
   const hasActiveFilters =
-    filters.equipe !== "all" ||
-    filters.microarea !== "all" ||
+    filters.equipes.length > 0 ||
+    filters.microareas.length > 0 ||
     filters.status !== "all" ||
-    filters.quadrimestre !== "todos" ||
+    filters.quadrimestres.length > 0 ||
     (filters.mesReferencia && filters.mesReferencia.length > 0);
 
   const filterInfo = useMemo(() => {
     const parts: string[] = [];
-    if (filters.equipe !== "all") parts.push(`equipe: ${filters.equipe}`);
-    if (filters.microarea !== "all") parts.push(`microárea: ${filters.microarea}`);
+    if (filters.equipes.length > 0) parts.push(`equipes: ${filters.equipes.join(", ")}`);
+    if (filters.microareas.length > 0) parts.push(`microáreas: ${filters.microareas.join(", ")}`);
     if (filters.status !== "all") parts.push(`status: ${filters.status}`);
-    if (filters.quadrimestre !== "todos") {
-      const opt = QUADRIMESTRE_OPTIONS.find(o => o.value === filters.quadrimestre);
-      if (opt) parts.push(`período: ${opt.label}`);
+    if (filters.quadrimestres.length > 0) {
+      const labels = filters.quadrimestres.map(q => QUADRIMESTRE_OPTIONS_SEM_TODOS.find(o => o.value === q)?.label ?? q);
+      parts.push(`período: ${labels.join(", ")}`);
     }
     if (filters.mesReferencia && filters.mesReferencia.length > 0) parts.push(`mês ref.: ${filters.mesReferencia.join(", ")}`);
     return parts.length > 0 ? parts.join(", ") : undefined;
@@ -101,30 +102,22 @@ export const PatientFilters = ({
         </div>
 
         <div className="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
-          <Select value={filters.equipe} onValueChange={value => onFiltersChange({ ...filters, equipe: value })}>
-            <SelectTrigger className="w-[220px] h-9 shrink-0">
-              <SelectValue placeholder="Equipe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas Equipes</SelectItem>
-              {uniqueEquipes.map(equipe => (
-                <SelectItem key={equipe} value={equipe}>{equipe}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MultiSelect
+            value={filters.equipes}
+            options={uniqueEquipes.map(e => ({ value: e, label: e }))}
+            onChange={value => onFiltersChange({ ...filters, equipes: value })}
+            placeholderAll="Todas Equipes"
+            width="w-[220px]"
+          />
 
           {!hideMicroarea && (
-            <Select value={filters.microarea} onValueChange={value => onFiltersChange({ ...filters, microarea: value })}>
-              <SelectTrigger className="w-[150px] h-9 shrink-0">
-                <SelectValue placeholder="Microárea" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Microáreas</SelectItem>
-                {uniqueMicroareas.map(microarea => (
-                  <SelectItem key={microarea} value={microarea}>Área {microarea}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              value={filters.microareas}
+              options={uniqueMicroareas.map(m => ({ value: m, label: `Área ${m}` }))}
+              onChange={value => onFiltersChange({ ...filters, microareas: value })}
+              placeholderAll="Todas Microáreas"
+              width="w-[170px]"
+            />
           )}
 
           {!hideStatus && (
@@ -149,16 +142,13 @@ export const PatientFilters = ({
             />
           )}
 
-          <Select value={filters.quadrimestre} onValueChange={value => onFiltersChange({ ...filters, quadrimestre: value as Quadrimestre })}>
-            <SelectTrigger className="w-[200px] h-9 shrink-0">
-              <SelectValue placeholder="Quadrimestre" />
-            </SelectTrigger>
-            <SelectContent>
-              {QUADRIMESTRE_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MultiSelect
+            value={filters.quadrimestres as string[]}
+            options={QUADRIMESTRE_OPTIONS_SEM_TODOS.map(o => ({ value: o.value, label: o.label }))}
+            onChange={value => onFiltersChange({ ...filters, quadrimestres: value as Quadrimestre[] })}
+            placeholderAll="Todos os períodos"
+            width="w-[230px]"
+          />
         </div>
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">

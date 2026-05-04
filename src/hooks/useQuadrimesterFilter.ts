@@ -24,8 +24,6 @@ export const QUADRIMESTRE_OPTIONS_SEM_TODOS: QuadrimestreOption[] = QUADRIMESTRE
   (opt) => opt.value !== "todos"
 );
 
-// ── helpers internos ──────────────────────────────────────────────────────────
-
 const QUAD_MONTHS: Record<string, number[]> = {
   Q1: [0, 1, 2, 3],
   Q2: [4, 5, 6, 7],
@@ -58,62 +56,60 @@ const parseMesAno = (mesAno: string): { mes: number; ano: number } | null => {
   return { mes, ano };
 };
 
-// ── funções exportadas ────────────────────────────────────────────────────────
+// Verifica se um (mes, ano) cai em algum dos quadrimestres selecionados
+const matchesAnyQuad = (mes: number, ano: number, quads: Quadrimestre[]): boolean => {
+  if (quads.length === 0) return true;
+  return quads.some(quad => {
+    if (quad === "todos") return true;
+    const [q, yearStr] = quad.split("-");
+    const year = parseInt(yearStr, 10);
+    const months = QUAD_MONTHS[q] || [];
+    return ano === year && months.includes(mes);
+  });
+};
 
 // Tab1 - filtra por primeiraConsulta (data)
 export function filterPatientsByQuadrimestre<T extends { primeiraConsulta: string }>(
   patients: T[],
-  quad: Quadrimestre
+  quads: Quadrimestre[],
 ): T[] {
-  if (quad === "todos") return patients;
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
+  if (quads.length === 0) return patients;
   return patients.filter((p) => {
     const d = parseDate(p.primeiraConsulta);
     if (!d) return true;
-    return getYear(d) === year && months.includes(getMonth(d));
+    return matchesAnyQuad(getMonth(d), getYear(d), quads);
   });
 }
 
-// Tab2 - denominador sempre filtra por primeiraConsulta
 export function filterTratamentoByQuadrimestre<
   T extends { primeiraConsulta: string; tratamentoConcluido: string }
 >(
   patients: T[],
-  quad: Quadrimestre
+  quads: Quadrimestre[],
 ): T[] {
-  if (quad === "todos") return patients;
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
+  if (quads.length === 0) return patients;
   return patients.filter((p) => {
-    const dCons = parseDate(p.primeiraConsulta);
-    if (!dCons) return false;
-    return getYear(dCons) === year && months.includes(getMonth(dCons));
+    const d = parseDate(p.primeiraConsulta);
+    if (!d) return false;
+    return matchesAnyQuad(getMonth(d), getYear(d), quads);
   });
 }
 
-// Tab3, Tab5, Tab6 - filtra por mesAno (ex: "Janeiro/2025")
 export function filterByQuadrimestre<T extends { mesAno: string }>(
   records: T[],
-  quad: Quadrimestre
+  quads: Quadrimestre[],
 ): T[] {
-  if (quad === "todos") return records;
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
+  if (quads.length === 0) return records;
   return records.filter((r) => {
     const parsed = parseMesAno(r.mesAno);
     if (!parsed) return true;
-    return parsed.ano === year && months.includes(parsed.mes);
+    return matchesAnyQuad(parsed.mes, parsed.ano, quads);
   });
 }
 
-// Tab4 - filtra por primeiraConsulta (reutiliza filterPatientsByQuadrimestre)
 export function filterTab4ByQuadrimestre<T extends { primeiraConsulta: string }>(
   patients: T[],
-  quad: Quadrimestre
+  quads: Quadrimestre[],
 ): T[] {
-  return filterPatientsByQuadrimestre(patients, quad);
+  return filterPatientsByQuadrimestre(patients, quads);
 }

@@ -9,9 +9,9 @@ import { FonteDado } from "@/hooks/useOficialMerge";
 
 interface Tab6QuadrimesterCardsProps {
   records: Tab6Record[];
-  quadrimestre?: string;
-  equipe?: string;           // ← novo
-  oficialData?: OficialData; // ← novo
+  quadrimestres?: string[];
+  equipe?: string;
+  oficialData?: OficialData;
 }
 
 type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
@@ -57,7 +57,7 @@ const getQuadrimesterMonths = (quadNum: number): number[] => {
 
 export const Tab6QuadrimesterCards = ({
   records,
-  quadrimestre = "todos",
+  quadrimestres = [],
   equipe = "all",
   oficialData,
 }: Tab6QuadrimesterCardsProps) => {
@@ -130,8 +130,8 @@ export const Tab6QuadrimesterCards = ({
     });
   }, [records, currentQuad, currentYear, equipe, oficialData]);
 
-  const visibleCards = quadrimestre !== "todos"
-    ? quadCounts.filter((q) => q.quadKey === quadrimestre)
+  const visibleCards = quadrimestres.length > 0
+    ? quadCounts.filter((q) => quadrimestres.includes(q.quadKey))
     : quadCounts;
 
   // Meta baseada no quadrimestre atual (último visível)

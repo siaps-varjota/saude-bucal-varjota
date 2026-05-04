@@ -9,9 +9,9 @@ import { FonteDado } from "@/hooks/useOficialMerge";
 interface Tab4QuadrimesterCardsProps {
   patients: Tab4Patient[];
   totalPatients: number;
-  quadrimestre?: string;
-  equipe?: string;           // ← novo
-  oficialData?: OficialData; // ← novo
+  quadrimestres?: string[];
+  equipe?: string;
+  oficialData?: OficialData;
 }
 
 const parseConsultaDate = (consulta: string): Date | null => {
@@ -65,7 +65,7 @@ const getQuadrimesterMonths = (quadNum: number): number[] => {
 export const Tab4QuadrimesterCards = ({
   patients,
   totalPatients,
-  quadrimestre = "todos",
+  quadrimestres = [],
   equipe = "all",
   oficialData,
 }: Tab4QuadrimesterCardsProps) => {
@@ -133,8 +133,8 @@ export const Tab4QuadrimesterCards = ({
     return { ...q, total: totalNum, den: totalDen, denRep, average, monthsWithData, fonte };
   });
 
-  const visibleCards = quadrimestre !== "todos"
-    ? quadCounts.filter(q => q.quadKey === quadrimestre)
+  const visibleCards = quadrimestres.length > 0
+    ? quadCounts.filter(q => quadrimestres.includes(q.quadKey))
     : quadCounts;
 
   // Meta baseada no quadrimestre atual (último visível)

@@ -54,6 +54,9 @@ import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 
+// Derive single equipe for oficial data lookup; "all" when 0 or >1 selected
+const singleEquipe = (e: string[]): string => (e.length === 1 ? e[0] : "all");
+
 // ── Ícone de dente SVG ────────────────────────────────────────────────────────
 const ToothIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -91,7 +94,7 @@ const ResultadoFinalWrapper = ({
     patients, tratamentoPatients, tab3Patients,
     tab4Patients, tab5Patients, tab6Patients,
     quadrimestre, equipeResultado, denominadorB1Data,
-    oficialData,   // ← agora passado ao hook
+    oficialData,
   );
   return (
     <ResultadoFinalTab
@@ -146,7 +149,7 @@ const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState("consulta");
-  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey as unknown as Quadrimestre);
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey() as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
   const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
@@ -158,12 +161,13 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
   const { data: oficialData, refetch: refetchOficial } = useOficialData();
 
-  const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
-  const [filtersTratamento, setFiltersTratamento] = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
-  const [filtersTab3,       setFiltersTab3]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
-  const [filtersTab4,       setFiltersTab4]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
-  const [filtersTab5,       setFiltersTab5]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
-  const [filtersTab6,       setFiltersTab6]       = useState<FilterState>({ equipe: "all", microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+  const initialFilter: FilterState = { equipes: [], microareas: [], status: "all", quadrimestres: [], mesReferencia: [] };
+  const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>(initialFilter);
+  const [filtersTratamento, setFiltersTratamento] = useState<FilterState>(initialFilter);
+  const [filtersTab3,       setFiltersTab3]       = useState<FilterState>(initialFilter);
+  const [filtersTab4,       setFiltersTab4]       = useState<FilterState>(initialFilter);
+  const [filtersTab5,       setFiltersTab5]       = useState<FilterState>(initialFilter);
+  const [filtersTab6,       setFiltersTab6]       = useState<FilterState>(initialFilter);
 
   const mesRefOptionsConsulta   = useMemo(() => !patients           ? [] : extractMesesFromDates(patients.map(p => p.primeiraConsulta)),           [patients]);
   const mesRefOptionsTratamento = useMemo(() => !tratamentoPatients  ? [] : extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta)),  [tratamentoPatients]);
@@ -173,20 +177,20 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const mesRefOptionsTab6       = useMemo(() => !tab6Patients        ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),                [tab6Patients]);
 
   const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
-  const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestre: "todos" });
+  const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestres: [] });
   const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
-  const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos" });
-  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestre: "todos", mesReferencia: [] });
+  const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestres: [] });
+  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestres: [], mesReferencia: [] });
   const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
   const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
-  const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestre: "todos" });
+  const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestres: [] });
   const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], { equipe: filtersTab5.equipe, microarea: "all", status: "all", quadrimestre: "todos", mesReferencia: [] });
+  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], { equipes: filtersTab5.equipes, microareas: [], status: "all", quadrimestres: [], mesReferencia: [] });
   const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
-    (patients || []).filter(p => filtersConsulta.equipe === "all" || p.equipe === filtersConsulta.equipe),
-    [patients, filtersConsulta.equipe]
+    (patients || []).filter(p => filtersConsulta.equipes.length === 0 || filtersConsulta.equipes.includes(p.equipe)),
+    [patients, filtersConsulta.equipes]
   );
 
   const equipeOptions = useMemo(() => {
@@ -204,36 +208,40 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     return Array.from(set).sort();
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
 
-  const resolverDenominadorPorEquipe = (equipe: string): number => {
+  const resolverDenominadorPorEquipe = (equipes: string[]): number => {
     if (!denominadorB1Data) return 0;
-    if (equipe === "all") return denominadorB1Data.total;
-    return denominadorB1Data.porEquipe[equipe]
-      ?? denominadorB1Data.porEquipe[equipe.replace("ESB CENTRO", "ESB SEDE 1")]
-      ?? denominadorB1Data.porEquipe[equipe.replace(/^ESB\b/i, "ESF")]
-      ?? 0;
+    if (equipes.length === 0) return denominadorB1Data.total;
+    return equipes.reduce((sum, equipe) => {
+      const v = denominadorB1Data.porEquipe[equipe]
+        ?? denominadorB1Data.porEquipe[equipe.replace("ESB CENTRO", "ESB SEDE 1")]
+        ?? denominadorB1Data.porEquipe[equipe.replace(/^ESB\b/i, "ESF")]
+        ?? 0;
+      return sum + v;
+    }, 0);
   };
 
+  // For Tratamento meta - use first quadrimestre selected, else current
   const consultasAba1Quad = useMemo(() => {
-    const quadKey = filtersTratamento.quadrimestre !== "todos" ? filtersTratamento.quadrimestre : getCurrentQuadKey();
+    const quadKey = filtersTratamento.quadrimestres[0] || getCurrentQuadKey();
     const range = getQuadRangeFromKey(quadKey);
     if (!range) return 0;
     return (patients || []).filter(p => {
-      if (filtersTratamento.equipe !== "all" && p.equipe !== filtersTratamento.equipe) return false;
+      if (filtersTratamento.equipes.length > 0 && !filtersTratamento.equipes.includes(p.equipe)) return false;
       const d = parseDateFlexible(p.primeiraConsulta);
       return d ? d >= range.start && d <= range.end : false;
     }).length;
-  }, [patients, filtersTratamento.quadrimestre, filtersTratamento.equipe]);
+  }, [patients, filtersTratamento.quadrimestres, filtersTratamento.equipes]);
 
   const consultasAba1QuadTab5 = useMemo(() => {
-    const quadKey = filtersTab5.quadrimestre !== "todos" ? filtersTab5.quadrimestre : getCurrentQuadKey();
+    const quadKey = filtersTab5.quadrimestres[0] || getCurrentQuadKey();
     const range = getQuadRangeFromKey(quadKey);
     if (!range) return 0;
     return (patients || []).filter(p => {
-      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
+      if (filtersTab5.equipes.length > 0 && !filtersTab5.equipes.includes(p.equipe)) return false;
       const d = parseDateFlexible(p.primeiraConsulta);
       return d ? d >= range.start && d <= range.end : false;
     }).length;
-  }, [patients, filtersTab5.quadrimestre, filtersTab5.equipe]);
+  }, [patients, filtersTab5.quadrimestres, filtersTab5.equipes]);
 
   const refetchAll = () => {
     refetchPatients();
@@ -264,7 +272,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
 
   const { error, isFetching, refetch } = getTabState();
 
-  const totalPatients          = resolverDenominadorPorEquipe(filtersConsulta.equipe) || patientsByEquipe.length;
+  const totalPatients          = resolverDenominadorPorEquipe(filtersConsulta.equipes) || patientsByEquipe.length;
   const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
   const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
   const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
@@ -279,10 +287,10 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
 
   const pendentesTab1ForTab5 = useMemo(() =>
     (patients || []).filter(p => {
-      if (filtersTab5.equipe !== "all" && p.equipe !== filtersTab5.equipe) return false;
+      if (filtersTab5.equipes.length > 0 && !filtersTab5.equipes.includes(p.equipe)) return false;
       return isConsultaPendente(p.primeiraConsulta);
     }).length,
-    [patients, filtersTab5.equipe]
+    [patients, filtersTab5.equipes]
   );
 
   const resultadoPronto =
@@ -346,7 +354,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
           </TabsList>
 
-          {/* ── Tab 1 — 1ª Consulta ───────────────────────────────────────── */}
+          {/* ── Tab 1 ─────────────────────────────────────────────────────── */}
           <TabsContent value="consulta" className="mt-6">
             {!isLoadingPatients && patients && (
               <div className="mb-6">
@@ -388,8 +396,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <QuadrimesterCards
                       patients={filteredPatients}
                       totalPatients={totalPatients}
-                      quadFiltered={filtersConsulta.quadrimestre}
-                      equipe={filtersConsulta.equipe}
+                      quadrimestres={filtersConsulta.quadrimestres}
+                      equipe={singleEquipe(filtersConsulta.equipes)}
                       oficialData={oficialData}
                     />
                   </>
@@ -402,16 +410,17 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   : <MonthlyCards
                       patients={filteredPatients}
                       totalPatients={totalPatients}
+                      quadrimestres={filtersConsulta.quadrimestres}
                       mesReferencia={filtersConsulta.mesReferencia}
-                      equipe={filtersConsulta.equipe}
+                      equipe={singleEquipe(filtersConsulta.equipes)}
                       oficialData={oficialData}
                     />}
               </div>
-              {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatientsNoQuad} />}
+              {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
             </div>
           </TabsContent>
 
-          {/* ── Tab 2 — Tratamento Concluído ──────────────────────────────── */}
+          {/* ── Tab 2 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tratamento" className="mt-6">
             {!isLoadingTratamento && tratamentoPatients && (
               <div className="mb-6">
@@ -460,19 +469,19 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
                       totalComConsulta={filteredTratamentoSemMes.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
-                      quadrimestre={filtersTratamento.quadrimestre}
+                      quadrimestres={filtersTratamento.quadrimestres}
                       mesReferencia={filtersTratamento.mesReferencia}
-                      equipe={filtersTratamento.equipe}
+                      equipe={singleEquipe(filtersTratamento.equipes)}
                       oficialData={oficialData}
                     />
                     <TratamentoMetaCard
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
-                      quadrimestre={filtersTratamento.quadrimestre}
-                      denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipe)}
+                      quadrimestres={filtersTratamento.quadrimestres}
+                      denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipes)}
                       consultasAba1Quad={consultasAba1Quad}
                       mesReferencia={filtersTratamento.mesReferencia}
-                      equipe={filtersTratamento.equipe}
+                      equipe={singleEquipe(filtersTratamento.equipes)}
                       oficialData={oficialData}
                     />
                   </>
@@ -485,17 +494,17 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   : <TratamentoMonthlyCards
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
-                      quadrimestre={filtersTratamento.quadrimestre}
+                      quadrimestres={filtersTratamento.quadrimestres}
                       mesReferencia={filtersTratamento.mesReferencia}
-                      equipe={filtersTratamento.equipe}
+                      equipe={singleEquipe(filtersTratamento.equipes)}
                       oficialData={oficialData}
                     />}
               </div>
-              {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamentoNoQuad} />}
+              {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamento} />}
             </div>
           </TabsContent>
 
-          {/* ── Tab 3 — Taxa Exodontias ───────────────────────────────────── */}
+          {/* ── Tab 3 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab3" className="mt-6">
             {!isLoadingTab3 && tab3Patients && (
               <div className="mb-6">
@@ -533,7 +542,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab3QuadrimesterCards
                       records={filteredTab3}
-                      equipe={filtersTab3.equipe}
+                      quadrimestres={filtersTab3.quadrimestres}
+                      equipe={singleEquipe(filtersTab3.equipes)}
                       oficialData={oficialData}
                     />
                   </>
@@ -545,8 +555,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <Tab3MonthlyCards
                       records={filteredTab3}
+                      quadrimestres={filtersTab3.quadrimestres}
                       mesReferencia={filtersTab3.mesReferencia}
-                      equipe={filtersTab3.equipe}
+                      equipe={singleEquipe(filtersTab3.equipes)}
                       oficialData={oficialData}
                     />}
               </div>
@@ -554,7 +565,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 4 — Escovação Supervisionada ──────────────────────────── */}
+          {/* ── Tab 4 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab4" className="mt-6">
             {!isLoadingTab4 && tab4Patients && (
               <div className="mb-6">
@@ -596,8 +607,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <Tab4QuadrimesterCards
                       patients={filteredTab4}
                       totalPatients={filteredTab4NoQuad.length}
-                      quadrimestre={filtersTab4.quadrimestre}
-                      equipe={filtersTab4.equipe}
+                      quadrimestres={filtersTab4.quadrimestres}
+                      equipe={singleEquipe(filtersTab4.equipes)}
                       oficialData={oficialData}
                     />
                   </>
@@ -610,8 +621,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   : <Tab4MonthlyCards
                       patients={filteredTab4}
                       totalPatients={filteredTab4NoQuad.length}
+                      quadrimestres={filtersTab4.quadrimestres}
                       mesReferencia={filtersTab4.mesReferencia}
-                      equipe={filtersTab4.equipe}
+                      equipe={singleEquipe(filtersTab4.equipes)}
                       oficialData={oficialData}
                     />}
               </div>
@@ -619,7 +631,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 5 — Proced. Odont. Preventivos ───────────────────────── */}
+          {/* ── Tab 5 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab5" className="mt-6">
             {!isLoadingTab5 && tab5Patients && (
               <div className="mb-6">
@@ -657,18 +669,19 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab5QuadrimesterCards
                       records={filteredTab5}
-                      equipe={filtersTab5.equipe}
+                      quadrimestres={filtersTab5.quadrimestres}
+                      equipe={singleEquipe(filtersTab5.equipes)}
                       oficialData={oficialData}
                     />
                     {!isLoadingPatients && !isLoadingTratamento && (
                       <Tab5MetaCard
                         records={filteredTab5}
                         allTratamentoPatients={filteredTratamentoByTab5}
-                        quadrimestre={filtersTab5.quadrimestre}
+                        quadrimestres={filtersTab5.quadrimestres}
                         pendentesTab1={pendentesTab1ForTab5}
-                        denominadorB1={resolverDenominadorPorEquipe(filtersTab5.equipe)}
+                        denominadorB1={resolverDenominadorPorEquipe(filtersTab5.equipes)}
                         consultasAba1Quad={consultasAba1QuadTab5}
-                        equipe={filtersTab5.equipe}
+                        equipe={singleEquipe(filtersTab5.equipes)}
                         oficialData={oficialData}
                       />
                     )}
@@ -681,8 +694,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <Tab5MonthlyCards
                       records={filteredTab5}
+                      quadrimestres={filtersTab5.quadrimestres}
                       mesReferencia={filtersTab5.mesReferencia}
-                      equipe={filtersTab5.equipe}
+                      equipe={singleEquipe(filtersTab5.equipes)}
                       oficialData={oficialData}
                     />}
               </div>
@@ -690,7 +704,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 6 — Trat. Restaurador Atraumático ────────────────────── */}
+          {/* ── Tab 6 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab6" className="mt-6">
             {!isLoadingTab6 && tab6Patients && (
               <div className="mb-6">
@@ -728,8 +742,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab6QuadrimesterCards
                       records={filteredTab6}
-                      quadrimestre={filtersTab6.quadrimestre}
-                      equipe={filtersTab6.equipe}
+                      quadrimestres={filtersTab6.quadrimestres}
+                      equipe={singleEquipe(filtersTab6.equipes)}
                       oficialData={oficialData}
                     />
                   </>
@@ -741,8 +755,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <Tab6MonthlyCards
                       records={filteredTab6}
+                      quadrimestres={filtersTab6.quadrimestres}
                       mesReferencia={filtersTab6.mesReferencia}
-                      equipe={filtersTab6.equipe}
+                      equipe={singleEquipe(filtersTab6.equipes)}
                       oficialData={oficialData}
                     />}
               </div>
@@ -750,7 +765,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             </div>
           </TabsContent>
 
-          {/* ── Tab 7 — Resultado Final ───────────────────────────────────── */}
+          {/* ── Tab 7 ─────────────────────────────────────────────────────── */}
           <TabsContent value="resultado" className="mt-6">
             {!resultadoPronto ? (
               <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
@@ -784,7 +799,6 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   );
 };
 
-// ── Componente raiz ───────────────────────────────────────────────────────────
 const Index = () => {
   const { user, loading: authLoading, logout } = useAuth();
 
