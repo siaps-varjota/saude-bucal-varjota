@@ -397,7 +397,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <QuadrimesterCards
                       patients={filteredPatients}
                       totalPatients={totalPatients}
-                      quadrimestre={singleQuad(filtersConsulta.quadrimestres)}
+                      quadrimestres={filtersConsulta.quadrimestres}
                       equipe={singleEquipe(filtersConsulta.equipes)}
                       oficialData={oficialData}
                     />
@@ -470,7 +470,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
                       totalComConsulta={filteredTratamentoSemMes.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
-                      quadrimestre={singleQuad(filtersTratamento.quadrimestres)}
+                      quadrimestres={filtersTratamento.quadrimestres}
                       mesReferencia={filtersTratamento.mesReferencia}
                       equipe={singleEquipe(filtersTratamento.equipes)}
                       oficialData={oficialData}
@@ -543,7 +543,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab3QuadrimesterCards
                       records={filteredTab3}
-                      quadrimestre={singleQuad(filtersTab3.quadrimestres)}
+                      quadrimestres={filtersTab3.quadrimestres}
                       equipe={singleEquipe(filtersTab3.equipes)}
                       oficialData={oficialData}
                     />
@@ -608,7 +608,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <Tab4QuadrimesterCards
                       patients={filteredTab4}
                       totalPatients={filteredTab4NoQuad.length}
-                      quadrimestre={singleQuad(filtersTab4.quadrimestres)}
+                      quadrimestres={filtersTab4.quadrimestres}
                       equipe={singleEquipe(filtersTab4.equipes)}
                       oficialData={oficialData}
                     />
@@ -670,7 +670,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab5QuadrimesterCards
                       records={filteredTab5}
-                      quadrimestre={singleQuad(filtersTab5.quadrimestres)}
+                      quadrimestres={filtersTab5.quadrimestres}
                       equipe={singleEquipe(filtersTab5.equipes)}
                       oficialData={oficialData}
                     />
@@ -743,7 +743,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab6QuadrimesterCards
                       records={filteredTab6}
-                      quadrimestre={singleQuad(filtersTab6.quadrimestres)}
+                      quadrimestres={filtersTab6.quadrimestres}
                       equipe={singleEquipe(filtersTab6.equipes)}
                       oficialData={oficialData}
                     />
