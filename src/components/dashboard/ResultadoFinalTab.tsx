@@ -349,14 +349,25 @@ const SimulacaoCard = ({
   const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
   const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
+  // Só altera a nota projetada se o CONCEITO mudou (Regular/Suficiente/Bom/Ótimo).
+  // Mudanças de percentual dentro do mesmo conceito não afetam a nota.
+  const ajusteSeConceitoMudou = (
+    ind: IndicadorResult | undefined,
+    novoConceito: ReturnType<typeof derivaConceito>,
+  ): number => {
+    if (!ind) return 0;
+    if (ind.conceito === novoConceito.conceito) return 0;
+    return -ind.notaFinal + notaNum(novoConceito) * ind.peso;
+  };
+
   const notaFinalProjetada = !todosIndicadores
     ? 0
     : !anyInput
       ? notaFinalAtual
       : notaFinalAtual
-          - (b1Ind?.notaFinal ?? 0) + notaNum(b1Conceito) * (b1Ind?.peso ?? 0)
-          - (b2Ind?.notaFinal ?? 0) + notaNum(b2Conceito) * (b2Ind?.peso ?? 0)
-          - (b5Ind?.notaFinal ?? 0) + notaNum(b5Conceito) * (b5Ind?.peso ?? 0);
+          + ajusteSeConceitoMudou(b1Ind, b1Conceito)
+          + ajusteSeConceitoMudou(b2Ind, b2Conceito)
+          + ajusteSeConceitoMudou(b5Ind, b5Conceito);
 
   const notaDelta = notaFinalProjetada - notaFinalAtual;
   const hasNota   = notaFinalAtual > 0;
