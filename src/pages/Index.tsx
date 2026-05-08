@@ -397,7 +397,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <QuadrimesterCards
                       patients={filteredPatients}
                       totalPatients={totalPatients}
-                      quadrimestres={filtersConsulta.quadrimestres}
+                      quadrimestre={singleQuad(filtersConsulta.quadrimestres)}
                       equipe={singleEquipe(filtersConsulta.equipes)}
                       oficialData={oficialData}
                     />
@@ -411,7 +411,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   : <MonthlyCards
                       patients={filteredPatients}
                       totalPatients={totalPatients}
-                      quadrimestres={filtersConsulta.quadrimestres}
+                      quadrimestre={singleQuad(filtersConsulta.quadrimestres)}
                       mesReferencia={filtersConsulta.mesReferencia}
                       equipe={singleEquipe(filtersConsulta.equipes)}
                       oficialData={oficialData}
@@ -470,7 +470,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
                       totalComConsulta={filteredTratamentoSemMes.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
-                      quadrimestres={filtersTratamento.quadrimestres}
+                      quadrimestre={singleQuad(filtersTratamento.quadrimestres)}
                       mesReferencia={filtersTratamento.mesReferencia}
                       equipe={singleEquipe(filtersTratamento.equipes)}
                       oficialData={oficialData}
@@ -478,7 +478,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <TratamentoMetaCard
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
-                      quadrimestres={filtersTratamento.quadrimestres}
+                      quadrimestre={singleQuad(filtersTratamento.quadrimestres)}
                       denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipes)}
                       consultasAba1Quad={consultasAba1Quad}
                       mesReferencia={filtersTratamento.mesReferencia}
@@ -495,7 +495,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   : <TratamentoMonthlyCards
                       patients={filteredTratamentoSemMes}
                       allPatients={filteredTratamentoSemMes}
-                      quadrimestres={filtersTratamento.quadrimestres}
+                      quadrimestre={singleQuad(filtersTratamento.quadrimestres)}
                       mesReferencia={filtersTratamento.mesReferencia}
                       equipe={singleEquipe(filtersTratamento.equipes)}
                       oficialData={oficialData}
@@ -543,7 +543,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab3QuadrimesterCards
                       records={filteredTab3}
-                      quadrimestres={filtersTab3.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab3.quadrimestres)}
                       equipe={singleEquipe(filtersTab3.equipes)}
                       oficialData={oficialData}
                     />
@@ -556,7 +556,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <Tab3MonthlyCards
                       records={filteredTab3}
-                      quadrimestres={filtersTab3.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab3.quadrimestres)}
                       mesReferencia={filtersTab3.mesReferencia}
                       equipe={singleEquipe(filtersTab3.equipes)}
                       oficialData={oficialData}
@@ -608,7 +608,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <Tab4QuadrimesterCards
                       patients={filteredTab4}
                       totalPatients={filteredTab4NoQuad.length}
-                      quadrimestres={filtersTab4.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab4.quadrimestres)}
                       equipe={singleEquipe(filtersTab4.equipes)}
                       oficialData={oficialData}
                     />
@@ -622,7 +622,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   : <Tab4MonthlyCards
                       patients={filteredTab4}
                       totalPatients={filteredTab4NoQuad.length}
-                      quadrimestres={filtersTab4.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab4.quadrimestres)}
                       mesReferencia={filtersTab4.mesReferencia}
                       equipe={singleEquipe(filtersTab4.equipes)}
                       oficialData={oficialData}
@@ -670,7 +670,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab5QuadrimesterCards
                       records={filteredTab5}
-                      quadrimestres={filtersTab5.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab5.quadrimestres)}
                       equipe={singleEquipe(filtersTab5.equipes)}
                       oficialData={oficialData}
                     />
@@ -678,7 +678,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       <Tab5MetaCard
                         records={filteredTab5}
                         allTratamentoPatients={filteredTratamentoByTab5}
-                        quadrimestres={filtersTab5.quadrimestres}
+                        quadrimestre={singleQuad(filtersTab5.quadrimestres)}
                         pendentesTab1={pendentesTab1ForTab5}
                         denominadorB1={resolverDenominadorPorEquipe(filtersTab5.equipes)}
                         consultasAba1Quad={consultasAba1QuadTab5}
@@ -695,7 +695,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <Tab5MonthlyCards
                       records={filteredTab5}
-                      quadrimestres={filtersTab5.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab5.quadrimestres)}
                       mesReferencia={filtersTab5.mesReferencia}
                       equipe={singleEquipe(filtersTab5.equipes)}
                       oficialData={oficialData}
@@ -743,7 +743,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                     <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
                     <Tab6QuadrimesterCards
                       records={filteredTab6}
-                      quadrimestres={filtersTab6.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab6.quadrimestres)}
                       equipe={singleEquipe(filtersTab6.equipes)}
                       oficialData={oficialData}
                     />
@@ -756,7 +756,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
                   : <Tab6MonthlyCards
                       records={filteredTab6}
-                      quadrimestres={filtersTab6.quadrimestres}
+                      quadrimestre={singleQuad(filtersTab6.quadrimestres)}
                       mesReferencia={filtersTab6.mesReferencia}
                       equipe={singleEquipe(filtersTab6.equipes)}
                       oficialData={oficialData}
