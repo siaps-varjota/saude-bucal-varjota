@@ -349,12 +349,14 @@ const SimulacaoCard = ({
   const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
   const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
-  const notaFinalProjetada = todosIndicadores
-    ? notaFinalAtual
-        - (b1Ind?.notaFinal ?? 0) + notaNum(b1Conceito) * (b1Ind?.peso ?? 0)
-        - (b2Ind?.notaFinal ?? 0) + notaNum(b2Conceito) * (b2Ind?.peso ?? 0)
-        - (b5Ind?.notaFinal ?? 0) + notaNum(b5Conceito) * (b5Ind?.peso ?? 0)
-    : 0;
+  const notaFinalProjetada = !todosIndicadores
+    ? 0
+    : !anyInput
+      ? notaFinalAtual
+      : notaFinalAtual
+          - (b1Ind?.notaFinal ?? 0) + notaNum(b1Conceito) * (b1Ind?.peso ?? 0)
+          - (b2Ind?.notaFinal ?? 0) + notaNum(b2Conceito) * (b2Ind?.peso ?? 0)
+          - (b5Ind?.notaFinal ?? 0) + notaNum(b5Conceito) * (b5Ind?.peso ?? 0);
 
   const notaDelta = notaFinalProjetada - notaFinalAtual;
   const hasNota   = notaFinalAtual > 0;
