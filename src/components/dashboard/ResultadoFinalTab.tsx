@@ -356,7 +356,10 @@ const SimulacaoCard = ({
     novoConceito: ReturnType<typeof derivaConceito>,
   ): number => {
     if (!ind) return 0;
-    if (ind.conceito === novoConceito.conceito) return 0;
+    const novoKey = novoConceito.label
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (ind.conceito === novoKey) return 0;
     return -ind.notaFinal + notaNum(novoConceito) * ind.peso;
   };
 
