@@ -56,6 +56,7 @@ import { Tab6Record } from "@/hooks/useTab6Data";
 
 // Derive single equipe for oficial data lookup; "all" when 0 or >1 selected
 const singleEquipe = (e: string[]): string => (e.length === 1 ? e[0] : "all");
+const singleQuad = (q: string[]): string => (q.length === 1 ? q[0] : "todos");
 
 // ── Ícone de dente SVG ────────────────────────────────────────────────────────
 const ToothIcon = ({ className }: { className?: string }) => (
