@@ -349,18 +349,21 @@ const SimulacaoCard = ({
   const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
   const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
-  // Só altera a nota projetada se o CONCEITO mudou (Regular/Suficiente/Bom/Ótimo).
-  // Mudanças de percentual dentro do mesmo conceito não afetam a nota.
+  // Conceitos ATUAIS (sem simulação) calculados com o mesmo derivaConceito
+  // usado para os novos — assim a comparação é apples-to-apples e a nota só
+  // muda quando o conceito (Regular/Suficiente/Bom/Ótimo) realmente muda.
+  const b1ConceitoAtual = derivaConceito(b1PctAtual, b1Thresh);
+  const b2ConceitoAtual = derivaConceito(b2PctAtual, b2Thresh);
+  const b5ConceitoAtual = derivaConceito(b5PctAtual, b5Thresh);
+
   const ajusteSeConceitoMudou = (
     ind: IndicadorResult | undefined,
-    novoConceito: ReturnType<typeof derivaConceito>,
+    atual: ReturnType<typeof derivaConceito>,
+    novo: ReturnType<typeof derivaConceito>,
   ): number => {
     if (!ind) return 0;
-    const novoKey = novoConceito.label
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (ind.conceito === novoKey) return 0;
-    return -ind.notaFinal + notaNum(novoConceito) * ind.peso;
+    if (atual.label === novo.label) return 0;
+    return (notaNum(novo) - notaNum(atual)) * ind.peso;
   };
 
   const notaFinalProjetada = !todosIndicadores
@@ -368,9 +371,9 @@ const SimulacaoCard = ({
     : !anyInput
       ? notaFinalAtual
       : notaFinalAtual
-          + ajusteSeConceitoMudou(b1Ind, b1Conceito)
-          + ajusteSeConceitoMudou(b2Ind, b2Conceito)
-          + ajusteSeConceitoMudou(b5Ind, b5Conceito);
+          + ajusteSeConceitoMudou(b1Ind, b1ConceitoAtual, b1Conceito)
+          + ajusteSeConceitoMudou(b2Ind, b2ConceitoAtual, b2Conceito)
+          + ajusteSeConceitoMudou(b5Ind, b5ConceitoAtual, b5Conceito);
 
   const notaDelta = notaFinalProjetada - notaFinalAtual;
   const hasNota   = notaFinalAtual > 0;
