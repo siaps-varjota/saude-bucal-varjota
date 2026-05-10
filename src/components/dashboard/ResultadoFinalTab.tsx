@@ -570,7 +570,7 @@ const DetalheRow = ({
                       denominador={ind.denominador}
                       numerador={ind.numerador}
                       thresholds={metaThresholds}
-                      mesesDecorridos={ind.mesesDetalhe?.length ?? 0}
+                      mesesDecorridos={ind.mesesDetalhe?.filter(m => (m.denominador ?? 0) > 0 || (m.numerador ?? 0) > 0).length ?? 0}
                       {...(ind.indicador === "Proced. Odont. Preventivos" && {
                         deltaNum: 2,
                         deltaDenom: 2,
