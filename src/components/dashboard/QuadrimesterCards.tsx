@@ -168,8 +168,8 @@ export const QuadrimesterCards = ({
 
   const metaBomMensal   = Math.floor(denominador * 0.03) + 1;
   const metaOtimoMensal = Math.floor(denominador * 0.05) + 1;
-  const metaBom         = metaBomMensal * mesesComDados;
-  const metaOtimo       = metaOtimoMensal * mesesComDados;
+  const metaBom         = metaBomMensal * 4;
+  const metaOtimo       = metaOtimoMensal * 4;
 
   const totalAtual   = currentQuadData?.total ?? 0;
   const faltamBom    = Math.max(0, metaBom - totalAtual);
