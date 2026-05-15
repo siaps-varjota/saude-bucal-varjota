@@ -99,7 +99,7 @@ export const Tab6QuadrimesterCards = ({
         const mmyyyy    = format(monthDate, "MM/yyyy");
         const mesNorm   = normalizeMes(mmyyyy) ?? mmyyyy;
         const ofRow     = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-        const isOficial = !!ofRow && (ofRow.numB6 > 0 || ofRow.denB6 > 0);
+        const isOficial = !!ofRow;
 
         if (isOficial) {
           totalExodontias    += ofRow!.numB6;

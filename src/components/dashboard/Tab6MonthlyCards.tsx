@@ -133,7 +133,7 @@ export const Tab6MonthlyCards = ({
             : month.mesAno;
           const mesNorm   = normalizeMes(mmyyyy) ?? mmyyyy;
           const ofRow     = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-          const isOficial = !!ofRow && (ofRow.numB6 > 0 || ofRow.denB6 > 0);
+          const isOficial = !!ofRow;
 
           const exodontias = isOficial ? ofRow!.numB6 : month.exodontias;
           const total      = isOficial ? ofRow!.denB6 : month.total;

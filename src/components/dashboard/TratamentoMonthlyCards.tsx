@@ -143,7 +143,7 @@ export const TratamentoMonthlyCards = ({
           const ofKey   = makeOficialKey(mesNorm, equipe);
           const ofRow   = oficialData?.index.get(ofKey);
 
-          const isOficial      = !!ofRow && (ofRow.numB2 > 0 || ofRow.denB2 > 0);
+          const isOficial      = !!ofRow;
           const finalNum       = isOficial ? ofRow!.numB2 : tratamentoCount;
           const finalDen       = isOficial ? ofRow!.denB2 : consultaCount;
           const fonte          = isOficial ? "oficial" as const : "preliminar" as const;

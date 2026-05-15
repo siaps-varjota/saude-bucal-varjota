@@ -95,7 +95,7 @@ export const Tab5MonthlyCards = ({
         const mmyyyy    = mesAnoToMMYYYY(mesAno);
         const mesNorm   = mmyyyy ? (normalizeMes(mmyyyy) ?? mmyyyy) : null;
         const ofRow     = mesNorm ? oficialData?.index.get(makeOficialKey(mesNorm, equipe)) : undefined;
-        const isOficial = !!ofRow && (ofRow.numB5 > 0 || ofRow.denB5 > 0);
+        const isOficial = !!ofRow;
 
         const preventivos = isOficial ? ofRow!.numB5 : prel.preventivos;
         const total       = isOficial ? ofRow!.denB5 : prel.total;

@@ -106,7 +106,7 @@ export const Tab4QuadrimesterCards = ({
       const mmyyyy    = format(monthDate, "MM/yyyy");
       const mesNorm   = normalizeMes(mmyyyy) ?? mmyyyy;
       const ofRow     = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-      const isOficial = !!ofRow && (ofRow.numB4 > 0 || ofRow.denB4 > 0);
+      const isOficial = !!ofRow;
 
       if (isOficial) {
         totalNum += ofRow!.numB4;

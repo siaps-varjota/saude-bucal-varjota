@@ -94,7 +94,7 @@ const resolveMonthB2 = (
 ): { num: number; den: number; fonte: FonteDado } => {
   const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
   const ofRow   = oficialIndex?.get(makeOficialKey(mesNorm, equipe));
-  if (ofRow && (ofRow.numB2 > 0 || ofRow.denB2 > 0)) {
+  if (!!ofRow) {
     return { num: ofRow.numB2, den: ofRow.denB2, fonte: "oficial" };
   }
   return { num: prelNum, den: prelDen, fonte: "preliminar" };

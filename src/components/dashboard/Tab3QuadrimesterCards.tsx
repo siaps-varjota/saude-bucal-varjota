@@ -94,7 +94,7 @@ export const Tab3QuadrimesterCards = ({
         const mmyyyy    = `${String(mesIdx + 1).padStart(2, "0")}/${q.year}`;
         const mesNorm   = normalizeMes(mmyyyy) ?? mmyyyy;
         const ofRow     = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-        const isOficial = !!ofRow && (ofRow.numB3 > 0 || ofRow.denB3 > 0);
+        const isOficial = !!ofRow;
 
         if (isOficial) {
           totalExodontias   += ofRow!.numB3;
