@@ -46,9 +46,9 @@ type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
 const getScoreCategory = (percentage: number): ScoreCategory => {
   if (percentage <= 0) return "none";
-  if (percentage >= 80 && percentage <= 85) return "otimo";
-  if (percentage >= 60 && percentage < 80)  return "bom";
-  if (percentage >= 40 && percentage < 60)  return "suficiente";
+  if (percentage >= 65 && percentage <= 85) return "otimo";
+  if (percentage >= 55 && percentage < 65)  return "bom";
+  if (percentage >= 40 && percentage < 55)  return "suficiente";
   return "regular";
 };
 
@@ -168,15 +168,15 @@ export const Tab5MonthlyCards = ({
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
           <span className="text-amber-700 font-medium">Suficiente</span>
-          <span className="text-amber-600 text-xs">≥ 40% e &lt; 60%</span>
+          <span className="text-amber-600 text-xs">≥ 40% e &lt; 55%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
           <span className="text-emerald-700 font-medium">Bom</span>
-          <span className="text-emerald-600 text-xs">≥ 60% e &lt; 80%</span>
+          <span className="text-emerald-600 text-xs">≥ 55% e &lt; 65%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
           <span className="text-blue-700 font-medium">Ótimo</span>
-          <span className="text-blue-600 text-xs">≥ 80% e ≤ 85%</span>
+          <span className="text-blue-600 text-xs">≥ 65% e ≤ 85%</span>
         </div>
         <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
           <FonteBadge fonte="oficial" />

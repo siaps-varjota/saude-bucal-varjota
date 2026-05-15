@@ -12,10 +12,10 @@ import { Tab3Record } from "@/hooks/useTab3Data";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-// Aba 3: Ótimo (>=8% e <=10%), Bom (>10% e <12%), Suficiente (>=12% e <14%), Regular (<8% ou >=14%)
+// Aba 3: Ótimo (≥3% e <10%), Bom (≥10% e <12%), Suficiente (≥12% e <14%), Regular (<3% ou ≥14%)
 const getScoreColor = (percentage: number) => {
-  if (percentage >= 8 && percentage <= 10) return "bg-blue-100 text-blue-700 border-blue-200";
-  if (percentage > 10 && percentage < 12) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  if (percentage >= 3 && percentage < 10) return "bg-blue-100 text-blue-700 border-blue-200";
+  if (percentage >= 10 && percentage < 12) return "bg-emerald-100 text-emerald-700 border-emerald-200";
   if (percentage >= 12 && percentage < 14) return "bg-amber-100 text-amber-700 border-amber-200";
   return "bg-red-100 text-red-700 border-red-200";
 };

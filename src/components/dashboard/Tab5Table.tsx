@@ -12,11 +12,12 @@ import { Tab5Record } from "@/hooks/useTab5Data";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+// Aba 5: Ótimo (≥65% e ≤85%), Bom (≥55% e <65%), Suficiente (≥40% e <55%), Regular (<40% ou >85%)
 const getScoreColor = (percentage: number) => {
-  if (percentage <= 30) return "bg-red-100 text-red-700 border-red-200";
-  if (percentage <= 50) return "bg-amber-100 text-amber-700 border-amber-200";
-  if (percentage <= 70) return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  return "bg-blue-100 text-blue-700 border-blue-200";
+  if (percentage >= 65 && percentage <= 85) return "bg-blue-100 text-blue-700 border-blue-200";
+  if (percentage >= 55 && percentage < 65) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  if (percentage >= 40 && percentage < 55) return "bg-amber-100 text-amber-700 border-amber-200";
+  return "bg-red-100 text-red-700 border-red-200";
 };
 
 type SortKey = "equipe" | "preventivos" | "totalIndividuais" | "porcentagem" | "mesAno";

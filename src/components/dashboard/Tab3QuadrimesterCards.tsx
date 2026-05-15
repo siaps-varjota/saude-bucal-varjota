@@ -17,8 +17,8 @@ type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
 const getScoreCategory = (percentage: number): ScoreCategory => {
   if (percentage <= 0) return "none";
-  if (percentage >= 8 && percentage <= 10) return "otimo";
-  if (percentage > 10 && percentage < 12) return "bom";
+  if (percentage >= 3 && percentage < 10) return "otimo";
+  if (percentage >= 10 && percentage < 12) return "bom";
   if (percentage >= 12 && percentage < 14) return "suficiente";
   return "regular";
 };

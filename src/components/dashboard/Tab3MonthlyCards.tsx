@@ -50,8 +50,8 @@ type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
 const getScoreCategory = (percentage: number): ScoreCategory => {
   if (percentage <= 0) return "none";
-  if (percentage >= 8 && percentage <= 10) return "otimo";
-  if (percentage > 10 && percentage < 12) return "bom";
+  if (percentage >= 3 && percentage < 10) return "otimo";
+  if (percentage >= 10 && percentage < 12) return "bom";
   if (percentage >= 12 && percentage < 14) return "suficiente";
   return "regular";
 };
@@ -169,7 +169,7 @@ export const Tab3MonthlyCards = ({
         <span className="font-medium text-muted-foreground">Pontuação</span>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-red-200 bg-red-50">
           <span className="text-red-700 font-medium">Regular</span>
-          <span className="text-red-600 text-xs">&lt; 8% ou ≥ 14%</span>
+          <span className="text-red-600 text-xs">&lt; 3% ou ≥ 14%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-amber-200 bg-amber-50">
           <span className="text-amber-700 font-medium">Suficiente</span>
@@ -177,11 +177,11 @@ export const Tab3MonthlyCards = ({
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-emerald-200 bg-emerald-50">
           <span className="text-emerald-700 font-medium">Bom</span>
-          <span className="text-emerald-600 text-xs">&gt; 10% e &lt; 12%</span>
+          <span className="text-emerald-600 text-xs">≥ 10% e &lt; 12%</span>
         </div>
         <div className="flex items-center gap-1 px-3 py-1.5 rounded border border-blue-200 bg-blue-50">
           <span className="text-blue-700 font-medium">Ótimo</span>
-          <span className="text-blue-600 text-xs">≥ 8% e ≤ 10%</span>
+          <span className="text-blue-600 text-xs">≥ 3% e &lt; 10%</span>
         </div>
         <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
           <FonteBadge fonte="oficial" />
