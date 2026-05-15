@@ -73,9 +73,9 @@ const CONCEITO_SCORES: Record<Conceito, number> = {
 
 const getConceitoB1 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
-  if (pct <= 1) return "regular";
-  if (pct <= 3) return "suficiente";
-  if (pct <= 5) return "bom";
+  if (pct <= 0.25) return "regular";
+  if (pct <= 0.75) return "suficiente";
+  if (pct <= 1.25) return "bom";
   return "otimo";
 };
 
@@ -89,17 +89,17 @@ const getConceitoB2 = (pct: number): Conceito => {
 
 const getConceitoB3 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
-  if (pct >= 8 && pct <= 10) return "otimo";
-  if (pct > 10 && pct < 12) return "bom";
+  if (pct >= 3 && pct < 10) return "otimo";
+  if (pct >= 10 && pct < 12) return "bom";
   if (pct >= 12 && pct < 14) return "suficiente";
   return "regular";
 };
 
 const getConceitoB4 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
-  if (pct >= 80 && pct <= 85) return "otimo";
-  if (pct >= 60 && pct < 80)  return "bom";
-  if (pct >= 40 && pct < 60)  return "suficiente";
+  if (pct >= 65 && pct <= 85) return "otimo";
+  if (pct >= 55 && pct < 65)  return "bom";
+  if (pct >= 40 && pct < 55)  return "suficiente";
   return "regular";
 };
 

@@ -30,9 +30,9 @@ type ScoreCategory = "regular" | "suficiente" | "bom" | "otimo" | "none";
 
 const getScoreCategory = (percentage: number): ScoreCategory => {
   if (percentage <= 0) return "none";
-  if (percentage <= 1) return "regular";
-  if (percentage <= 3) return "suficiente";
-  if (percentage <= 5) return "bom";
+  if (percentage <= 0.25) return "regular";
+  if (percentage <= 0.75) return "suficiente";
+  if (percentage <= 1.25) return "bom";
   return "otimo";
 };
 
@@ -166,8 +166,8 @@ export const QuadrimesterCards = ({
   const mesesComDados   = currentQuadData?.monthsWithData ?? 1;
   const denominador     = currentQuadData?.den ?? totalPatients;
 
-  const metaBomMensal   = Math.floor(denominador * 0.03) + 1;
-  const metaOtimoMensal = Math.floor(denominador * 0.05) + 1;
+  const metaBomMensal   = Math.floor(denominador * 0.0075) + 1;
+  const metaOtimoMensal = Math.floor(denominador * 0.0125) + 1;
   const metaBom         = metaBomMensal * 4;
   const metaOtimo       = metaOtimoMensal * 4;
 
@@ -192,7 +192,7 @@ export const QuadrimesterCards = ({
         </div>
         <div className="grid grid-cols-2 gap-4 place-items-center">
           <div className="border-r pr-4">
-            <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 3%)</p>
+            <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 0,75%)</p>
             <p className="text-2xl font-bold text-emerald-700">{metaBom} atend.</p>
             <p className="text-xs text-muted-foreground">Média/mês: {metaBomMensal.toFixed(1)}</p>
             <p className="text-xs text-muted-foreground">Média/semana: {(metaBomMensal / 4.33).toFixed(1)}</p>
@@ -205,7 +205,7 @@ export const QuadrimesterCards = ({
             }
           </div>
           <div>
-            <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 5%)</p>
+            <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 1,25%)</p>
             <p className="text-2xl font-bold text-blue-700">{metaOtimo} atend.</p>
             <p className="text-xs text-muted-foreground">Média/mês: {metaOtimoMensal.toFixed(1)}</p>
             <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimoMensal / 4.33).toFixed(1)}</p>
