@@ -231,8 +231,10 @@ function resolveOficialMes(
   const num = ofRow[numKey] as number;
   const den = ofRow[denKey] as number;
 
-  if (num === 0 && den === 0) return null; // sem dado oficial para este indicador neste mês
-
+  // ── CORREÇÃO: dado oficial prevalece mesmo que num=0 e den=0 ──────────────
+  // Antes havia um guard `if (num === 0 && den === 0) return null` que
+  // ignorava meses com resultado zero registrado oficialmente. Alinhado ao
+  // comportamento dos cards mensais/quadrimestrais (PR com !!ofRow).
   return { num, den, isOficial: true };
 }
 
