@@ -114,7 +114,7 @@ export const Tab4MonthlyCards = ({
           // ── Merge oficial vs preliminar (B4) ──────────────────────────────
           const mesNorm = normalizeMes(month.key) ?? month.key;
           const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-          const isOficial = !!ofRow && (ofRow.numB4 > 0 || ofRow.denB4 > 0);
+          const isOficial = !!ofRow;
 
           const count = isOficial ? ofRow!.numB4 : prelCount;
           const den   = isOficial ? ofRow!.denB4 : totalPatients;

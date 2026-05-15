@@ -105,7 +105,7 @@ export const Tab5MetaCard = ({
       const mmyyyy  = `${String(mesIdx + 1).padStart(2, "0")}/${y}`;
       const mesNorm = normalizeMes(mmyyyy) ?? mmyyyy;
       const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-      const isOficial = !!ofRow && (ofRow.numB5 > 0 || ofRow.denB5 > 0);
+      const isOficial = !!ofRow;
 
       if (isOficial) {
         preventivos      += ofRow!.numB5;
@@ -167,7 +167,7 @@ export const Tab5MetaCard = ({
         const mmyyyy  = `${String(m + 1).padStart(2, "0")}/${y}`;
         const mesNorm = normalizeMes(mmyyyy) ?? mmyyyy;
         const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-        if (ofRow && (ofRow.numB1 > 0 || ofRow.denB1 > 0)) {
+        if (!!ofRow) {
           numB1Quad += ofRow.numB1;
           denB1Quad += ofRow.denB1;
         } else {

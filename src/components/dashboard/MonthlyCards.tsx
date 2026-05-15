@@ -118,7 +118,7 @@ export const MonthlyCards = ({
           const ofRow   = oficialData?.index.get(ofKey);
 
           // Usa oficial se existir e tiver valor
-          const isOficial = !!ofRow && (ofRow.numB1 > 0 || ofRow.denB1 > 0);
+          const isOficial = !!ofRow;
           const count      = isOficial ? ofRow!.numB1  : prelCount;
           const den        = isOficial ? ofRow!.denB1  : totalPatients;
           const fonte      = isOficial ? "oficial" as const : "preliminar" as const;

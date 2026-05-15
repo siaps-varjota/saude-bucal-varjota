@@ -83,7 +83,7 @@ export const Tab5QuadrimesterCards = ({
         const mmyyyy  = `${String(mesIdx + 1).padStart(2, "0")}/${q.year}`;
         const mesNorm = normalizeMes(mmyyyy) ?? mmyyyy;
         const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-        const isOficial = !!ofRow && (ofRow.numB5 > 0 || ofRow.denB5 > 0);
+        const isOficial = !!ofRow;
 
         if (isOficial) {
           totalPreventivos += ofRow!.numB5;
