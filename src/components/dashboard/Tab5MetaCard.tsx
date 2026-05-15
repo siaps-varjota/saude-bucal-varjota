@@ -150,8 +150,8 @@ export const Tab5MetaCard = ({
       return Math.max(0, Math.ceil(numerator / denominator));
     };
 
-    const faltamBom   = calcNeeded(0.60);
-    const faltamOtimo = calcNeeded(0.80);
+    const faltamBom   = calcNeeded(0.55);
+    const faltamOtimo = calcNeeded(0.65);
 
     // ── Simulações com B1 oficial ──────────────────────────────────────────
     const simulations = (() => {
@@ -207,10 +207,10 @@ export const Tab5MetaCard = ({
         consultasAlvo1Bom, consultasAlvo1Otimo,
         aba1JaAtingiuBom, aba1JaAtingiuOtimo,
         faltamAba1Bom, faltamAba1Otimo,
-        faltamBomBom:     calcNeededSim(prevSimBom,   totalSimBom,   0.60),
-        faltamBomOtimo:   calcNeededSim(prevSimBom,   totalSimBom,   0.80),
-        faltamOtimoBom:   calcNeededSim(prevSimOtimo, totalSimOtimo, 0.60),
-        faltamOtimoOtimo: calcNeededSim(prevSimOtimo, totalSimOtimo, 0.80),
+        faltamBomBom:     calcNeededSim(prevSimBom, totalSimBom, 0.55),
+        faltamBomOtimo:   calcNeededSim(prevSimBom, totalSimBom, 0.65),
+        faltamOtimoBom:   calcNeededSim(prevSimOtimo, totalSimOtimo, 0.55),
+        faltamOtimoOtimo: calcNeededSim(prevSimOtimo, totalSimOtimo, 0.65),
       };
     })();
 
@@ -219,8 +219,8 @@ export const Tab5MetaCard = ({
     return {
       preventivos, totalIndividuais, currentPct,
       faltamBom, faltamOtimo,
-      alreadyBom:   currentPct >= 60,
-      alreadyOtimo: currentPct >= 80,
+      alreadyBom:   currentPct >= 55,
+      alreadyOtimo: currentPct >= 65,
       pendentesTab2,
       fonte,
       simulations,
@@ -279,7 +279,7 @@ export const Tab5MetaCard = ({
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <TrendingUp className="w-3 h-3 text-emerald-600" />
-                <p className="text-xs text-muted-foreground">Meta Bom (≥60%)</p>
+                <p className="text-xs text-muted-foreground">Meta Bom (≥55%)</p>
               </div>
               {alreadyBom ? (
                 <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
@@ -295,7 +295,7 @@ export const Tab5MetaCard = ({
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <TrendingUp className="w-3 h-3 text-blue-600" />
-                <p className="text-xs text-muted-foreground">Meta Ótimo (≥80%)</p>
+                <p className="text-xs text-muted-foreground">Meta Ótimo (≥65%)</p>
               </div>
               {alreadyOtimo ? (
                 <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
@@ -335,7 +335,7 @@ export const Tab5MetaCard = ({
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥60%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥55%)</p>
                     {simulations.faltamBomBom === 0
                       ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-emerald-700">{simulations.faltamBomBom} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
@@ -343,7 +343,7 @@ export const Tab5MetaCard = ({
                   </div>
                   <div className="w-px self-stretch bg-emerald-200" />
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥80%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥65%)</p>
                     {simulations.faltamBomOtimo === 0
                       ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-blue-700">{simulations.faltamBomOtimo} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
@@ -364,7 +364,7 @@ export const Tab5MetaCard = ({
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥60%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥55%)</p>
                     {simulations.faltamOtimoBom === 0
                       ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-emerald-700">{simulations.faltamOtimoBom} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
@@ -372,7 +372,7 @@ export const Tab5MetaCard = ({
                   </div>
                   <div className="w-px self-stretch bg-blue-200" />
                   <div className="text-center flex-1">
-                    <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥80%)</p>
+                    <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥65%)</p>
                     {simulations.faltamOtimoOtimo === 0
                       ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
                       : <p className="text-lg font-bold text-blue-700">{simulations.faltamOtimoOtimo} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
