@@ -958,30 +958,86 @@ export const ResultadoFinalTab = ({
       const doc = new (jsPDF as any)({ orientation: "landscape", unit: "mm", format: "a4" });
       let y = 15;
 
-      const filterText = [
-        quadrimestre !== "todos"
-          ? QUADRIMESTRE_OPTIONS_SEM_TODOS.find(o => o.value === quadrimestre)?.label
-          : "Todos os quadrimestres",
-        equipe !== "all" ? equipe : "Todas as equipes",
-        indicadorFiltro !== "todos"
-          ? INDICADOR_OPTIONS.find(o => o.value === indicadorFiltro)?.label
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+      // ── Rótulos legíveis para cada filtro ────────────────────────────────────
+const labelQuad =
+  quadrimestre !== "todos"
+    ? QUADRIMESTRE_OPTIONS_SEM_TODOS.find(o => o.value === quadrimestre)?.label ?? quadrimestre
+    : "Todos os quadrimestres";
 
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
-      y += 10;
-      doc.setFontSize(13);
-      doc.text("Resultado Final", 14, y);
-      y += 10;
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Filtros: ${filterText}`, 14, y);
-      y += 9;
+const labelEquipe = equipe !== "all" ? equipe : "Todas as equipes";
 
+const labelIndicador =
+  indicadorFiltro !== "todos"
+    ? INDICADOR_OPTIONS.find(o => o.value === indicadorFiltro)?.label ?? indicadorFiltro
+    : "Todos os indicadores";
+
+const labelMeses =
+  mesesFiltro && mesesFiltro.length > 0
+    ? `Meses: ${mesesFiltro.join(", ")}`
+    : mesesOptions.length > 0
+      ? "Todos os meses do quadrimestre"
+      : null;
+
+// Filtros individuais para impressão em linhas separadas
+const filtrosAtivos: { label: string; valor: string }[] = [
+  { label: "Quadrimestre", valor: labelQuad },
+  { label: "Equipe",       valor: labelEquipe },
+  { label: "Indicador",    valor: labelIndicador },
+  ...(labelMeses ? [{ label: "Meses", valor: labelMeses.replace("Meses: ", "") }] : []),
+];
+
+// Cabeçalho do documento
+doc.setFontSize(16);
+doc.setFont("helvetica", "bold");
+doc.setTextColor(30);
+doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
+y += 8;
+
+doc.setFontSize(13);
+doc.setFont("helvetica", "bold");
+doc.text("Resultado Final", 14, y);
+y += 8;
+
+// Bloco de filtros com caixinhas
+const filtroBoxH  = 7;
+const filtroBoxGap = 3;
+const pageW = 297;
+const filtroX = 14;
+
+doc.setFontSize(7.5);
+doc.setFont("helvetica", "bold");
+doc.setTextColor(80);
+doc.text("FILTROS APLICADOS", filtroX, y);
+y += 4;
+
+// Calcula largura de cada box dinamicamente (máx 4 por linha)
+const filtroBoxW = (pageW - filtroX * 2 - filtroBoxGap * (filtrosAtivos.length - 1)) / filtrosAtivos.length;
+
+filtrosAtivos.forEach((f, i) => {
+  const bx = filtroX + i * (filtroBoxW + filtroBoxGap);
+
+  // Fundo do box
+  doc.setFillColor(245, 247, 255);
+  doc.setDrawColor(180, 185, 220);
+  doc.roundedRect(bx, y, filtroBoxW, filtroBoxH, 1.5, 1.5, "FD");
+
+  // Rótulo (negrito pequeno)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(5.5);
+  doc.setTextColor(100, 100, 160);
+  doc.text(f.label.toUpperCase(), bx + 2.5, y + 2.5);
+
+  // Valor (normal)
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(30);
+  // Trunca se muito longo para o box
+  const maxChars = Math.floor(filtroBoxW / 1.55);
+  const valor = f.valor.length > maxChars ? f.valor.slice(0, maxChars - 1) + "…" : f.valor;
+  doc.text(valor, bx + 2.5, y + 5.5);
+});
+
+y += filtroBoxH + 6;
       const rankEquipes = [
         { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
         ...[...porEquipe]
