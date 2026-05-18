@@ -422,6 +422,7 @@ function calcB3(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? tab3.filter((r) => equipeMatch(r.equipe, equipe)) : tab3;
 
