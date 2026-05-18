@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
+import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
+
 interface ResultadoFinalTabProps {
   geral: EquipeResult;
   porEquipe: EquipeResult[];
@@ -20,6 +22,8 @@ interface ResultadoFinalTabProps {
   equipe: string;
   onEquipeChange: (e: string) => void;
   equipeOptions: string[];
+  mesesFiltro?: string[];
+  onMesesFiltroChange?: (v: string[]) => void;
 }
 
 const INDICADOR_OPTIONS = [
