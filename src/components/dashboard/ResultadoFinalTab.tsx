@@ -353,9 +353,6 @@ const SimulacaoCard = ({
   const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
   const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
-  // Conceitos ATUAIS (sem simulação) calculados com o mesmo derivaConceito
-  // usado para os novos — assim a comparação é apples-to-apples e a nota só
-  // muda quando o conceito (Regular/Suficiente/Bom/Ótimo) realmente muda.
   const b1ConceitoAtual = derivaConceito(b1PctAtual, b1Thresh);
   const b2ConceitoAtual = derivaConceito(b2PctAtual, b2Thresh);
   const b5ConceitoAtual = derivaConceito(b5PctAtual, b5Thresh);
@@ -765,7 +762,6 @@ const IndicadorComparativo = ({
   porEquipe: EquipeResult[];
   showMeses: boolean;
 }) => {
-  // ── Estado de expansão (igual ao ResultTable) ─────────────────────────────
   const [expandedGeral, setExpandedGeral] = useState(false);
   const [expandedEquipes, setExpandedEquipes] = useState<Set<string>>(new Set());
 
@@ -793,8 +789,6 @@ const IndicadorComparativo = ({
     });
 
   const hasMetaCard = !!META_THRESHOLDS[indicadorNome];
-
-  // Verifica se uma linha é expansível
   const geralExpandable = showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard);
 
   return (
@@ -810,7 +804,6 @@ const IndicadorComparativo = ({
           <Table>
             <TableHeader>
               <TableRow>
-                {/* Coluna do chevron — sempre presente quando showMeses */}
                 {showMeses && <TableHead className="w-8" />}
                 <TableHead className="font-semibold">Equipe</TableHead>
                 <TableHead className="text-center font-semibold">Numerador</TableHead>
@@ -851,7 +844,6 @@ const IndicadorComparativo = ({
                 </TableCell>
               </TableRow>
 
-              {/* Detalhe Geral — só renderiza quando expandido */}
               {geralExpandable && expandedGeral && (
                 <DetalheRow
                   ind={geralInd}
@@ -897,7 +889,6 @@ const IndicadorComparativo = ({
                       </TableCell>
                     </TableRow>
 
-                    {/* Detalhe equipe — só renderiza quando expandido */}
                     {isExpandable && isExpanded && (
                       <DetalheRow
                         key={`${equipe}-detail`}
@@ -958,86 +949,82 @@ export const ResultadoFinalTab = ({
       const doc = new (jsPDF as any)({ orientation: "landscape", unit: "mm", format: "a4" });
       let y = 15;
 
-      // ── Rótulos legíveis para cada filtro ────────────────────────────────────
-const labelQuad =
-  quadrimestre !== "todos"
-    ? QUADRIMESTRE_OPTIONS_SEM_TODOS.find(o => o.value === quadrimestre)?.label ?? quadrimestre
-    : "Todos os quadrimestres";
+      // ── Rótulos legíveis para cada filtro ──────────────────────────────────
+      const labelQuad =
+        quadrimestre !== "todos"
+          ? QUADRIMESTRE_OPTIONS_SEM_TODOS.find(o => o.value === quadrimestre)?.label ?? quadrimestre
+          : "Todos os quadrimestres";
 
-const labelEquipe = equipe !== "all" ? equipe : "Todas as equipes";
+      const labelEquipe = equipe !== "all" ? equipe : "Todas as equipes";
 
-const labelIndicador =
-  indicadorFiltro !== "todos"
-    ? INDICADOR_OPTIONS.find(o => o.value === indicadorFiltro)?.label ?? indicadorFiltro
-    : "Todos os indicadores";
+      const labelIndicador =
+        indicadorFiltro !== "todos"
+          ? INDICADOR_OPTIONS.find(o => o.value === indicadorFiltro)?.label ?? indicadorFiltro
+          : "Todos os indicadores";
 
-const labelMeses =
-  mesesFiltro && mesesFiltro.length > 0
-    ? `Meses: ${mesesFiltro.join(", ")}`
-    : mesesOptions.length > 0
-      ? "Todos os meses do quadrimestre"
-      : null;
+      const labelMeses =
+        mesesFiltro && mesesFiltro.length > 0
+          ? mesesFiltro.join(", ")
+          : mesesOptions.length > 0
+            ? "Todos os meses do quadrimestre"
+            : null;
 
-// Filtros individuais para impressão em linhas separadas
-const filtrosAtivos: { label: string; valor: string }[] = [
-  { label: "Quadrimestre", valor: labelQuad },
-  { label: "Equipe",       valor: labelEquipe },
-  { label: "Indicador",    valor: labelIndicador },
-  ...(labelMeses ? [{ label: "Meses", valor: labelMeses.replace("Meses: ", "") }] : []),
-];
+      const filtrosAtivos: { label: string; valor: string }[] = [
+        { label: "Quadrimestre", valor: labelQuad },
+        { label: "Equipe",       valor: labelEquipe },
+        { label: "Indicador",    valor: labelIndicador },
+        ...(labelMeses ? [{ label: "Meses", valor: labelMeses }] : []),
+      ];
 
-// Cabeçalho do documento
-doc.setFontSize(16);
-doc.setFont("helvetica", "bold");
-doc.setTextColor(30);
-doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
-y += 8;
+      // ── Cabeçalho ────────────────────────────────────────────────────────────
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30);
+      doc.text("Indicadores de Saúde Bucal de Varjota", 14, y);
+      y += 8;
 
-doc.setFontSize(13);
-doc.setFont("helvetica", "bold");
-doc.text("Resultado Final", 14, y);
-y += 8;
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("Resultado Final", 14, y);
+      y += 8;
 
-// Bloco de filtros com caixinhas
-const filtroBoxH  = 7;
-const filtroBoxGap = 3;
-const pageW = 297;
-const filtroX = 14;
+      // ── Boxes de filtros ──────────────────────────────────────────────────────
+      const filtroBoxH   = 7;
+      const filtroBoxGap = 3;
+      const pageW        = 297;
+      const filtroX      = 14;
+      const filtroBoxW   =
+        (pageW - filtroX * 2 - filtroBoxGap * (filtrosAtivos.length - 1)) / filtrosAtivos.length;
 
-doc.setFontSize(7.5);
-doc.setFont("helvetica", "bold");
-doc.setTextColor(80);
-doc.text("FILTROS APLICADOS", filtroX, y);
-y += 4;
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(80);
+      doc.text("FILTROS APLICADOS", filtroX, y);
+      y += 4;
 
-// Calcula largura de cada box dinamicamente (máx 4 por linha)
-const filtroBoxW = (pageW - filtroX * 2 - filtroBoxGap * (filtrosAtivos.length - 1)) / filtrosAtivos.length;
+      filtrosAtivos.forEach((f, i) => {
+        const bx = filtroX + i * (filtroBoxW + filtroBoxGap);
 
-filtrosAtivos.forEach((f, i) => {
-  const bx = filtroX + i * (filtroBoxW + filtroBoxGap);
+        doc.setFillColor(245, 247, 255);
+        doc.setDrawColor(180, 185, 220);
+        doc.roundedRect(bx, y, filtroBoxW, filtroBoxH, 1.5, 1.5, "FD");
 
-  // Fundo do box
-  doc.setFillColor(245, 247, 255);
-  doc.setDrawColor(180, 185, 220);
-  doc.roundedRect(bx, y, filtroBoxW, filtroBoxH, 1.5, 1.5, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(5.5);
+        doc.setTextColor(100, 100, 160);
+        doc.text(f.label.toUpperCase(), bx + 2.5, y + 2.5);
 
-  // Rótulo (negrito pequeno)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(5.5);
-  doc.setTextColor(100, 100, 160);
-  doc.text(f.label.toUpperCase(), bx + 2.5, y + 2.5);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(30);
+        const maxChars = Math.floor(filtroBoxW / 1.55);
+        const valor = f.valor.length > maxChars ? f.valor.slice(0, maxChars - 1) + "…" : f.valor;
+        doc.text(valor, bx + 2.5, y + 5.5);
+      });
 
-  // Valor (normal)
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(30);
-  // Trunca se muito longo para o box
-  const maxChars = Math.floor(filtroBoxW / 1.55);
-  const valor = f.valor.length > maxChars ? f.valor.slice(0, maxChars - 1) + "…" : f.valor;
-  doc.text(valor, bx + 2.5, y + 5.5);
-});
+      y += filtroBoxH + 6;
 
-y += filtroBoxH + 6;
+      // ── Cards de ranking ──────────────────────────────────────────────────────
       const rankEquipes = [
         { label: "Geral", nota: geral.notaFinal, isGeral: true, rank: 0 },
         ...[...porEquipe]
@@ -1045,11 +1032,10 @@ y += filtroBoxH + 6;
           .map((eq, i) => ({ label: eq.equipe, nota: eq.notaFinal, isGeral: false, rank: i + 1 })),
       ];
 
-      const pageW   = 297;
-      const gap     = 2;
-      const cardH   = 19;
-      const totalC  = rankEquipes.length;
-      const cardW   = (pageW - 14 * 2 - gap * (totalC - 1)) / totalC;
+      const gap    = 2;
+      const cardH  = 19;
+      const totalC = rankEquipes.length;
+      const cardW  = (pageW - 14 * 2 - gap * (totalC - 1)) / totalC;
 
       rankEquipes.forEach((item, i) => {
         const x = 14 + i * (cardW + gap);
@@ -1093,11 +1079,17 @@ y += filtroBoxH + 6;
         doc.setTextColor(nr, ng, nb);
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
-        doc.text(item.nota.toFixed(2).replace(".", ","), x + cardW / 2, y + (item.isGeral ? 14 : 16), { align: "center" });
+        doc.text(
+          item.nota.toFixed(2).replace(".", ","),
+          x + cardW / 2,
+          y + (item.isGeral ? 14 : 16),
+          { align: "center" }
+        );
       });
 
       y += cardH + 12;
 
+      // ── Tabelas por equipe ────────────────────────────────────────────────────
       const equipesList =
         equipe !== "all"
           ? porEquipe.filter(e => e.equipe === equipe)
@@ -1109,7 +1101,7 @@ y += filtroBoxH + 6;
       ];
 
       for (const { label, result } of resultsList) {
-        const pageH = 210;
+        const pageH  = 210;
         const margin = 15;
         if (y > pageH - margin - 40) {
           doc.addPage();
@@ -1149,7 +1141,13 @@ y += filtroBoxH + 6;
           ],
           body: rows,
           theme: "grid",
-          headStyles: { fillColor: [245, 245, 245], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 8, halign: "center" },
+          headStyles: {
+            fillColor: [245, 245, 245],
+            textColor: [30, 30, 30],
+            fontStyle: "bold",
+            fontSize: 8,
+            halign: "center",
+          },
           bodyStyles: { fontSize: 8, halign: "center" },
           columnStyles: { 0: { halign: "left" } },
           showHead: "everyPage",
