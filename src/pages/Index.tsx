@@ -1,6 +1,6 @@
 import { useOficialData } from "@/hooks/useOficialData";
 import { OficialData } from "@/hooks/useOficialData";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { parse, isValid } from "date-fns";
 import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
 import { usePatientData } from "@/hooks/usePatientData";
