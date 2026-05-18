@@ -378,6 +378,7 @@ function calcB2(
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
+    if (skipMes(m, year, mesesFiltro)) return;
 
     // Preliminar
     const mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
