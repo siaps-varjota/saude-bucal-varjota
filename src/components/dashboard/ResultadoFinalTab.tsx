@@ -1151,6 +1151,13 @@ export const ResultadoFinalTab = ({
             ))}
           </SelectContent>
         </Select>
+        {onMesesFiltroChange && mesesOptions.length > 0 && (
+          <MesReferenciaMultiSelect
+            value={mesesFiltro}
+            options={mesesOptions}
+            onChange={onMesesFiltroChange}
+          />
+        )}
         <Select value={indicadorFiltro} onValueChange={setIndicadorFiltro}>
           <SelectTrigger className="w-[280px] h-9">
             <SelectValue placeholder="Selecione o indicador" />
