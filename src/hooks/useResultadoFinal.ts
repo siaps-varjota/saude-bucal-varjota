@@ -597,6 +597,7 @@ function calcB5(
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
+    if (skipMes(m, year, mesesFiltro)) return;
 
     // Preliminar
     const prelCount = source.filter((p) => {
