@@ -648,6 +648,7 @@ function calcB6(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? tab6.filter((r) => equipeMatch(r.equipe, equipe)) : tab6;
 
