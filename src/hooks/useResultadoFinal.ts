@@ -565,6 +565,7 @@ function calcB5(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? allTab4.filter((p) => equipeMatch(p.equipe, equipe)) : allTab4;
   const totalPatients = source.length;
