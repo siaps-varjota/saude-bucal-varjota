@@ -1,6 +1,6 @@
 import { useOficialData } from "@/hooks/useOficialData";
 import { OficialData } from "@/hooks/useOficialData";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { parse, isValid } from "date-fns";
 import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
 import { usePatientData } from "@/hooks/usePatientData";
@@ -91,11 +91,15 @@ const ResultadoFinalWrapper = ({
   onQuadrimestreChange: (q: Quadrimestre) => void;
   onEquipeChange: (e: string) => void;
 }) => {
+  const [mesesFiltro, setMesesFiltro] = useState<string[]>([]);
+  // Reset months filter when quadrimestre changes
+  useEffect(() => { setMesesFiltro([]); }, [quadrimestre]);
+
   const resultadoFinal = useResultadoFinal(
     patients, tratamentoPatients, tab3Patients,
     tab4Patients, tab5Patients, tab6Patients,
     quadrimestre, equipeResultado, denominadorB1Data,
-    oficialData,
+    oficialData, mesesFiltro,
   );
   return (
     <ResultadoFinalTab
@@ -106,6 +110,8 @@ const ResultadoFinalWrapper = ({
       equipe={equipeResultado}
       onEquipeChange={onEquipeChange}
       equipeOptions={equipeOptions}
+      mesesFiltro={mesesFiltro}
+      onMesesFiltroChange={setMesesFiltro}
     />
   );
 };

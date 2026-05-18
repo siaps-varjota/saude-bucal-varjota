@@ -253,12 +253,17 @@ function getAllEquipes(
 }
 
 // ── calcB1 ────────────────────────────────────────────────────────────────────
+const mesKey = (m: number, year: number) => `${String(m + 1).padStart(2, "0")}/${year}`;
+const skipMes = (m: number, year: number, mf?: string[]) =>
+  !!mf && mf.length > 0 && !mf.includes(mesKey(m, year));
+
 function calcB1(
   allPatients: Patient[],
   quad: Quadrimestre,
   denominadorExterno: number,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? allPatients.filter((p) => equipeMatch(p.equipe, equipe)) : allPatients;
   if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
@@ -288,6 +293,7 @@ function calcB1(
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
+    if (skipMes(m, year, mesesFiltro)) return;
 
     // Preliminar
     const prelCount = source.filter((p) => {
@@ -338,6 +344,7 @@ function calcB2(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? tratamento.filter((p) => equipeMatch(p.equipe, equipe)) : tratamento;
   const now = new Date();
@@ -371,6 +378,7 @@ function calcB2(
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
+    if (skipMes(m, year, mesesFiltro)) return;
 
     // Preliminar
     const mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
@@ -414,6 +422,7 @@ function calcB3(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? tab3.filter((r) => equipeMatch(r.equipe, equipe)) : tab3;
 
@@ -444,6 +453,7 @@ function calcB3(
   const mesesDetalhe: MesDetalhe[] = [];
 
   months.forEach((m) => {
+    if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
     // Oficial?
@@ -484,6 +494,7 @@ function calcB4(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? tab5.filter((r) => equipeMatch(r.equipe, equipe)) : tab5;
 
@@ -513,6 +524,7 @@ function calcB4(
   const mesesDetalhe: MesDetalhe[] = [];
 
   months.forEach((m) => {
+    if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { preventivos: 0, total: 0 };
 
     // Oficial?
@@ -553,6 +565,7 @@ function calcB5(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? allTab4.filter((p) => equipeMatch(p.equipe, equipe)) : allTab4;
   const totalPatients = source.length;
@@ -584,6 +597,7 @@ function calcB5(
   months.forEach((m) => {
     const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
     if (!isCurrentOrPast) return;
+    if (skipMes(m, year, mesesFiltro)) return;
 
     // Preliminar
     const prelCount = source.filter((p) => {
@@ -634,6 +648,7 @@ function calcB6(
   quad: Quadrimestre,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? tab6.filter((r) => equipeMatch(r.equipe, equipe)) : tab6;
 
@@ -663,6 +678,7 @@ function calcB6(
   const mesesDetalhe: MesDetalhe[] = [];
 
   months.forEach((m) => {
+    if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
     // Oficial?
@@ -709,8 +725,8 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number },
   oficialData?: OficialData,
+  mesesFiltro: string[] = [],
 ) {
-  // Helper para encontrar o denominadorB1 tentando aliases ESB/ESF
   const findDenomB1 = (eq: string): number => {
     const normalized = normalizeEquipeLocal(eq);
     const aliases = [
@@ -721,53 +737,52 @@ export function useResultadoFinal(
       normalized.replace(/^ESB SEDE 1$/i, "ESB CENTRO"),
       normalized.replace(/^ESB SEDE 1$/i, "ESF CENTRO"),
     ];
-
     for (const alias of aliases) {
       if (denominadorB1.porEquipe[alias] !== undefined) return denominadorB1.porEquipe[alias];
     }
-
     return 0;
   };
 
   const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
   const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
+  const mf = mesesFiltro;
 
   const porEquipe: EquipeResult[] = equipes.map((equipe) => {
     const denomB1 = findDenomB1(equipe);
-    const rawB1 = calcB1(patients, quad, denomB1, equipe, oficialData);
-    const rawB2 = calcB2(tratamento, quad, equipe, oficialData);
+    const rawB1 = calcB1(patients, quad, denomB1, equipe, oficialData, mf);
+    const rawB2 = calcB2(tratamento, quad, equipe, oficialData, mf);
     const indicadores = [
       buildIndicador("B1", rawB1),
       buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, equipe, oficialData)),
-      buildIndicador("B5", calcB5(tab4, quad, equipe, oficialData)),
-      buildIndicador("B4", calcB4(tab5, quad, equipe, oficialData), {
+      buildIndicador("B3", calcB3(tab3, quad, equipe, oficialData, mf)),
+      buildIndicador("B5", calcB5(tab4, quad, equipe, oficialData, mf)),
+      buildIndicador("B4", calcB4(tab5, quad, equipe, oficialData, mf), {
         b1Numerador:   Math.round(rawB1.numerador),
         b1Denominador: Math.round(rawB1.denominador),
         b2Numerador:   Math.round(rawB2.numerador),
         b2Denominador: Math.round(rawB2.denominador),
       }),
-      buildIndicador("B6", calcB6(tab6, quad, equipe, oficialData)),
+      buildIndicador("B6", calcB6(tab6, quad, equipe, oficialData, mf)),
     ];
     return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
   });
 
   const buildGeral = (eq?: string) => {
     const denomB1 = eq ? findDenomB1(eq) : denominadorB1.total;
-    const rawB1 = calcB1(patients, quad, denomB1, eq, oficialData);
-    const rawB2 = calcB2(tratamento, quad, eq, oficialData);
+    const rawB1 = calcB1(patients, quad, denomB1, eq, oficialData, mf);
+    const rawB2 = calcB2(tratamento, quad, eq, oficialData, mf);
     return [
       buildIndicador("B1", rawB1),
       buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, eq, oficialData)),
-      buildIndicador("B5", calcB5(tab4, quad, eq, oficialData)),
-      buildIndicador("B4", calcB4(tab5, quad, eq, oficialData), {
+      buildIndicador("B3", calcB3(tab3, quad, eq, oficialData, mf)),
+      buildIndicador("B5", calcB5(tab4, quad, eq, oficialData, mf)),
+      buildIndicador("B4", calcB4(tab5, quad, eq, oficialData, mf), {
         b1Numerador:   Math.round(rawB1.numerador),
         b1Denominador: Math.round(rawB1.denominador),
         b2Numerador:   Math.round(rawB2.numerador),
         b2Denominador: Math.round(rawB2.denominador),
       }),
-      buildIndicador("B6", calcB6(tab6, quad, eq, oficialData)),
+      buildIndicador("B6", calcB6(tab6, quad, eq, oficialData, mf)),
     ];
   };
 

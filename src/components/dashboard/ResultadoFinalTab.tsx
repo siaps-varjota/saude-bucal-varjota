@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
+import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
+
 interface ResultadoFinalTabProps {
   geral: EquipeResult;
   porEquipe: EquipeResult[];
@@ -20,6 +22,8 @@ interface ResultadoFinalTabProps {
   equipe: string;
   onEquipeChange: (e: string) => void;
   equipeOptions: string[];
+  mesesFiltro?: string[];
+  onMesesFiltroChange?: (v: string[]) => void;
 }
 
 const INDICADOR_OPTIONS = [
@@ -923,8 +927,19 @@ export const ResultadoFinalTab = ({
   equipe,
   onEquipeChange,
   equipeOptions,
+  mesesFiltro = [],
+  onMesesFiltroChange,
 }: ResultadoFinalTabProps) => {
   const [indicadorFiltro, setIndicadorFiltro] = useState("todos");
+
+  const mesesOptions = useMemo(() => {
+    const m = quadrimestre.match(/Q(\d)-(\d{4})/);
+    if (!m) return [];
+    const q = parseInt(m[1], 10);
+    const year = m[2];
+    const base = q === 1 ? [1, 2, 3, 4] : q === 2 ? [5, 6, 7, 8] : [9, 10, 11, 12];
+    return base.map(mm => `${String(mm).padStart(2, "0")}/${year}`);
+  }, [quadrimestre]);
 
   const sortedEquipes = useMemo(
     () => [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal),
@@ -1136,6 +1151,13 @@ export const ResultadoFinalTab = ({
             ))}
           </SelectContent>
         </Select>
+        {onMesesFiltroChange && mesesOptions.length > 0 && (
+          <MesReferenciaMultiSelect
+            value={mesesFiltro}
+            options={mesesOptions}
+            onChange={onMesesFiltroChange}
+          />
+        )}
         <Select value={indicadorFiltro} onValueChange={setIndicadorFiltro}>
           <SelectTrigger className="w-[280px] h-9">
             <SelectValue placeholder="Selecione o indicador" />
