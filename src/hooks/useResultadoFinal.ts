@@ -709,8 +709,8 @@ export function useResultadoFinal(
   equipeFilter: string = "all",
   denominadorB1: { porEquipe: Record<string, number>; total: number },
   oficialData?: OficialData,
+  mesesFiltro: string[] = [],
 ) {
-  // Helper para encontrar o denominadorB1 tentando aliases ESB/ESF
   const findDenomB1 = (eq: string): number => {
     const normalized = normalizeEquipeLocal(eq);
     const aliases = [
@@ -721,53 +721,52 @@ export function useResultadoFinal(
       normalized.replace(/^ESB SEDE 1$/i, "ESB CENTRO"),
       normalized.replace(/^ESB SEDE 1$/i, "ESF CENTRO"),
     ];
-
     for (const alias of aliases) {
       if (denominadorB1.porEquipe[alias] !== undefined) return denominadorB1.porEquipe[alias];
     }
-
     return 0;
   };
 
   const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
   const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
+  const mf = mesesFiltro;
 
   const porEquipe: EquipeResult[] = equipes.map((equipe) => {
     const denomB1 = findDenomB1(equipe);
-    const rawB1 = calcB1(patients, quad, denomB1, equipe, oficialData);
-    const rawB2 = calcB2(tratamento, quad, equipe, oficialData);
+    const rawB1 = calcB1(patients, quad, denomB1, equipe, oficialData, mf);
+    const rawB2 = calcB2(tratamento, quad, equipe, oficialData, mf);
     const indicadores = [
       buildIndicador("B1", rawB1),
       buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, equipe, oficialData)),
-      buildIndicador("B5", calcB5(tab4, quad, equipe, oficialData)),
-      buildIndicador("B4", calcB4(tab5, quad, equipe, oficialData), {
+      buildIndicador("B3", calcB3(tab3, quad, equipe, oficialData, mf)),
+      buildIndicador("B5", calcB5(tab4, quad, equipe, oficialData, mf)),
+      buildIndicador("B4", calcB4(tab5, quad, equipe, oficialData, mf), {
         b1Numerador:   Math.round(rawB1.numerador),
         b1Denominador: Math.round(rawB1.denominador),
         b2Numerador:   Math.round(rawB2.numerador),
         b2Denominador: Math.round(rawB2.denominador),
       }),
-      buildIndicador("B6", calcB6(tab6, quad, equipe, oficialData)),
+      buildIndicador("B6", calcB6(tab6, quad, equipe, oficialData, mf)),
     ];
     return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
   });
 
   const buildGeral = (eq?: string) => {
     const denomB1 = eq ? findDenomB1(eq) : denominadorB1.total;
-    const rawB1 = calcB1(patients, quad, denomB1, eq, oficialData);
-    const rawB2 = calcB2(tratamento, quad, eq, oficialData);
+    const rawB1 = calcB1(patients, quad, denomB1, eq, oficialData, mf);
+    const rawB2 = calcB2(tratamento, quad, eq, oficialData, mf);
     return [
       buildIndicador("B1", rawB1),
       buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, eq, oficialData)),
-      buildIndicador("B5", calcB5(tab4, quad, eq, oficialData)),
-      buildIndicador("B4", calcB4(tab5, quad, eq, oficialData), {
+      buildIndicador("B3", calcB3(tab3, quad, eq, oficialData, mf)),
+      buildIndicador("B5", calcB5(tab4, quad, eq, oficialData, mf)),
+      buildIndicador("B4", calcB4(tab5, quad, eq, oficialData, mf), {
         b1Numerador:   Math.round(rawB1.numerador),
         b1Denominador: Math.round(rawB1.denominador),
         b2Numerador:   Math.round(rawB2.numerador),
         b2Denominador: Math.round(rawB2.denominador),
       }),
-      buildIndicador("B6", calcB6(tab6, quad, eq, oficialData)),
+      buildIndicador("B6", calcB6(tab6, quad, eq, oficialData, mf)),
     ];
   };
 
