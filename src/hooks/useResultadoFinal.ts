@@ -678,6 +678,7 @@ function calcB6(
   const mesesDetalhe: MesDetalhe[] = [];
 
   months.forEach((m) => {
+    if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
     // Oficial?
