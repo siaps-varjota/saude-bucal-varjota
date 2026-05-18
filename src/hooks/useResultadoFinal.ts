@@ -253,12 +253,17 @@ function getAllEquipes(
 }
 
 // ── calcB1 ────────────────────────────────────────────────────────────────────
+const mesKey = (m: number, year: number) => `${String(m + 1).padStart(2, "0")}/${year}`;
+const skipMes = (m: number, year: number, mf?: string[]) =>
+  !!mf && mf.length > 0 && !mf.includes(mesKey(m, year));
+
 function calcB1(
   allPatients: Patient[],
   quad: Quadrimestre,
   denominadorExterno: number,
   equipe?: string,
   oficialData?: OficialData,
+  mesesFiltro?: string[],
 ): RawCalc {
   const source = equipe ? allPatients.filter((p) => equipeMatch(p.equipe, equipe)) : allPatients;
   if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
