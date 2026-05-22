@@ -151,8 +151,9 @@ export const TratamentoQuadrimesterCards = ({
 
         // Preliminar: filtra pacientes no mês
         const prelNum = patients.filter(p =>
-          inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
-        ).length;
+       p.comTratamentoConcluido === "SIM" &&
+       inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+       ).length;
         const prelDen = patients.filter(p =>
           inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
         ).length;
