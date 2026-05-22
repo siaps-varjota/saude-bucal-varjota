@@ -92,11 +92,19 @@ const resolveMonthB2 = (
   equipe: string,
   oficialIndex: OficialData["index"] | undefined,
 ): { num: number; den: number; fonte: FonteDado } => {
-  const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
-  const ofRow   = oficialIndex?.get(makeOficialKey(mesNorm, equipe));
-  if (!!ofRow) {
+  if (!oficialIndex) return { num: prelNum, den: prelDen, fonte: "preliminar" };
+
+  const mesFormatado = format(monthDate, "MM/yyyy");
+  const mesNorm = normalizeMes(mesFormatado) ?? mesFormatado;
+  const key = makeOficialKey(mesNorm, equipe);
+  const ofRow = oficialIndex.get(key);
+
+  if (ofRow) {
     return { num: ofRow.numB2, den: ofRow.denB2, fonte: "oficial" };
   }
+
+  // debug — remover após validar
+  console.debug("[resolveMonthB2] sem oficial:", { key, mesNorm, equipe, prelNum, prelDen });
   return { num: prelNum, den: prelDen, fonte: "preliminar" };
 };
 
@@ -137,13 +145,9 @@ export const TratamentoQuadrimesterCards = ({
       const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
       const monthsCount    = actualEndMonth - startMonth + 1;
 
-      const startDate  = startOfMonth(new Date(targetYear, startMonth, 1));
-      const endDate    = endOfMonth(new Date(targetYear, actualEndMonth, 1));
-      const containsMes = quadContainsMesReferencia(mesReferencia, startDate, endDate);
-
       // ── Agrega meses com merge oficial ────────────────────────────────────
-      let totalNum          = 0;
-      let totalDen          = 0;
+      let totalNum           = 0;
+      let totalDen           = 0;
       let todosMesesOficiais = true;
 
       for (let m = startMonth; m <= actualEndMonth; m++) {
@@ -151,17 +155,21 @@ export const TratamentoQuadrimesterCards = ({
         const mStart    = startOfMonth(monthDate);
         const mEnd      = endOfMonth(monthDate);
 
+        // containsMes calculado por mês (não pelo range do quadrimestre inteiro)
+        const mesContainsMes = quadContainsMesReferencia(mesReferencia, mStart, mEnd);
+
         // Denominador: pacientes com 1ª consulta no período
         const prelDen = patients.filter(p =>
-          inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, containsMes)
+          inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, mesContainsMes)
         ).length;
 
-        // Numerador: pacientes com 1ª consulta no período E com tratamento concluído (SIM)
+        // Numerador: pacientes com 1ª consulta no período E com tratamento concluído
         const prelNum = patients.filter(p =>
-        p.comTratamentoConcluido?.trim() === "Concluído" &&
-       inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, containsMes)
-       ).length;
+          p.comTratamentoConcluido?.trim() === "Concluído" &&
+          inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, mesContainsMes)
+        ).length;
 
+        // Oficial prevalece sobre preliminar quando disponível
         const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
         totalNum += resolved.num;
         totalDen += resolved.den;
