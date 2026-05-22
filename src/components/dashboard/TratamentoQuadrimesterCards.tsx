@@ -158,9 +158,9 @@ export const TratamentoQuadrimesterCards = ({
 
         // Numerador: pacientes com 1ª consulta no período E com tratamento concluído (SIM)
         const prelNum = patients.filter(p =>
-          p.comTratamentoConcluido === "SIM" &&
-          inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, containsMes)
-        ).length;
+        p.comTratamentoConcluido?.trim() === "Concluído" &&
+       inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, containsMes)
+       ).length;
 
         const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
         totalNum += resolved.num;
