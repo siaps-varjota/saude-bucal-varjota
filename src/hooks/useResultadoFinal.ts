@@ -357,9 +357,14 @@ function calcB2(
     const tratamentoByMonth = new Map<string, number>();
     source.forEach(p => {
       const dCons = parseDate(p.primeiraConsulta);
-      const dTrat = parseDate(p.tratamentoConcluido);
-      if (dCons) { const k = `${getMonth(dCons)}-${getYear(dCons)}`; consultaByMonth.set(k, (consultaByMonth.get(k) || 0) + 1); }
-      if (dTrat) { const k = `${getMonth(dTrat)}-${getYear(dTrat)}`; tratamentoByMonth.set(k, (tratamentoByMonth.get(k) || 0) + 1); }
+      // CORRIGIDO: numerador usa status "Concluído" + data da 1ª consulta
+      if (dCons) {
+        const k = `${getMonth(dCons)}-${getYear(dCons)}`;
+        consultaByMonth.set(k, (consultaByMonth.get(k) || 0) + 1);
+        if (p.comTratamentoConcluido?.trim() === "Concluído") {
+          tratamentoByMonth.set(k, (tratamentoByMonth.get(k) || 0) + 1);
+        }
+      }
     });
     consultaByMonth.forEach((consultas, key) => {
       const tratamentos = tratamentoByMonth.get(key) || 0;
@@ -380,9 +385,17 @@ function calcB2(
     if (!isCurrentOrPast) return;
     if (skipMes(m, year, mesesFiltro)) return;
 
-    // Preliminar
-    const mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
-    const mCons = source.filter(p => { const d = parseDate(p.primeiraConsulta);    return d && getMonth(d) === m && getYear(d) === year; }).length;
+    // CORRIGIDO: denominador = 1ª consulta no mês; numerador = status "Concluído" + 1ª consulta no mês
+    const mCons = source.filter(p => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
+
+    const mTrat = source.filter(p => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year &&
+        p.comTratamentoConcluido?.trim() === "Concluído";
+    }).length;
 
     // Oficial?
     const oficial = equipe
