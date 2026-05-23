@@ -1,6 +1,7 @@
 import { parse, isValid, getMonth, getYear, format } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
@@ -54,7 +55,6 @@ export interface IndicadorResult {
   notaFinal: number;
   mesesDetalhe: MesDetalhe[];
   fonte?: "oficial" | "preliminar";
-  // Campos auxiliares usados pela simulação do B4
   b1Numerador?: number;
   b1Denominador?: number;
   b2Numerador?: number;
@@ -133,7 +133,6 @@ interface RawCalc {
   denominador: number;
   porcentagem: number;
   mesesDetalhe: MesDetalhe[];
-  /** true quando TODOS os meses do período têm dado oficial */
   todosOficiais?: boolean;
 }
 
@@ -166,32 +165,20 @@ function buildIndicador(
   };
 }
 
-/** Normaliza nomes de equipe: ESF → ESB para consistência */
 const normalizeEquipeLocal = (name: string): string =>
   name.replace(/^ESF\b/i, "ESB").trim();
 
-/** Verifica se a equipe do registro corresponde ao filtro (ESF/ESB equivalentes) */
 const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
   normalizeEquipeLocal(recordEquipe) === normalizeEquipeLocal(filterEquipe);
 
-// ── Helper: resolve num/den de um indicador específico para um mês via oficial ──
 type BIndicador = "B1" | "B2" | "B3" | "B4" | "B5" | "B6";
 
-/**
- * Mapeamento entre a chave interna do indicador e o campo real no CSV oficial.
- *
- * Atenção: no CSV oficial os campos numB4/denB4 correspondem à Escovação
- * Supervisionada (indicador interno B5) e os campos numB5/denB5 correspondem
- * a Procedimentos Preventivos (indicador interno B4). Os demais coincidem.
- * Confirmado pelo Tab5QuadrimesterCards que usa numB5/denB5 para Preventivos
- * e Tab4QuadrimesterCards que usa numB4/denB4 para Escovação.
- */
 const INDICADOR_TO_CSV_FIELD: Record<BIndicador, "B1" | "B2" | "B3" | "B4" | "B5" | "B6"> = {
   B1: "B1",
   B2: "B2",
   B3: "B3",
-  B4: "B5", // Proced. Preventivos (interno B4) → campo CSV numB5/denB5
-  B5: "B4", // Escovação Supervisionada (interno B5) → campo CSV numB4/denB4
+  B4: "B5",
+  B5: "B4",
   B6: "B6",
 };
 
@@ -207,7 +194,6 @@ function resolveOficialMes(
   const monthDate = new Date(year, monthIdx, 1);
   const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
 
-  // Tenta com a equipe passada e suas variações (igual ao que as abas fazem)
   const equipeNorm = normalizeEquipe(equipe);
   const keysToTry = [
     makeOficialKey(mesNorm, equipeNorm),
@@ -224,17 +210,12 @@ function resolveOficialMes(
 
   if (!ofRow) return null;
 
-  // Usa o campo CSV correto para este indicador (B4 e B5 são trocados no CSV)
   const csvField = INDICADOR_TO_CSV_FIELD[indicador];
   const numKey = `num${csvField}` as keyof typeof ofRow;
   const denKey = `den${csvField}` as keyof typeof ofRow;
   const num = ofRow[numKey] as number;
   const den = ofRow[denKey] as number;
 
-  // ── CORREÇÃO: dado oficial prevalece mesmo que num=0 e den=0 ──────────────
-  // Antes havia um guard `if (num === 0 && den === 0) return null` que
-  // ignorava meses com resultado zero registrado oficialmente. Alinhado ao
-  // comportamento dos cards mensais/quadrimestrais (PR com !!ofRow).
   return { num, den, isOficial: true };
 }
 
@@ -295,13 +276,11 @@ function calcB1(
     if (!isCurrentOrPast) return;
     if (skipMes(m, year, mesesFiltro)) return;
 
-    // Preliminar
     const prelCount = source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    // Oficial?
     const oficial = equipe
       ? resolveOficialMes(m, year, equipe, "B1", oficialData?.index)
       : null;
@@ -324,7 +303,6 @@ function calcB1(
     });
   });
 
-  // Denominador final: média dos denominadores acumulados (consistente com QuadrimesterCards)
   const mesesComDados = mesesDetalhe.length || 1;
   const denominadorFinal = mesesComDados > 0 ? Math.round(sumDen / mesesComDados) : denominadorExterno;
   const denominadorTotal = denominadorFinal * 4;
@@ -352,20 +330,17 @@ function calcB2(
   const currentMonth = now.getMonth();
 
   if (quad === "todos") {
-    let sumTrat = 0, sumCons = 0;
-    const consultaByMonth = new Map<string, number>();
-    const tratamentoByMonth = new Map<string, number>();
-    source.forEach(p => {
-      const dCons = parseDate(p.primeiraConsulta);
-      const dTrat = parseDate(p.tratamentoConcluido);
-      if (dCons) { const k = `${getMonth(dCons)}-${getYear(dCons)}`; consultaByMonth.set(k, (consultaByMonth.get(k) || 0) + 1); }
-      if (dTrat) { const k = `${getMonth(dTrat)}-${getYear(dTrat)}`; tratamentoByMonth.set(k, (tratamentoByMonth.get(k) || 0) + 1); }
-    });
-    consultaByMonth.forEach((consultas, key) => {
-      const tratamentos = tratamentoByMonth.get(key) || 0;
-      if (consultas > 0) { sumTrat += tratamentos; sumCons += consultas; }
-    });
-    return { numerador: sumTrat, denominador: sumCons, porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0, mesesDetalhe: [] };
+    // Denominador: todos com primeiraConsulta válida
+    // Numerador: subconjunto com tratamento não pendente
+    const denPatients = source.filter(p => !!parseDate(p.primeiraConsulta));
+    const sumCons = denPatients.length;
+    const sumTrat = denPatients.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+    return {
+      numerador: sumTrat,
+      denominador: sumCons,
+      porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0,
+      mesesDetalhe: [],
+    };
   }
 
   const [q, yearStr] = quad.split("-");
@@ -380,9 +355,17 @@ function calcB2(
     if (!isCurrentOrPast) return;
     if (skipMes(m, year, mesesFiltro)) return;
 
-    // Preliminar
-    const mTrat = source.filter(p => { const d = parseDate(p.tratamentoConcluido); return d && getMonth(d) === m && getYear(d) === year; }).length;
-    const mCons = source.filter(p => { const d = parseDate(p.primeiraConsulta);    return d && getMonth(d) === m && getYear(d) === year; }).length;
+    // Denominador: pacientes com primeiraConsulta no mês
+    const denPatients = source.filter(p => {
+      const d = parseDate(p.primeiraConsulta);
+      return d && getMonth(d) === m && getYear(d) === year;
+    });
+    const mCons = denPatients.length;
+
+    // Numerador: subconjunto do denominador com tratamento não pendente
+    const mTrat = denPatients.filter(p =>
+      !isTratamentoPendente(p.tratamentoConcluido)
+    ).length;
 
     // Oficial?
     const oficial = equipe
@@ -436,7 +419,6 @@ function calcB3(
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
 
-  // Mapa de dados preliminares por mês
   const byMonth = new Map<number, { exodontias: number; total: number }>();
   source.forEach(r => {
     const parts = r.mesAno.split("/");
@@ -456,7 +438,6 @@ function calcB3(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
-    // Oficial?
     const oficial = equipe
       ? resolveOficialMes(m, year, equipe, "B3", oficialData?.index)
       : null;
@@ -527,7 +508,6 @@ function calcB4(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { preventivos: 0, total: 0 };
 
-    // Oficial?
     const oficial = equipe
       ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index)
       : null;
@@ -599,13 +579,11 @@ function calcB5(
     if (!isCurrentOrPast) return;
     if (skipMes(m, year, mesesFiltro)) return;
 
-    // Preliminar
     const prelCount = source.filter((p) => {
       const d = parseDate(p.primeiraConsulta);
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    // Oficial?
     const oficial = equipe
       ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index)
       : null;
@@ -628,7 +606,6 @@ function calcB5(
     });
   });
 
-  // Denominador final: média (consistente com Tab4QuadrimesterCards)
   const mesesComDados = mesesDetalhe.length || 1;
   const denominadorFinal = mesesComDados > 0 ? Math.round(sumDen / mesesComDados) : totalPatients;
   const denominadorTotal = denominadorFinal * 4;
@@ -681,7 +658,6 @@ function calcB6(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
-    // Oficial?
     const oficial = equipe
       ? resolveOficialMes(m, year, equipe, "B6", oficialData?.index)
       : null;
