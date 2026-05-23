@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { Card, CardContent } from "@/components/ui/card";
 import { Target, TrendingUp, AlertCircle, FlaskConical } from "lucide-react";
 import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
@@ -14,8 +15,8 @@ interface TratamentoMetaCardProps {
   denominadorB1?: number;
   consultasAba1Quad?: number;
   mesReferencia?: string[];
-  equipe?: string;           // ← novo
-  oficialData?: OficialData; // ← novo
+  equipe?: string;
+  oficialData?: OficialData;
 }
 
 const parseDateStr = (str: string): Date | null => {
@@ -117,8 +118,8 @@ export const TratamentoMetaCard = ({
     };
 
     // ── Agrega meses B2 com merge oficial ─────────────────────────────────
-    let totalNum          = 0;
-    let totalDen          = 0;
+    let totalNum           = 0;
+    let totalDen           = 0;
     let todosMesesOficiais = true;
 
     for (let m = range.startMonth; m <= range.actualEndMonth; m++) {
@@ -136,8 +137,14 @@ export const TratamentoMetaCard = ({
         return isWithinInterval(d, { start: mStart, end: mEnd });
       };
 
-      const prelNum = patients.filter(p => inMonth(p.tratamentoConcluido)).length;
-      const prelDen = patients.filter(p => inMonth(p.primeiraConsulta)).length;
+      // Denominador: pacientes com primeiraConsulta no mês
+      const denPatients = patients.filter(p => inMonth(p.primeiraConsulta));
+      const prelDen     = denPatients.length;
+
+      // Numerador: subconjunto do denominador com tratamento não pendente
+      const prelNum = denPatients.filter(p =>
+        !isTratamentoPendente(p.tratamentoConcluido)
+      ).length;
 
       const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
@@ -147,17 +154,20 @@ export const TratamentoMetaCard = ({
 
     // Fallback para mesReferencia quando iteração mensal não captura
     if (totalDen === 0 && mesReferencia.length > 0) {
-      totalNum = patients.filter(p => inPeriodDate(p.tratamentoConcluido)).length;
-      totalDen = patients.filter(p => inPeriodDate(p.primeiraConsulta)).length;
+      const denPatientsFallback = patients.filter(p => inPeriodDate(p.primeiraConsulta));
+      totalDen = denPatientsFallback.length;
+      totalNum = denPatientsFallback.filter(p =>
+        !isTratamentoPendente(p.tratamentoConcluido)
+      ).length;
       todosMesesOficiais = false;
     }
 
     const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
 
+    // Pendentes: pacientes com primeiraConsulta no período e tratamento pendente
     const pendentes = patients.filter(p => {
       if (!inPeriodDate(p.primeiraConsulta)) return false;
-      const trat = (p.tratamentoConcluido || "").trim();
-      return !trat || trat === "-";
+      return isTratamentoPendente(p.tratamentoConcluido);
     }).length;
 
     const currentPct  = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
