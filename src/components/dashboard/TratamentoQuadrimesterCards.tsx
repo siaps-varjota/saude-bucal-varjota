@@ -137,28 +137,33 @@ export const TratamentoQuadrimesterCards = ({
       const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
       const monthsCount    = actualEndMonth - startMonth + 1;
 
-      const startDate  = startOfMonth(new Date(targetYear, startMonth, 1));
-      const endDate    = endOfMonth(new Date(targetYear, actualEndMonth, 1));
+      const startDate   = startOfMonth(new Date(targetYear, startMonth, 1));
+      const endDate     = endOfMonth(new Date(targetYear, actualEndMonth, 1));
       const containsMes = quadContainsMesReferencia(mesReferencia, startDate, endDate);
 
       // ── Agrega meses com merge oficial ────────────────────────────────────
-      let totalNum          = 0;
-      let totalDen          = 0;
+      let totalNum           = 0;
+      let totalDen           = 0;
       let todosMesesOficiais = true;
 
       for (let m = startMonth; m <= actualEndMonth; m++) {
         const monthDate = new Date(targetYear, m, 1);
 
-        // Preliminar: filtra pacientes no mês
-        const prelNum = patients.filter(p =>
-        p.comTratamentoConcluido?.toUpperCase().trim() === "CONCLUÍDO" &&
-        inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
-        ).length;
+        // Base do denominador: pacientes com primeiraConsulta no período do mês
+        const denPatients = patients.filter(p =>
+          !!p.primeiraConsulta &&
+          p.primeiraConsulta !== "-" &&
+          p.primeiraConsulta.trim() !== "" &&
+          inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+        );
+        const prelDen = denPatients.length;
 
-        const prelDen = patients.filter(p =>
-       !!p.primeiraConsulta && p.primeiraConsulta !== "-" && p.primeiraConsulta.trim() !== "" &&
-       inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
-       ).length;
+        // Numerador: subconjunto do denominador com status CONCLUÍDO
+        // e data de tratamentoConcluido no mesmo período
+        const prelNum = denPatients.filter(p =>
+          p.comTratamentoConcluido?.toUpperCase().trim() === "CONCLUÍDO" &&
+          inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+        ).length;
 
         const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
         totalNum += resolved.num;
