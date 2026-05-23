@@ -14,8 +14,8 @@ interface TratamentoMetaCardProps {
   denominadorB1?: number;
   consultasAba1Quad?: number;
   mesReferencia?: string[];
-  equipe?: string;
-  oficialData?: OficialData;
+  equipe?: string;           // ← novo
+  oficialData?: OficialData; // ← novo
 }
 
 const parseDateStr = (str: string): Date | null => {
@@ -136,13 +136,7 @@ export const TratamentoMetaCard = ({
         return isWithinInterval(d, { start: mStart, end: mEnd });
       };
 
-      // Numerador: pacientes com 1ª consulta no período E status "Concluído"
-      const prelNum = patients.filter(p =>
-        p.comTratamentoConcluido?.trim() === "Concluído" &&
-        inMonth(p.primeiraConsulta)
-      ).length;
-
-      // Denominador: pacientes com 1ª consulta no período
+      const prelNum = patients.filter(p => inMonth(p.tratamentoConcluido)).length;
       const prelDen = patients.filter(p => inMonth(p.primeiraConsulta)).length;
 
       const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
@@ -153,20 +147,17 @@ export const TratamentoMetaCard = ({
 
     // Fallback para mesReferencia quando iteração mensal não captura
     if (totalDen === 0 && mesReferencia.length > 0) {
-      totalNum = patients.filter(p =>
-        p.comTratamentoConcluido?.trim() === "Concluído" &&
-        inPeriodDate(p.primeiraConsulta)
-      ).length;
+      totalNum = patients.filter(p => inPeriodDate(p.tratamentoConcluido)).length;
       totalDen = patients.filter(p => inPeriodDate(p.primeiraConsulta)).length;
       todosMesesOficiais = false;
     }
 
     const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
 
-    // Pendentes: 1ª consulta no período E status "Pendente"
     const pendentes = patients.filter(p => {
       if (!inPeriodDate(p.primeiraConsulta)) return false;
-      return p.comTratamentoConcluido?.trim() === "Pendente";
+      const trat = (p.tratamentoConcluido || "").trim();
+      return !trat || trat === "-";
     }).length;
 
     const currentPct  = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
