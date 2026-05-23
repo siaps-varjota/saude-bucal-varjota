@@ -4,8 +4,8 @@ import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } fr
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
-import { OficialData } from "@/hooks/useOficialData";
-import { FonteDado, mergeIndicadores } from "@/hooks/useOficialMerge";
+import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
+import { FonteDado } from "@/hooks/useOficialMerge";
 
 interface TratamentoQuadrimesterCardsProps {
   patients: TratamentoPatient[];
@@ -73,15 +73,31 @@ const inPeriod = (
   startDate: Date,
   endDate: Date,
   mesReferencia: string[],
-  mesContainsMes: boolean,
+  quadContainsMes: boolean,
 ): boolean => {
   const d = parseTratamentoDate(dateStr);
   if (!d) return false;
-  if (mesReferencia.length > 0 && mesContainsMes) {
+  if (mesReferencia.length > 0 && quadContainsMes) {
     const key = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     return mesReferencia.includes(key);
   }
   return isWithinInterval(d, { start: startDate, end: endDate });
+};
+
+// ── Resolve num/den B2 para um mês via oficial ou preliminar ──────────────────
+const resolveMonthB2 = (
+  monthDate: Date,
+  prelNum: number,
+  prelDen: number,
+  equipe: string,
+  oficialIndex: OficialData["index"] | undefined,
+): { num: number; den: number; fonte: FonteDado } => {
+  const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
+  const ofRow   = oficialIndex?.get(makeOficialKey(mesNorm, equipe));
+  if (!!ofRow) {
+    return { num: ofRow.numB2, den: ofRow.denB2, fonte: "oficial" };
+  }
+  return { num: prelNum, den: prelDen, fonte: "preliminar" };
 };
 
 export const TratamentoQuadrimesterCards = ({
@@ -121,42 +137,32 @@ export const TratamentoQuadrimesterCards = ({
       const actualEndMonth = isCurrentQuad ? now.getMonth() : endMonth;
       const monthsCount    = actualEndMonth - startMonth + 1;
 
-      let totalNum           = 0;
-      let totalDen           = 0;
+      const startDate  = startOfMonth(new Date(targetYear, startMonth, 1));
+      const endDate    = endOfMonth(new Date(targetYear, actualEndMonth, 1));
+      const containsMes = quadContainsMesReferencia(mesReferencia, startDate, endDate);
+
+      // ── Agrega meses com merge oficial ────────────────────────────────────
+      let totalNum          = 0;
+      let totalDen          = 0;
       let todosMesesOficiais = true;
 
       for (let m = startMonth; m <= actualEndMonth; m++) {
         const monthDate = new Date(targetYear, m, 1);
-        const mStart    = startOfMonth(monthDate);
-        const mEnd      = endOfMonth(monthDate);
 
-        // containsMes calculado individualmente por mês
-        const mesContainsMes = quadContainsMesReferencia(mesReferencia, mStart, mEnd);
-
-        // Denominador preliminar: pacientes com 1ª consulta no mês
-        const prelDen = patients.filter(p =>
-          inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, mesContainsMes)
-        ).length;
-
-        // Numerador preliminar: pacientes com 1ª consulta no mês E tratamento concluído
+        // Preliminar: filtra pacientes no mês
         const prelNum = patients.filter(p =>
-          p.comTratamentoConcluido?.trim() === "Concluído" &&
-          inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, mesContainsMes)
+          inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+        ).length;
+        const prelDen = patients.filter(p =>
+          inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
         ).length;
 
-        // ── Usa mergeIndicadores — mesma regra de precedência dos cards mensais ──
-        const mesStr   = format(monthDate, "MM/yyyy");
-        const merged   = mergeIndicadores(
-          mesStr,
-          equipe,
-          { numB2: prelNum, denB2: prelDen },
-          oficialData?.index,
-        );
-
-        totalNum += merged.b2.numerador;
-        totalDen += merged.b2.denominador;
-        if (merged.b2.fonte !== "oficial") todosMesesOficiais = false;
+        const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
+        totalNum += resolved.num;
+        totalDen += resolved.den;
+        if (resolved.fonte !== "oficial") todosMesesOficiais = false;
       }
+      // ─────────────────────────────────────────────────────────────────────
 
       const percentage = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
       const average    = monthsCount > 0 ? totalNum / monthsCount    : 0;
