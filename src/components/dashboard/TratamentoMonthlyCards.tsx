@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { parse, isValid, format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
@@ -12,8 +13,8 @@ interface TratamentoMonthlyCardsProps {
   allPatients: TratamentoPatient[];
   quadrimestre?: string;
   mesReferencia?: string[];
-  equipe?: string;           // ← novo
-  oficialData?: OficialData; // ← novo
+  equipe?: string;
+  oficialData?: OficialData;
 }
 
 const getQuadrimesterMonths = (quadKey: string): number[] | null => {
@@ -98,15 +99,18 @@ export const TratamentoMonthlyCards = ({
       const monthKey = format(month, "MM/yyyy");
       const label    = format(month, "MMM/yy", { locale: ptBR });
 
-      const tratamentoCount = patients.filter(p => {
-        const d = parseTratamentoDate(p.tratamentoConcluido);
-        return d ? format(d, "MM/yyyy") === monthKey : false;
-      }).length;
-
-      const consultaCount = allPatients.filter(p => {
+      // Denominador: pacientes com primeiraConsulta neste mês
+      const denPatients = allPatients.filter(p => {
         const d = parseTratamentoDate(p.primeiraConsulta);
         return d ? format(d, "MM/yyyy") === monthKey : false;
-      }).length;
+      });
+      const consultaCount = denPatients.length;
+
+      // Numerador: subconjunto do denominador com tratamento não pendente
+      // (mesma lógica do StatsCard "Com Tratamento")
+      const tratamentoCount = denPatients.filter(p =>
+        !isTratamentoPendente(p.tratamentoConcluido)
+      ).length;
 
       months.push({
         label: label.charAt(0).toUpperCase() + label.slice(1),
@@ -143,10 +147,10 @@ export const TratamentoMonthlyCards = ({
           const ofKey   = makeOficialKey(mesNorm, equipe);
           const ofRow   = oficialData?.index.get(ofKey);
 
-          const isOficial      = !!ofRow;
-          const finalNum       = isOficial ? ofRow!.numB2 : tratamentoCount;
-          const finalDen       = isOficial ? ofRow!.denB2 : consultaCount;
-          const fonte          = isOficial ? "oficial" as const : "preliminar" as const;
+          const isOficial = !!ofRow;
+          const finalNum  = isOficial ? ofRow!.numB2 : tratamentoCount;
+          const finalDen  = isOficial ? ofRow!.denB2 : consultaCount;
+          const fonte     = isOficial ? "oficial" as const : "preliminar" as const;
           // ─────────────────────────────────────────────────────────────────
 
           const percentage = finalDen > 0 ? (finalNum / finalDen) * 100 : 0;
@@ -164,7 +168,6 @@ export const TratamentoMonthlyCards = ({
                 <span className="text-muted-foreground font-medium">de {finalDen}</span>
                 <span className={`font-medium ${styles.label}`}> | {percentage.toFixed(1)}%</span>
               </p>
-              {/* Badge Oficial / Preliminar */}
               <div className="mt-1.5 flex justify-center">
                 <FonteBadge fonte={fonte} />
               </div>
@@ -181,7 +184,6 @@ export const TratamentoMonthlyCards = ({
           <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-medium border border-emerald-200">Bom &gt; 50% e ≤ 75%</span>
           <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium border border-blue-200">Ótimo &gt; 75%</span>
         </div>
-        {/* Legenda das fontes */}
         <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
           <FonteBadge fonte="oficial" />
           <FonteBadge fonte="preliminar" />
