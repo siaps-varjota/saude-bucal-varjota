@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
+import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
@@ -158,11 +159,10 @@ export const TratamentoQuadrimesterCards = ({
         );
         const prelDen = denPatients.length;
 
-        // Numerador: subconjunto do denominador com status CONCLUÍDO
-        // e data de tratamentoConcluido no mesmo período
+        // Numerador: mesma lógica do StatsCard "Com Tratamento"
+        // subconjunto do denominador que tem tratamento concluído (não pendente)
         const prelNum = denPatients.filter(p =>
-          p.comTratamentoConcluido?.toUpperCase().trim() === "CONCLUÍDO" &&
-          inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+          !isTratamentoPendente(p.tratamentoConcluido)
         ).length;
 
         const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
