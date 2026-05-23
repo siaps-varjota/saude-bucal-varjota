@@ -56,7 +56,7 @@ const parseCSV = (csv: string): TratamentoPatient[] => {
         idade,
         primeiraConsulta: fields[8] || "-",
         tratamentoConcluido: fields[9] || "-",
-        comTratamentoConcluido: fields[10]?.trim() || "Sem 1ª Consulta",
+        comTratamentoConcluido: fields[10] || "NÃO",
       };
     })
     .filter((patient) => patient.id > 0);
