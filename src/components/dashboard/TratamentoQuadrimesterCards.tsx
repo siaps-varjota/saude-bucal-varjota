@@ -151,11 +151,14 @@ export const TratamentoQuadrimesterCards = ({
 
         // Preliminar: filtra pacientes no mês
         const prelNum = patients.filter(p =>
-          inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+        p.comTratamentoConcluido?.toUpperCase().trim() === "CONCLUÍDO" &&
+        inPeriod(p.tratamentoConcluido, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
         ).length;
+
         const prelDen = patients.filter(p =>
-          inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
-        ).length;
+       !!p.primeiraConsulta && p.primeiraConsulta !== "-" && p.primeiraConsulta.trim() !== "" &&
+       inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
+       ).length;
 
         const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
         totalNum += resolved.num;
