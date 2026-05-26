@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
@@ -85,7 +84,6 @@ const inPeriod = (
   return isWithinInterval(d, { start: startDate, end: endDate });
 };
 
-// ── Resolve num/den B2 para um mês via oficial ou preliminar ──────────────────
 const resolveMonthB2 = (
   monthDate: Date,
   prelNum: number,
@@ -103,6 +101,7 @@ const resolveMonthB2 = (
 
 export const TratamentoQuadrimesterCards = ({
   patients,
+  allPatients,           // ← agora desestruturado
   quadrimestres = [],
   mesReferencia = [],
   equipe = "all",
@@ -142,35 +141,35 @@ export const TratamentoQuadrimesterCards = ({
       const endDate     = endOfMonth(new Date(targetYear, actualEndMonth, 1));
       const containsMes = quadContainsMesReferencia(mesReferencia, startDate, endDate);
 
-      // ── Agrega meses com merge oficial ────────────────────────────────────
       let totalNum           = 0;
       let totalDen           = 0;
       let todosMesesOficiais = true;
 
       for (let m = startMonth; m <= actualEndMonth; m++) {
         const monthDate = new Date(targetYear, m, 1);
+        const mStart    = startOfMonth(monthDate);
+        const mEnd      = endOfMonth(monthDate);
 
-        // Base do denominador: pacientes com primeiraConsulta no período do mês
-        const denPatients = patients.filter(p =>
+        // Denominador: pacientes com primeiraConsulta neste mês (sem mudança)
+        const prelDen = patients.filter(p =>
           !!p.primeiraConsulta &&
           p.primeiraConsulta !== "-" &&
           p.primeiraConsulta.trim() !== "" &&
-          inPeriod(p.primeiraConsulta, startOfMonth(monthDate), endOfMonth(monthDate), mesReferencia, containsMes)
-        );
-        const prelDen = denPatients.length;
-
-        // Numerador: mesma lógica do StatsCard "Com Tratamento"
-        // subconjunto do denominador que tem tratamento concluído (não pendente)
-        const prelNum = denPatients.filter(p =>
-          !isTratamentoPendente(p.tratamentoConcluido)
+          inPeriod(p.primeiraConsulta, mStart, mEnd, mesReferencia, containsMes)
         ).length;
+
+        // Numerador: pacientes com status "Concluído" cuja data de conclusão
+        // cai neste mês (independente de quando foi a primeira consulta)
+        const prelNum = allPatients.filter(p => {
+          if (p.comTratamentoConcluido !== "Concluído") return false;
+          return inPeriod(p.tratamentoConcluido, mStart, mEnd, mesReferencia, containsMes);
+        }).length;
 
         const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
         totalNum += resolved.num;
         totalDen += resolved.den;
         if (resolved.fonte !== "oficial") todosMesesOficiais = false;
       }
-      // ─────────────────────────────────────────────────────────────────────
 
       const percentage = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
       const average    = monthsCount > 0 ? totalNum / monthsCount    : 0;
@@ -189,7 +188,7 @@ export const TratamentoQuadrimesterCards = ({
     }
 
     return result;
-  }, [patients, mesReferencia, equipe, oficialData]);
+  }, [patients, allPatients, mesReferencia, equipe, oficialData]);
 
   const visibleCards = quadrimestres.length > 0
     ? quadrimesterData.filter(q => quadrimestres.includes(q.quadKey))
