@@ -106,12 +106,12 @@ export const TratamentoMonthlyCards = ({
       });
       const consultaCount = denPatients.length;
 
-      // Numerador: subconjunto do denominador com tratamento não pendente
-      // (mesma lógica do StatsCard "Com Tratamento")
-      const tratamentoCount = denPatients.filter(p =>
-        !isTratamentoPendente(p.tratamentoConcluido)
-      ).length;
-
+      // Numerador: pacientes com status "Concluído" cuja data de conclusão é deste mês
+     const tratamentoCount = allPatients.filter(p => {
+     if (p.comTratamentoConcluido !== "Concluído") return false;
+     const d = parseTratamentoDate(p.tratamentoConcluido);
+     return d ? format(d, "MM/yyyy") === monthKey : false;
+     }).length;
       months.push({
         label: label.charAt(0).toUpperCase() + label.slice(1),
         monthKey,
