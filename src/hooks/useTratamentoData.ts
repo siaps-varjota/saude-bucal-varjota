@@ -19,17 +19,13 @@ const CSV_URL =
 
 const parseCSV = (csv: string): TratamentoPatient[] => {
   const lines = csv.split("\n");
-  // Começa da linha 4 (índice 3) conforme solicitado
   const dataLines = lines.slice(4);
-
   return dataLines
     .filter((line) => line.trim() !== "")
     .map((line) => {
-      // Parse CSV considerando campos com vírgulas dentro de aspas
       const fields: string[] = [];
       let current = "";
       let inQuotes = false;
-
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
@@ -44,7 +40,6 @@ const parseCSV = (csv: string): TratamentoPatient[] => {
       fields.push(current.trim());
 
       const idade = parseInt(fields[7]) || 0;
-
       return {
         id: parseInt(fields[0]) || 0,
         equipe: fields[1] || "",
@@ -70,6 +65,38 @@ const fetchTratamentoData = async (): Promise<TratamentoPatient[]> => {
   const csv = await response.text();
   return parseCSV(csv);
 };
+
+// ─── Helpers de numerador ────────────────────────────────────────────────────
+
+const parseDateBR = (d: string): number => {
+  const [dia, mes, ano] = d.split("/").map(Number);
+  return new Date(ano, mes - 1, dia).getTime();
+};
+
+/** Todos os pacientes com status "Concluído", independente de período */
+export const getTratamentoConcluido = (
+  patients: TratamentoPatient[]
+): TratamentoPatient[] =>
+  patients.filter((p) => p.comTratamentoConcluido === "Concluído");
+
+/** Pacientes com status "Concluído" cuja data de conclusão cai no período */
+export const getTratamentoConcluidoPorPeriodo = (
+  patients: TratamentoPatient[],
+  dataInicio: string, // "DD/MM/YYYY"
+  dataFim: string     // "DD/MM/YYYY"
+): TratamentoPatient[] => {
+  const inicio = parseDateBR(dataInicio);
+  const fim = parseDateBR(dataFim);
+
+  return patients.filter((p) => {
+    if (p.comTratamentoConcluido !== "Concluído") return false;
+    if (!p.tratamentoConcluido || p.tratamentoConcluido === "-") return false;
+    const data = parseDateBR(p.tratamentoConcluido);
+    return data >= inicio && data <= fim;
+  });
+};
+
+// ─── Hook principal ──────────────────────────────────────────────────────────
 
 export const useTratamentoData = () => {
   return useQuery({
