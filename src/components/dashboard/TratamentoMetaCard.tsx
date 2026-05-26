@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { Card, CardContent } from "@/components/ui/card";
 import { Target, TrendingUp, AlertCircle, FlaskConical } from "lucide-react";
 import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
@@ -67,9 +66,7 @@ const resolveMonthB2 = (
 ): { num: number; den: number; fonte: FonteDado } => {
   const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
   const ofRow   = oficialIndex?.get(makeOficialKey(mesNorm, equipe));
-  if (!!ofRow) {
-    return { num: ofRow.numB2, den: ofRow.denB2, fonte: "oficial" };
-  }
+  if (!!ofRow) return { num: ofRow.numB2, den: ofRow.denB2, fonte: "oficial" };
   return { num: prelNum, den: prelDen, fonte: "preliminar" };
 };
 
@@ -82,14 +79,13 @@ const resolveMonthB1 = (
 ): { num: number; den: number; fonte: FonteDado } => {
   const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
   const ofRow   = oficialIndex?.get(makeOficialKey(mesNorm, equipe));
-  if (!!ofRow) {
-    return { num: ofRow.numB1, den: ofRow.denB1, fonte: "oficial" };
-  }
+  if (!!ofRow) return { num: ofRow.numB1, den: ofRow.denB1, fonte: "oficial" };
   return { num: prelNum, den: prelDen, fonte: "preliminar" };
 };
 
 export const TratamentoMetaCard = ({
   patients,
+  allPatients,             // ← agora desestruturado
   quadrimestre = "todos",
   denominadorB1 = 0,
   consultasAba1Quad = 0,
@@ -137,14 +133,15 @@ export const TratamentoMetaCard = ({
         return isWithinInterval(d, { start: mStart, end: mEnd });
       };
 
-      // Denominador: pacientes com primeiraConsulta no mês
-      const denPatients = patients.filter(p => inMonth(p.primeiraConsulta));
-      const prelDen     = denPatients.length;
+      // Denominador: pacientes com primeiraConsulta no mês (sem mudança)
+      const prelDen = patients.filter(p => inMonth(p.primeiraConsulta)).length;
 
-      // Numerador: subconjunto do denominador com tratamento não pendente
-      const prelNum = denPatients.filter(p =>
-        !isTratamentoPendente(p.tratamentoConcluido)
-      ).length;
+      // Numerador: pacientes com status "Concluído" cuja data de conclusão
+      // cai neste mês (independente de quando foi a primeira consulta)
+      const prelNum = allPatients.filter(p => {
+        if (p.comTratamentoConcluido !== "Concluído") return false;
+        return inMonth(p.tratamentoConcluido);
+      }).length;
 
       const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
@@ -154,20 +151,20 @@ export const TratamentoMetaCard = ({
 
     // Fallback para mesReferencia quando iteração mensal não captura
     if (totalDen === 0 && mesReferencia.length > 0) {
-      const denPatientsFallback = patients.filter(p => inPeriodDate(p.primeiraConsulta));
-      totalDen = denPatientsFallback.length;
-      totalNum = denPatientsFallback.filter(p =>
-        !isTratamentoPendente(p.tratamentoConcluido)
-      ).length;
+      totalDen = patients.filter(p => inPeriodDate(p.primeiraConsulta)).length;
+      totalNum = allPatients.filter(p => {
+        if (p.comTratamentoConcluido !== "Concluído") return false;
+        return inPeriodDate(p.tratamentoConcluido);
+      }).length;
       todosMesesOficiais = false;
     }
 
     const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
 
-    // Pendentes: pacientes com primeiraConsulta no período e tratamento pendente
+    // Pendentes: pacientes com primeiraConsulta no período e sem conclusão
     const pendentes = patients.filter(p => {
       if (!inPeriodDate(p.primeiraConsulta)) return false;
-      return isTratamentoPendente(p.tratamentoConcluido);
+      return p.comTratamentoConcluido !== "Concluído";
     }).length;
 
     const currentPct  = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
@@ -244,7 +241,7 @@ export const TratamentoMetaCard = ({
       simulations,
       mesesDecorridos,
     };
-  }, [patients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia, equipe, oficialData]);
+  }, [patients, allPatients, quadrimestre, denominadorB1, consultasAba1Quad, mesReferencia, equipe, oficialData]);
 
   if (!metaData) return null;
 
