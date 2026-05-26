@@ -1,7 +1,6 @@
 import { parse, isValid, getMonth, getYear, format } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
 import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
@@ -174,12 +173,7 @@ const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
 type BIndicador = "B1" | "B2" | "B3" | "B4" | "B5" | "B6";
 
 const INDICADOR_TO_CSV_FIELD: Record<BIndicador, "B1" | "B2" | "B3" | "B4" | "B5" | "B6"> = {
-  B1: "B1",
-  B2: "B2",
-  B3: "B3",
-  B4: "B5",
-  B5: "B4",
-  B6: "B6",
+  B1: "B1", B2: "B2", B3: "B3", B4: "B5", B5: "B4", B6: "B6",
 };
 
 function resolveOficialMes(
@@ -207,16 +201,12 @@ function resolveOficialMes(
     ofRow = oficialIndex.get(k);
     if (ofRow) break;
   }
-
   if (!ofRow) return null;
 
   const csvField = INDICADOR_TO_CSV_FIELD[indicador];
   const numKey = `num${csvField}` as keyof typeof ofRow;
   const denKey = `den${csvField}` as keyof typeof ofRow;
-  const num = ofRow[numKey] as number;
-  const den = ofRow[denKey] as number;
-
-  return { num, den, isOficial: true };
+  return { num: ofRow[numKey] as number, den: ofRow[denKey] as number, isOficial: true };
 }
 
 function getAllEquipes(
@@ -233,11 +223,11 @@ function getAllEquipes(
   return Array.from(set).sort();
 }
 
-// ── calcB1 ────────────────────────────────────────────────────────────────────
 const mesKey = (m: number, year: number) => `${String(m + 1).padStart(2, "0")}/${year}`;
 const skipMes = (m: number, year: number, mf?: string[]) =>
   !!mf && mf.length > 0 && !mf.includes(mesKey(m, year));
 
+// ── calcB1 ────────────────────────────────────────────────────────────────────
 function calcB1(
   allPatients: Patient[],
   quad: Quadrimestre,
@@ -266,8 +256,7 @@ function calcB1(
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let sumNum = 0;
-  let sumDen = 0;
+  let sumNum = 0, sumDen = 0;
   let todosMesesOficiais = true;
   const mesesDetalhe: MesDetalhe[] = [];
 
@@ -281,16 +270,12 @@ function calcB1(
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    const oficial = equipe
-      ? resolveOficialMes(m, year, equipe, "B1", oficialData?.index)
-      : null;
-
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B1", oficialData?.index) : null;
     const isOficial = !!oficial;
     const count = isOficial ? oficial!.num : prelCount;
     const den   = isOficial ? oficial!.den  : denominadorExterno;
 
     if (!isOficial) todosMesesOficiais = false;
-
     sumNum += count;
     sumDen += den;
 
@@ -303,8 +288,8 @@ function calcB1(
     });
   });
 
-  const mesesComDados = mesesDetalhe.length || 1;
-  const denominadorFinal = mesesComDados > 0 ? Math.round(sumDen / mesesComDados) : denominadorExterno;
+  const mesesComDados   = mesesDetalhe.length || 1;
+  const denominadorFinal = Math.round(sumDen / mesesComDados);
   const denominadorTotal = denominadorFinal * 4;
 
   return {
@@ -331,10 +316,11 @@ function calcB2(
 
   if (quad === "todos") {
     // Denominador: todos com primeiraConsulta válida
-    // Numerador: subconjunto com tratamento não pendente
-    const denPatients = source.filter(p => !!parseDate(p.primeiraConsulta));
-    const sumCons = denPatients.length;
-    const sumTrat = denPatients.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+    const sumCons = source.filter(p => !!parseDate(p.primeiraConsulta)).length;
+    // Numerador: pacientes com status "Concluído" e data de conclusão válida
+    const sumTrat = source.filter(p =>
+      p.comTratamentoConcluido === "Concluído" && !!parseDate(p.tratamentoConcluido)
+    ).length;
     return {
       numerador: sumTrat,
       denominador: sumCons,
@@ -356,28 +342,24 @@ function calcB2(
     if (skipMes(m, year, mesesFiltro)) return;
 
     // Denominador: pacientes com primeiraConsulta no mês
-    const denPatients = source.filter(p => {
+    const mCons = source.filter(p => {
       const d = parseDate(p.primeiraConsulta);
       return d && getMonth(d) === m && getYear(d) === year;
-    });
-    const mCons = denPatients.length;
+    }).length;
 
-    // Numerador: subconjunto do denominador com tratamento não pendente
-    const mTrat = denPatients.filter(p =>
-      !isTratamentoPendente(p.tratamentoConcluido)
-    ).length;
+    // Numerador: pacientes com status "Concluído" cuja data de conclusão é deste mês
+    const mTrat = source.filter(p => {
+      if (p.comTratamentoConcluido !== "Concluído") return false;
+      const d = parseDate(p.tratamentoConcluido);
+      return d && getMonth(d) === m && getYear(d) === year;
+    }).length;
 
-    // Oficial?
-    const oficial = equipe
-      ? resolveOficialMes(m, year, equipe, "B2", oficialData?.index)
-      : null;
-
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B2", oficialData?.index) : null;
     const isOficial = !!oficial;
     const trat = isOficial ? oficial!.num : mTrat;
     const cons = isOficial ? oficial!.den  : mCons;
 
     if (!isOficial) todosMesesOficiais = false;
-
     sumTrat += trat;
     sumCons += cons;
 
@@ -438,16 +420,12 @@ function calcB3(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
-    const oficial = equipe
-      ? resolveOficialMes(m, year, equipe, "B3", oficialData?.index)
-      : null;
-
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B3", oficialData?.index) : null;
     const isOficial = !!oficial;
     const exo = isOficial ? oficial!.num : prelData.exodontias;
     const tot = isOficial ? oficial!.den  : prelData.total;
 
     if (!isOficial) todosMesesOficiais = false;
-
     sumExo += exo;
     sumTot += tot;
 
@@ -508,16 +486,12 @@ function calcB4(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { preventivos: 0, total: 0 };
 
-    const oficial = equipe
-      ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index)
-      : null;
-
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index) : null;
     const isOficial = !!oficial;
     const prev = isOficial ? oficial!.num : prelData.preventivos;
     const tot  = isOficial ? oficial!.den  : prelData.total;
 
     if (!isOficial) todosMesesOficiais = false;
-
     sumPrev += prev;
     sumTot  += tot;
 
@@ -569,8 +543,7 @@ function calcB5(
   const [q, yearStr] = quad.split("-");
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
-  let sumNum = 0;
-  let sumDen = 0;
+  let sumNum = 0, sumDen = 0;
   let todosMesesOficiais = true;
   const mesesDetalhe: MesDetalhe[] = [];
 
@@ -584,16 +557,12 @@ function calcB5(
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    const oficial = equipe
-      ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index)
-      : null;
-
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index) : null;
     const isOficial = !!oficial;
     const count = isOficial ? oficial!.num : prelCount;
     const den   = isOficial ? oficial!.den  : totalPatients;
 
     if (!isOficial) todosMesesOficiais = false;
-
     sumNum += count;
     sumDen += den;
 
@@ -606,7 +575,7 @@ function calcB5(
     });
   });
 
-  const mesesComDados = mesesDetalhe.length || 1;
+  const mesesComDados    = mesesDetalhe.length || 1;
   const denominadorFinal = mesesComDados > 0 ? Math.round(sumDen / mesesComDados) : totalPatients;
   const denominadorTotal = denominadorFinal * 4;
 
@@ -658,16 +627,12 @@ function calcB6(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
-    const oficial = equipe
-      ? resolveOficialMes(m, year, equipe, "B6", oficialData?.index)
-      : null;
-
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B6", oficialData?.index) : null;
     const isOficial = !!oficial;
     const art = isOficial ? oficial!.num : prelData.exodontias;
     const tot = isOficial ? oficial!.den  : prelData.total;
 
     if (!isOficial) todosMesesOficiais = false;
-
     sumArt += art;
     sumTot += tot;
 
