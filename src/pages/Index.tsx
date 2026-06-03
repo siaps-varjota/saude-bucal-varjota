@@ -44,7 +44,8 @@ import { Tab6QuadrimesterCards } from "@/components/dashboard/Tab6QuadrimesterCa
 import { Tab3Table } from "@/components/dashboard/Tab3Table";
 import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, UserCheck, RefreshCw, LogOut } from "lucide-react";
+import { Users, UserCheck, RefreshCw, LogOut, Bug } from "lucide-react";
+import { DebugPanel } from "@/components/dashboard/DebugPanel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/hooks/usePatientData";
