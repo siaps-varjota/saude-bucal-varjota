@@ -300,7 +300,9 @@ function calcB1(
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B1", oficialData?.index) : null;
+    const oficial = equipe
+      ? resolveOficialMes(m, year, equipe, "B1", oficialData?.index)
+      : resolveOficialMesGeral(m, year, "B1", oficialData);
     const isOficial = !!oficial;
     const count = isOficial ? oficial!.num : prelCount;
     const den   = isOficial ? oficial!.den  : denominadorExterno;
@@ -384,7 +386,9 @@ function calcB2(
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B2", oficialData?.index) : null;
+    const oficial = equipe
+      ? resolveOficialMes(m, year, equipe, "B2", oficialData?.index)
+      : resolveOficialMesGeral(m, year, "B2", oficialData);
     const isOficial = !!oficial;
     const trat = isOficial ? oficial!.num : mTrat;
     const cons = isOficial ? oficial!.den  : mCons;
@@ -450,7 +454,9 @@ function calcB3(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B3", oficialData?.index) : null;
+    const oficial = equipe
+      ? resolveOficialMes(m, year, equipe, "B3", oficialData?.index)
+      : resolveOficialMesGeral(m, year, "B3", oficialData);
     const isOficial = !!oficial;
     const exo = isOficial ? oficial!.num : prelData.exodontias;
     const tot = isOficial ? oficial!.den  : prelData.total;
