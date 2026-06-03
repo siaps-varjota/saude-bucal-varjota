@@ -98,7 +98,7 @@ const parseCSV = (csv: string): Tab5Record[] => {
 };
 
 const fetchTab5Data = async (): Promise<Tab5Record[]> => {
-  const response = await fetch(CSV_URL);
+  const response = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Falha ao carregar dados");
   }

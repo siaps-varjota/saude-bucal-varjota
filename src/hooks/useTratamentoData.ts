@@ -58,7 +58,7 @@ const parseCSV = (csv: string): TratamentoPatient[] => {
 };
 
 const fetchTratamentoData = async (): Promise<TratamentoPatient[]> => {
-  const response = await fetch(CSV_URL);
+  const response = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Falha ao carregar dados");
   }
