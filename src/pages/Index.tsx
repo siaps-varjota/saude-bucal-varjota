@@ -159,14 +159,35 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey() as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
-  const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
-  const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
-  const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
-  const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
-  const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
-  const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
-  const { data: oficialData, refetch: refetchOficial } = useOficialData();
+  const qPatients    = usePatientData();
+  const qTratamento  = useTratamentoData();
+  const qTab3        = useTab3Data();
+  const qTab4        = useTab4Data();
+  const qTab5        = useTab5Data();
+  const qTab6        = useTab6Data();
+  const qDenominador = useDenominadorB1();
+  const qOficial     = useOficialData();
+
+  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = qPatients;
+  const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = qTratamento;
+  const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = qTab3;
+  const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = qTab4;
+  const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = qTab5;
+  const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = qTab6;
+  const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = qDenominador;
+  const { data: oficialData, refetch: refetchOficial } = qOficial;
+
+  const [debugMode, setDebugMode] = useState(false);
+  const debugSources = [
+    { name: "1ª Consulta (Tab 1)",   dataUpdatedAt: qPatients.dataUpdatedAt,    isFetching: qPatients.isFetching,    error: qPatients.error,    rows: patients?.length },
+    { name: "Tratamento (Tab 2)",    dataUpdatedAt: qTratamento.dataUpdatedAt,  isFetching: qTratamento.isFetching,  error: qTratamento.error,  rows: tratamentoPatients?.length },
+    { name: "Exodontias (Tab 3)",    dataUpdatedAt: qTab3.dataUpdatedAt,        isFetching: qTab3.isFetching,        error: qTab3.error,        rows: tab3Patients?.length },
+    { name: "Escovação (Tab 4)",     dataUpdatedAt: qTab4.dataUpdatedAt,        isFetching: qTab4.isFetching,        error: qTab4.error,        rows: tab4Patients?.length },
+    { name: "Preventivos (Tab 5)",   dataUpdatedAt: qTab5.dataUpdatedAt,        isFetching: qTab5.isFetching,        error: qTab5.error,        rows: tab5Patients?.length },
+    { name: "TRA (Tab 6)",           dataUpdatedAt: qTab6.dataUpdatedAt,        isFetching: qTab6.isFetching,        error: qTab6.error,        rows: tab6Patients?.length },
+    { name: "Denominador B1",        dataUpdatedAt: qDenominador.dataUpdatedAt, isFetching: qDenominador.isFetching, error: qDenominador.error, rows: denominadorB1Data ? Object.keys(denominadorB1Data.porEquipe).length : 0 },
+    { name: "Dados Oficiais",        dataUpdatedAt: qOficial.dataUpdatedAt,     isFetching: qOficial.isFetching,     error: qOficial.error,     rows: oficialData?.rows.length },
+  ];
 
   const initialFilter: FilterState = { equipes: [], microareas: [], status: "all", quadrimestres: [], mesReferencia: [] };
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>(initialFilter);
