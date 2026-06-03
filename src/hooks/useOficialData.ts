@@ -134,6 +134,8 @@ export const useOficialData = () =>
       const text = await res.text();
       return parseCSV(text);
     },
-    staleTime: 1000 * 60 * 10, // 10 min de cache
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     retry: 2,
   });

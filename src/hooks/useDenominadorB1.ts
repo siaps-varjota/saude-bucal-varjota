@@ -32,6 +32,8 @@ export function useDenominadorB1() {
   return useQuery({
     queryKey: ["denominadorB1"],
     queryFn: fetchDenominadorB1,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }

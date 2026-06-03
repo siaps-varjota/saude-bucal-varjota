@@ -70,6 +70,8 @@ export const useTab4Data = () => {
   return useQuery({
     queryKey: ["tab4-patients"],
     queryFn: fetchTab4Data,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };

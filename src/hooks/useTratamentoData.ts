@@ -102,6 +102,8 @@ export const useTratamentoData = () => {
   return useQuery({
     queryKey: ["tratamento"],
     queryFn: fetchTratamentoData,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };

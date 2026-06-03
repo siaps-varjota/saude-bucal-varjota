@@ -72,6 +72,8 @@ export const usePatientData = () => {
   return useQuery({
     queryKey: ["patients"],
     queryFn: fetchPatientData,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };

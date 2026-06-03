@@ -110,6 +110,8 @@ export const useTab5Data = () => {
   return useQuery({
     queryKey: ["tab5-data"],
     queryFn: fetchTab5Data,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };

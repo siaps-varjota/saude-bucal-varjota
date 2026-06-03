@@ -106,6 +106,8 @@ export const useTab6Data = () => {
   return useQuery({
     queryKey: ["tab6-data"],
     queryFn: fetchTab6Data,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };
