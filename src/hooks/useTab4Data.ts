@@ -58,7 +58,7 @@ const parseCSV = (csv: string): Tab4Patient[] => {
 };
 
 const fetchTab4Data = async (): Promise<Tab4Patient[]> => {
-  const response = await fetch(CSV_URL);
+  const response = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Falha ao carregar dados");
   }
@@ -70,6 +70,8 @@ export const useTab4Data = () => {
   return useQuery({
     queryKey: ["tab4-patients"],
     queryFn: fetchTab4Data,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };

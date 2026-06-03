@@ -9,7 +9,7 @@ export interface DenominadorB1Data {
 }
 
 const fetchDenominadorB1 = async (): Promise<DenominadorB1Data> => {
-  const response = await fetch(CSV_URL);
+  const response = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const text = await response.text();
   const lines = text.trim().split("\n");
@@ -32,6 +32,8 @@ export function useDenominadorB1() {
   return useQuery({
     queryKey: ["denominadorB1"],
     queryFn: fetchDenominadorB1,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }

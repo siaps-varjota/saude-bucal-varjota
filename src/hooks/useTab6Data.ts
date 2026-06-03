@@ -94,7 +94,7 @@ const parseCSV = (csv: string): Tab6Record[] => {
 };
 
 const fetchTab6Data = async (): Promise<Tab6Record[]> => {
-  const response = await fetch(CSV_URL);
+  const response = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Falha ao carregar dados");
   }
@@ -106,6 +106,8 @@ export const useTab6Data = () => {
   return useQuery({
     queryKey: ["tab6-data"],
     queryFn: fetchTab6Data,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };

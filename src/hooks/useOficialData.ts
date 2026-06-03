@@ -129,11 +129,13 @@ export const useOficialData = () =>
   useQuery<OficialData>({
     queryKey: ["oficial-data"],
     queryFn: async () => {
-      const res = await fetch(CSV_URL);
+      const res = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Erro ao buscar CSV oficial: ${res.status}`);
       const text = await res.text();
       return parseCSV(text);
     },
-    staleTime: 1000 * 60 * 10, // 10 min de cache
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     retry: 2,
   });
