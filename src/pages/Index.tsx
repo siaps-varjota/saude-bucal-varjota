@@ -175,7 +175,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = qTab4;
   const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = qTab5;
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = qTab6;
-  const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = qDenominador;
+  const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1, refetch: refetchDenominadorB1 } = qDenominador;
   const { data: oficialData, refetch: refetchOficial } = qOficial;
 
   const [debugMode, setDebugMode] = useState(false);
@@ -279,6 +279,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     refetchTab4();
     refetchTab5();
     refetchTab6();
+    refetchDenominadorB1();
     refetchOficial();
   };
 
@@ -291,8 +292,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
       case "tab5":       return { error: errorTab5,       isFetching: isFetchingTab5,       refetch: refetchTab5       };
       case "tab6":       return { error: errorTab6,       isFetching: isFetchingTab6,       refetch: refetchTab6       };
       case "resultado":  return {
-        error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
-        isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
+        error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6 || qDenominador.error || qOficial.error,
+        isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6 || qDenominador.isFetching || qOficial.isFetching,
         refetch: refetchAll,
       };
       default: return { error: null, isFetching: false, refetch: () => {} };
