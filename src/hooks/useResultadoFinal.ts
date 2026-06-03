@@ -209,6 +209,36 @@ function resolveOficialMes(
   return { num: ofRow[numKey] as number, den: ofRow[denKey] as number, isOficial: true };
 }
 
+function resolveOficialMesGeral(
+  monthIdx: number,
+  year: number,
+  indicador: BIndicador,
+  oficialData: OficialData | undefined,
+): { num: number; den: number; isOficial: boolean } | null {
+  if (!oficialData) return null;
+
+  const monthDate = new Date(year, monthIdx, 1);
+  const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
+  const csvField = INDICADOR_TO_CSV_FIELD[indicador];
+  const numKey = `num${csvField}` as keyof OficialData["rows"][number];
+  const denKey = `den${csvField}` as keyof OficialData["rows"][number];
+  const monthRows = oficialData.rows.filter((row) => row.mes === mesNorm);
+
+  const totalRow = monthRows.find((row) => normalizeEquipe(row.equipe) === "TODAS EQUIPES");
+  if (totalRow) {
+    return { num: totalRow[numKey] as number, den: totalRow[denKey] as number, isOficial: true };
+  }
+
+  const equipeRows = monthRows.filter((row) => normalizeEquipe(row.equipe) !== "TODAS EQUIPES");
+  if (equipeRows.length === 0) return null;
+
+  return {
+    num: equipeRows.reduce((sum, row) => sum + (row[numKey] as number), 0),
+    den: equipeRows.reduce((sum, row) => sum + (row[denKey] as number), 0),
+    isOficial: true,
+  };
+}
+
 function getAllEquipes(
   patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
   tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[]
