@@ -362,6 +362,14 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                 Atualizar dados
               </Button>
+              <Button
+                variant={debugMode ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setDebugMode((v) => !v)}
+                title="Modo de depuração"
+              >
+                <Bug className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={onLogout} title="Sair">
                 <LogOut className="h-4 w-4" />
               </Button>
