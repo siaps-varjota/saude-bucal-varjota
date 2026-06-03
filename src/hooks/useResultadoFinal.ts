@@ -522,7 +522,9 @@ function calcB4(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { preventivos: 0, total: 0 };
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index) : null;
+    const oficial = equipe
+      ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index)
+      : resolveOficialMesGeral(m, year, "B4", oficialData);
     const isOficial = !!oficial;
     const prev = isOficial ? oficial!.num : prelData.preventivos;
     const tot  = isOficial ? oficial!.den  : prelData.total;
@@ -593,7 +595,9 @@ function calcB5(
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index) : null;
+    const oficial = equipe
+      ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index)
+      : resolveOficialMesGeral(m, year, "B5", oficialData);
     const isOficial = !!oficial;
     const count = isOficial ? oficial!.num : prelCount;
     const den   = isOficial ? oficial!.den  : totalPatients;
@@ -663,7 +667,9 @@ function calcB6(
     if (skipMes(m, year, mesesFiltro)) return;
     const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B6", oficialData?.index) : null;
+    const oficial = equipe
+      ? resolveOficialMes(m, year, equipe, "B6", oficialData?.index)
+      : resolveOficialMesGeral(m, year, "B6", oficialData);
     const isOficial = !!oficial;
     const art = isOficial ? oficial!.num : prelData.exodontias;
     const tot = isOficial ? oficial!.den  : prelData.total;
