@@ -1224,7 +1224,11 @@ export const ResultadoFinalTab = ({
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2 ml-auto">
-          <PendenciasReportButton equipe={equipe} />
+          <PendenciasReportButton
+            equipe={equipe}
+            equipeResult={porEquipe.find((e) => e.equipe === equipe)}
+          />
+
           <Button variant="outline" size="sm" onClick={handleGeneratePDF} className="h-9 gap-2">
             <FileDown className="h-4 w-4" />
             Gerar PDF
