@@ -63,6 +63,7 @@ function calcFaltam(num: number, den: number, threshold: number, deltaNum: numbe
 }
 
 function buildSimRow(ind: IndicadorResult) {
+  const notaAtualPonderada = ind.nota * ind.peso;
   const cfg = SIM_CONFIG[ind.indicador];
   if (!cfg) {
     // B3 / B6 — sem simulação por incremento
@@ -72,7 +73,8 @@ function buildSimRow(ind: IndicadorResult) {
       conceitoAtual: conceitoLabel(ind.conceito),
       proximo: "—",
       faltam: "—",
-      notaProj: (ind.nota * ind.peso).toFixed(2).replace(".", ","),
+      notaProj: notaAtualPonderada.toFixed(2).replace(".", ","),
+      impacto: "—",
       obs: "Indicador sem simulação por incremento.",
     };
   }
@@ -83,13 +85,16 @@ function buildSimRow(ind: IndicadorResult) {
   const proximoThresh = isOtimo ? null : isBom ? cfg.thresholdOtimo : cfg.thresholdBom;
   const faltam = proximoThresh != null ? calcFaltam(ind.numerador, ind.denominador, proximoThresh, cfg.deltaNum, cfg.deltaDenom) : 0;
   const notaProjBase = isOtimo ? 1.0 : isBom ? 1.0 : 0.75;
+  const notaProjPonderada = notaProjBase * ind.peso;
+  const impactoPontos = notaProjPonderada - notaAtualPonderada;
   return {
     indicador: `${cfg.label} — ${ind.indicador}`,
     atual: `${ind.numerador}/${ind.denominador} (${pct.toFixed(1)}%)`,
     conceitoAtual: conceitoLabel(ind.conceito),
     proximo: proximoLabel ?? "—",
     faltam: isOtimo ? "✓ atingido" : `${faltam.toLocaleString("pt-BR")} ${cfg.unit}`,
-    notaProj: (notaProjBase * ind.peso).toFixed(2).replace(".", ","),
+    notaProj: notaProjPonderada.toFixed(2).replace(".", ","),
+    impacto: isOtimo || impactoPontos <= 0 ? "—" : `+${impactoPontos.toFixed(2).replace(".", ",")} pts`,
     obs: isOtimo ? "Já no Ótimo." : `Atinge ${proximoLabel?.split(" ")[0]} com +${faltam} ${cfg.unit}.`,
   };
 }
@@ -200,18 +205,19 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
 
         (doc as any).autoTable({
           startY: y + 3,
-          head: [["Indicador", "Atual", "Conceito Atual", "Próximo Conceito", "Faltam", "Nota Projetada"]],
-          body: simRows.map((r) => [r.indicador, r.atual, r.conceitoAtual, r.proximo, r.faltam, r.notaProj]),
+          head: [["Indicador", "Atual", "Conceito Atual", "Próximo Conceito", "Faltam", "Nota Projetada", "Impacto na Nota"]],
+          body: simRows.map((r) => [r.indicador, r.atual, r.conceitoAtual, r.proximo, r.faltam, r.notaProj, r.impacto]),
           theme: "grid",
           headStyles: { fillColor: [255, 237, 213], textColor: [120, 53, 15], fontStyle: "bold", fontSize: 8, halign: "center" },
           bodyStyles: { fontSize: 8 },
           columnStyles: {
-            0: { cellWidth: 75 },
-            1: { halign: "center", cellWidth: 35 },
-            2: { halign: "center", cellWidth: 28 },
-            3: { halign: "center", cellWidth: 45 },
-            4: { halign: "center", cellWidth: 45 },
-            5: { halign: "center", cellWidth: 25, fontStyle: "bold" },
+            0: { cellWidth: 65 },
+            1: { halign: "center", cellWidth: 32 },
+            2: { halign: "center", cellWidth: 25 },
+            3: { halign: "center", cellWidth: 40 },
+            4: { halign: "center", cellWidth: 40 },
+            5: { halign: "center", cellWidth: 22, fontStyle: "bold" },
+            6: { halign: "center", cellWidth: 26, fontStyle: "bold", textColor: [21, 128, 61] },
           },
           margin: { left: 14, right: 14 },
           alternateRowStyles: { fillColor: [253, 250, 245] },
@@ -231,71 +237,32 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7);
         y += 4;
-        doc.text(
-          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den). B3 e B6 não usam simulação por incremento.",
-          14,
-          y,
+        const rodapeTexto = doc.splitTextToSize(
+          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den). B3 e B6 não usam simulação por incremento. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador especificamente ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
+          pageW - 28,
         );
-        y += 6;
+        doc.text(rodapeTexto, 14, y);
+        y += rodapeTexto.length * 3 + 3;
       }
 
 
 
-      const drawTable = (title: string, rows: any[], headers: string[], keys: string[]) => {
-        if (y > 180) { doc.addPage(); y = 15; }
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(30);
-        doc.text(`${title} (${rows.length})`, 14, y);
-        y += 4;
-        (doc as any).autoTable({
-          startY: y,
-          head: [headers],
-          body: rows.length
-            ? rows.map((r, i) => [String(i + 1), ...keys.map((k) => r[k] ?? "-")])
-            : [["", "Sem registros pendentes", ...keys.slice(1).map(() => "")]],
-          theme: "grid",
-          headStyles: { fillColor: [245, 245, 245], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 8, halign: "center" },
-          bodyStyles: { fontSize: 8 },
-          columnStyles: { 0: { halign: "center", cellWidth: 10 }, 3: { halign: "left" } },
-          showHead: "everyPage",
-          margin: { left: 14, right: 14 },
-          alternateRowStyles: { fillColor: [250, 250, 250] },
-          styles: { overflow: "linebreak", cellPadding: 2 },
-        });
-        y = (doc as any).lastAutoTable.finalY + 8;
-      };
-
-      drawTable(
-        "B1 — Pacientes sem 1ª Consulta Odontológica",
-        b1Pendentes.map((p) => ({
-          microarea: p.microarea,
-          equipe: normalizeEquipe(p.equipe),
-          nome: p.nome,
-          idade: String(p.idade),
-          sexo: p.sexo,
-          cpfCns: p.cpfCns,
-          primeiraConsulta: p.primeiraConsulta || "-",
-        })),
-        ["#", "Microárea", "Equipe", "Nome", "Idade", "Sexo", "CPF/CNS", "Última 1ª Consulta"],
-        ["microarea", "equipe", "nome", "idade", "sexo", "cpfCns", "primeiraConsulta"],
+      // Nota: as listas nominais de pacientes pendentes (B1/B2) não são mais
+      // impressas neste relatório consolidado por equipe — apenas as contagens
+      // (cards de Resumo, acima) e a simulação de impacto na nota.
+      if (y > 180) { doc.addPage(); y = 15; }
+      doc.setDrawColor(220);
+      doc.setFillColor(250, 250, 250);
+      doc.roundedRect(14, y, pageW - 28, 16, 2, 2, "FD");
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(90);
+      const notaRodape = doc.splitTextToSize(
+        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte a tela de pacientes/tratamentos filtrada pela equipe selecionada para visualizar os nomes individuais.",
+        pageW - 36,
       );
-
-      drawTable(
-        "B2 — Pacientes com Tratamento Pendente",
-        b2Pendentes.map((p) => ({
-          microarea: p.microarea,
-          equipe: normalizeEquipe(p.equipe),
-          nome: p.nome,
-          idade: String(p.idade),
-          sexo: p.sexo,
-          cpfCns: p.cpfCns,
-          primeiraConsulta: p.primeiraConsulta || "-",
-          status: p.comTratamentoConcluido || "Pendente",
-        })),
-        ["#", "Microárea", "Equipe", "Nome", "Idade", "Sexo", "CPF/CNS", "1ª Consulta", "Status"],
-        ["microarea", "equipe", "nome", "idade", "sexo", "cpfCns", "primeiraConsulta", "status"],
-      );
+      doc.text(notaRodape, 14 + 4, y + 6);
+      y += 20;
 
       const slug = equipe.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       doc.save(`pendencias-${slug}-${new Date().toISOString().split("T")[0]}.pdf`);
