@@ -172,6 +172,75 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       });
       y += cardH + 8;
 
+      // ── Resumo de Simulação por Indicador ─────────────────────────────────
+      if (equipeResult && equipeResult.indicadores?.length) {
+        if (y > 160) { doc.addPage(); y = 15; }
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30);
+        doc.text("Resumo de Simulação — Próximo Conceito por Indicador", 14, y);
+        y += 2;
+
+        const ordem = ["1ª Consulta Odontológica", "Tratamento Concluído", "Taxa de Exodontias", "Proced. Odont. Preventivos", "Escovação Supervisionada", "Trat. Restaurador Atraumático"];
+        const indSorted = [...equipeResult.indicadores].sort(
+          (a, b) => ordem.indexOf(a.indicador) - ordem.indexOf(b.indicador),
+        );
+
+        const simRows = indSorted.map(buildSimRow);
+        const notaAtual = equipeResult.notaFinal;
+        const notaProjTotal = indSorted.reduce((acc, ind) => {
+          const cfg = SIM_CONFIG[ind.indicador];
+          if (!cfg) return acc + ind.nota * ind.peso;
+          const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
+          const isOtimo = pct > cfg.thresholdOtimo * 100;
+          const isBom = pct > cfg.thresholdBom * 100;
+          const notaBase = isOtimo ? 1.0 : isBom ? 1.0 : 0.75;
+          return acc + notaBase * ind.peso;
+        }, 0);
+
+        (doc as any).autoTable({
+          startY: y + 3,
+          head: [["Indicador", "Atual", "Conceito Atual", "Próximo Conceito", "Faltam", "Nota Projetada"]],
+          body: simRows.map((r) => [r.indicador, r.atual, r.conceitoAtual, r.proximo, r.faltam, r.notaProj]),
+          theme: "grid",
+          headStyles: { fillColor: [255, 237, 213], textColor: [120, 53, 15], fontStyle: "bold", fontSize: 8, halign: "center" },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: {
+            0: { cellWidth: 75 },
+            1: { halign: "center", cellWidth: 35 },
+            2: { halign: "center", cellWidth: 28 },
+            3: { halign: "center", cellWidth: 45 },
+            4: { halign: "center", cellWidth: 45 },
+            5: { halign: "center", cellWidth: 25, fontStyle: "bold" },
+          },
+          margin: { left: 14, right: 14 },
+          alternateRowStyles: { fillColor: [253, 250, 245] },
+          styles: { overflow: "linebreak", cellPadding: 2 },
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(120, 53, 15);
+        doc.text(
+          `Nota Final Atual: ${notaAtual.toFixed(2).replace(".", ",")}   |   Nota Final Projetada (todos sobem de conceito): ${notaProjTotal.toFixed(2).replace(".", ",")}`,
+          14,
+          y,
+        );
+        doc.setTextColor(110);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        y += 4;
+        doc.text(
+          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den). B3 e B6 não usam simulação por incremento.",
+          14,
+          y,
+        );
+        y += 6;
+      }
+
+
+
       const drawTable = (title: string, rows: any[], headers: string[], keys: string[]) => {
         if (y > 180) { doc.addPage(); y = 15; }
         doc.setFontSize(12);
