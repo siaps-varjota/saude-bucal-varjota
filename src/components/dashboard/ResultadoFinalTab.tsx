@@ -13,6 +13,7 @@ import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFin
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
+import { PendenciasReportButton } from "./PendenciasReportButton";
 
 interface ResultadoFinalTabProps {
   geral: EquipeResult;
