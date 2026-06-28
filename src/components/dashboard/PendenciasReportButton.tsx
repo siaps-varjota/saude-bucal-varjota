@@ -4,17 +4,101 @@ import { toast } from "sonner";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
+import type { EquipeResult, IndicadorResult } from "@/hooks/useResultadoFinal";
 
 interface Props {
   equipe: string; // "all" or specific equipe name
+  equipeResult?: EquipeResult; // resultado calculado da equipe selecionada
 }
 
 const normalizeEquipe = (e: string) => e.replace(/ESF/gi, "ESB").trim();
 
-export const PendenciasReportButton = ({ equipe }: Props) => {
+// Espelho dos thresholds usados no ResultadoFinalTab (Bom/Ótimo) para simulação
+const SIM_CONFIG: Record<
+  string,
+  {
+    label: string;
+    unit: string;
+    deltaNum: number;
+    deltaDenom: number;
+    thresholdBom: number;
+    labelBom: string;
+    thresholdOtimo: number;
+    labelOtimo: string;
+  }
+> = {
+  "1ª Consulta Odontológica": {
+    label: "B1", unit: "atend.", deltaNum: 1, deltaDenom: 0,
+    thresholdBom: 0.0075, labelBom: "> 0,75%",
+    thresholdOtimo: 0.0125, labelOtimo: "> 1,25%",
+  },
+  "Tratamento Concluído": {
+    label: "B2", unit: "trat.", deltaNum: 1, deltaDenom: 0,
+    thresholdBom: 0.501, labelBom: "> 50%",
+    thresholdOtimo: 0.751, labelOtimo: "> 75%",
+  },
+  "Proced. Odont. Preventivos": {
+    label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2,
+    thresholdBom: 0.5499, labelBom: "≥ 55%",
+    thresholdOtimo: 0.6499, labelOtimo: "≥ 65%",
+  },
+  "Escovação Supervisionada": {
+    label: "B4", unit: "consultas", deltaNum: 1, deltaDenom: 0,
+    thresholdBom: 0.005, labelBom: "> 0,5%",
+    thresholdOtimo: 0.01, labelOtimo: "> 1%",
+  },
+};
+
+const conceitoLabel = (c: string) =>
+  c === "otimo" ? "Ótimo" : c === "bom" ? "Bom" : c === "suficiente" ? "Suficiente" : c === "regular" ? "Regular" : "—";
+
+function calcFaltam(num: number, den: number, threshold: number, deltaNum: number, deltaDenom: number): number {
+  if (den > 0 && num / den >= threshold) return 0;
+  if (deltaDenom > 0) {
+    const d = deltaNum - deltaDenom * threshold;
+    if (d <= 0) return 0;
+    return Math.max(0, Math.ceil((threshold * den - num) / d));
+  }
+  return Math.max(0, Math.ceil(den * threshold) - num);
+}
+
+function buildSimRow(ind: IndicadorResult) {
+  const cfg = SIM_CONFIG[ind.indicador];
+  if (!cfg) {
+    // B3 / B6 — sem simulação por incremento
+    return {
+      indicador: ind.indicador,
+      atual: `${ind.numerador}/${ind.denominador} (${ind.porcentagem.toFixed(1)}%)`,
+      conceitoAtual: conceitoLabel(ind.conceito),
+      proximo: "—",
+      faltam: "—",
+      notaProj: (ind.nota * ind.peso).toFixed(2).replace(".", ","),
+      obs: "Indicador sem simulação por incremento.",
+    };
+  }
+  const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
+  const isOtimo = pct > cfg.thresholdOtimo * 100;
+  const isBom = pct > cfg.thresholdBom * 100;
+  const proximoLabel = isOtimo ? null : isBom ? `Ótimo (${cfg.labelOtimo})` : `Bom (${cfg.labelBom})`;
+  const proximoThresh = isOtimo ? null : isBom ? cfg.thresholdOtimo : cfg.thresholdBom;
+  const faltam = proximoThresh != null ? calcFaltam(ind.numerador, ind.denominador, proximoThresh, cfg.deltaNum, cfg.deltaDenom) : 0;
+  const notaProjBase = isOtimo ? 1.0 : isBom ? 1.0 : 0.75;
+  return {
+    indicador: `${cfg.label} — ${ind.indicador}`,
+    atual: `${ind.numerador}/${ind.denominador} (${pct.toFixed(1)}%)`,
+    conceitoAtual: conceitoLabel(ind.conceito),
+    proximo: proximoLabel ?? "—",
+    faltam: isOtimo ? "✓ atingido" : `${faltam.toLocaleString("pt-BR")} ${cfg.unit}`,
+    notaProj: (notaProjBase * ind.peso).toFixed(2).replace(".", ","),
+    obs: isOtimo ? "Já no Ótimo." : `Atinge ${proximoLabel?.split(" ")[0]} com +${faltam} ${cfg.unit}.`,
+  };
+}
+
+export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
   const { data: patients = [] } = usePatientData();
   const { data: tratamentos = [] } = useTratamentoData();
   const disabled = !equipe || equipe === "all";
+
 
   const handleGenerate = async () => {
     if (disabled) return;
