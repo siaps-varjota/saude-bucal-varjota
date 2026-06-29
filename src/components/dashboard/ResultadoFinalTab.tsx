@@ -558,24 +558,27 @@ const CorrelacaoCruzadaCard = ({
 
   return (
     <div
-      className={`flex flex-col justify-center rounded-lg px-3 py-2 shadow-sm min-w-[210px] border ${
+      className={`flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 shadow-sm w-full border ${
         temConflito ? "bg-rose-50 border-rose-200" : "bg-sky-50 border-sky-200"
       }`}
     >
-      <p className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${temConflito ? "text-rose-700" : "text-sky-700"}`}>
-        Correlação SIGTAP
-      </p>
-      <p className="text-[10px] text-muted-foreground leading-snug mb-1.5">
-        Mesmos procedimentos entram no denominador de:
-      </p>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col shrink-0">
+        <p className={`text-[10px] font-bold uppercase tracking-wide ${temConflito ? "text-rose-700" : "text-sky-700"}`}>
+          Correlação SIGTAP
+        </p>
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Mesmos procedimentos no denominador de:
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         {linhas.map(({ rel, direcaoRel }) => {
           const conflitoLinha =
             (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
             (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel");
           return (
-            <div key={rel.indicador} className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-foreground truncate" title={rel.indicador}>
+            <div key={rel.indicador} className="flex items-center gap-2">
+              <span className="text-[10px] text-foreground" title={rel.indicador}>
                 {rel.indicador}
               </span>
               <Badge
@@ -588,12 +591,13 @@ const CorrelacaoCruzadaCard = ({
           );
         })}
       </div>
+
       {temConflito ? (
-        <p className="text-[10px] font-medium text-rose-600 mt-1.5 leading-snug">
+        <p className="text-[10px] font-medium text-rose-600 leading-snug flex-1 min-w-[200px]">
           Movimento divergente: verifique se o ganho aqui não decorre de procedimentos que penalizam o indicador relacionado.
         </p>
       ) : (
-        <p className="text-[10px] font-medium text-sky-600 mt-1.5">
+        <p className="text-[10px] font-medium text-sky-600">
           Sem divergência no momento.
         </p>
       )}
@@ -676,7 +680,7 @@ const DetalheRow = ({
   const b2 = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
   const b5 = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
-  const hasLeftCol = metaThresholds || hasMeses || hasCruzadoCard;
+  const hasLeftCol = metaThresholds || hasMeses;
 
   return (
     <TableRow className="bg-muted/20">
@@ -706,13 +710,6 @@ const DetalheRow = ({
                     })}
                   </div>
                 )}
-
-                {hasCruzadoCard && (
-                  <div className="flex items-stretch gap-2 flex-wrap">
-                    <CorrelacaoCruzadaCard ind={ind} todosIndicadores={todosIndicadores} />
-                  </div>
-                )}
-
 
                 {hasMeses && (
                   <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm flex-grow">
@@ -745,17 +742,22 @@ const DetalheRow = ({
               </div>
             )}
 
-            {hasSimCard && (
-              <div className="self-stretch flex flex-col">
-                <SimulacaoCard
-                  b1Numerador={b1?.numerador ?? 0}
-                  b1Denominador={b1?.denominador ?? 0}
-                  b2Numerador={b2?.numerador ?? 0}
-                  b2Denominador={b2?.denominador ?? 0}
-                  b5Numerador={b5?.numerador ?? 0}
-                  b5Denominador={b5?.denominador ?? 0}
-                  todosIndicadores={todosIndicadores}
-                />
+            {(hasSimCard || hasCruzadoCard) && (
+              <div className="self-stretch flex flex-col gap-2">
+                {hasSimCard && (
+                  <SimulacaoCard
+                    b1Numerador={b1?.numerador ?? 0}
+                    b1Denominador={b1?.denominador ?? 0}
+                    b2Numerador={b2?.numerador ?? 0}
+                    b2Denominador={b2?.denominador ?? 0}
+                    b5Numerador={b5?.numerador ?? 0}
+                    b5Denominador={b5?.denominador ?? 0}
+                    todosIndicadores={todosIndicadores}
+                  />
+                )}
+                {hasCruzadoCard && (
+                  <CorrelacaoCruzadaCard ind={ind} todosIndicadores={todosIndicadores} />
+                )}
               </div>
             )}
           </div>
