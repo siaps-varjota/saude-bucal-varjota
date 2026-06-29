@@ -253,9 +253,9 @@ const ProjecaoBloco = ({
 }) => {
   const ganho = novaPct - pctAtual;
   return (
-    <div className="flex flex-col gap-1 min-w-[130px]">
+    <div className="flex flex-col gap-1 min-w-[110px] max-w-[150px]">
       <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">{titulo}</p>
-      <p className="text-[9px] text-muted-foreground leading-snug">{descricao}</p>
+      <p className="text-[9px] text-muted-foreground leading-snug whitespace-pre-line">{descricao}</p>
       <p className="text-sm font-mono font-bold leading-tight mt-0.5">
         {Number.isInteger(novoNum) ? novoNum.toLocaleString("pt-BR") : novoNum.toFixed(1)}
         <span className="text-xs font-normal text-muted-foreground"> / {novoDenom.toLocaleString("pt-BR")}</span>
@@ -469,7 +469,7 @@ const SimulacaoCard = ({
 
       <div className="w-full h-px bg-orange-200 mb-2" />
 
-      <div className="flex flex-wrap gap-x-4 gap-y-2 content-start">
+      <div className="flex gap-x-3 content-start">
         <ProjecaoBloco
           titulo="Projeção B1"
           descricao="consulta → +1 num (den fixo)"
@@ -483,7 +483,7 @@ const SimulacaoCard = ({
         <div className="w-px self-stretch bg-orange-200" />
         <ProjecaoBloco
           titulo="Projeção B2"
-          descricao="consulta → +0,5 num / +1 den · trat. → +1 num"
+          descricao={"consulta → +0,5 num / +1 den\ntrat. → +1 num"}
           novoNum={b2NovoNum}
           novoDenom={b2NovaDenom}
           novaPct={b2NovaPct}
@@ -494,7 +494,7 @@ const SimulacaoCard = ({
         <div className="w-px self-stretch bg-orange-200" />
         <ProjecaoBloco
           titulo="Projeção B3"
-          descricao="consulta ou trat. → +2 den (num fixo — menor-melhor)"
+          descricao={"consulta ou trat. → +2 den\n(num fixo — menor-melhor)"}
           novoNum={b3NovoNum}
           novoDenom={b3NovaDenom}
           novaPct={b3NovaPct}
