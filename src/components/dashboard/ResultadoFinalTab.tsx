@@ -381,13 +381,13 @@ const SimulacaoCard = ({
   const hasNota   = notaFinalAtual > 0;
 
   return (
-    <div className="flex flex-col h-full bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 shadow-sm">
-      <div className="flex items-center gap-1.5 mb-3">
+    <div className="flex flex-col w-full max-w-[640px] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-2">
         <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
         <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Simulação</span>
       </div>
 
-      <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+      <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
         <div className="flex items-start gap-5 flex-wrap">
           <InputStepper
             label="+ adicionar"
@@ -430,9 +430,9 @@ const SimulacaoCard = ({
         )}
       </div>
 
-      <div className="w-full h-px bg-orange-200 mb-3" />
+      <div className="w-full h-px bg-orange-200 mb-2" />
 
-      <div className="flex flex-wrap gap-x-5 gap-y-3 flex-grow content-start">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 content-start">
         <ProjecaoBloco
           titulo="Projeção B1"
           descricao="consulta → +1 num (den fixo)"
@@ -521,10 +521,86 @@ const STATUS_CONFIG: Record<string, { label: string; unit: string; deltaNum: num
   "Proced. Odont. Preventivos": { label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2 },
 };
 
+// ── Causa da divergência e ação recomendada, por indicador ──────────────────
+// Texto fixo derivado das Notas Metodológicas B3/B5/B6 — explica POR QUE a
+// divergência acontece (qual código SIGTAP é compartilhado) e O QUE fazer
+// na rotina clínica para melhorar especificamente aquele indicador.
+const CAUSA_E_ACAO: Partial<Record<string, { causa: string; acao: string }>> = {
+  "Taxa de Exodontias": {
+    causa: "Toda exodontia (04.14.02.013-8 / 014-6) soma no numerador de B3 e, ao mesmo tempo, entra no denominador de B5 — diluindo a % de preventivos sem mexer no numerador de B5.",
+    acao: "Priorizar diagnóstico precoce e procedimentos preventivos/curativos antes da indicação de exodontia, quando clinicamente viável.",
+  },
+  "Proced. Odont. Preventivos": {
+    causa: "Exodontias e restaurações convencionais entram no denominador de B5 sem entrar no numerador — cada uma dessas dilui a % de preventivos, mesmo que o número absoluto de preventivos não caia.",
+    acao: "Aumentar o registro de procedimentos preventivos (flúor, selante, profilaxia, orientação de higiene) no mesmo volume de atendimentos, e considerar ART em vez de restauração convencional quando indicado.",
+  },
+  "Trat. Restaurador Atraumático": {
+    causa: "Restaurações convencionais (resina/ionômero) competem pelo mesmo denominador do ART (total de procedimentos restauradores) sem entrar no numerador de B6.",
+    acao: "Substituir restaurações convencionais por ART (03.07.01.007-4) quando clinicamente indicado — cada substituição soma no numerador de B6 sem aumentar o denominador.",
+  },
+};
+
+// ── Efeito estimado de cada procedimento candidato sobre os 3 indicadores ───
+// "unidade" é 1 lançamento do procedimento. Cada efeito descreve o delta no
+// numerador e no denominador do indicador afetado (em unidades de
+// procedimento), com base nas regras de cálculo das Notas Metodológicas.
+// Isto é uma ESTIMATIVA PROPORCIONAL sobre os totais agregados já calculados
+// (numerador/denominador atuais de cada indicador) — não uma contagem real
+// de procedimentos individuais, que esta tela não possui por código SIGTAP.
+type EfeitoIndicador = { indicador: string; deltaNum: number; deltaDenom: number };
+const PROCEDIMENTO_CANDIDATOS: Record<
+  string,
+  { label: string; efeitos: EfeitoIndicador[] }
+> = {
+  art: {
+    label: "ART (em vez de restauração convencional)",
+    efeitos: [
+      // B6: ART soma 1 no numerador (é o próprio ART) e 1 no denominador
+      // (toda restauração, incluindo ART, compõe o denominador de B6).
+      { indicador: "Trat. Restaurador Atraumático", deltaNum: 1, deltaDenom: 1 },
+      // B3: ART não é exodontia (deltaNum 0), mas compõe o denominador de B3.
+      { indicador: "Taxa de Exodontias",             deltaNum: 0, deltaDenom: 1 },
+      // B5: ART não é "preventivo" (deltaNum 0), mas compõe o denominador de B5.
+      { indicador: "Proced. Odont. Preventivos",     deltaNum: 0, deltaDenom: 1 },
+    ],
+  },
+  preventivo: {
+    label: "Procedimento preventivo (flúor, selante, profilaxia...)",
+    efeitos: [
+      // B5: soma 1 no numerador (é preventivo) e 1 no denominador.
+      { indicador: "Proced. Odont. Preventivos",     deltaNum: 1, deltaDenom: 1 },
+      // B3: a maior parte dos preventivos também compõe o denominador de B3.
+      { indicador: "Taxa de Exodontias",             deltaNum: 0, deltaDenom: 1 },
+    ],
+  },
+  restauracaoConvencional: {
+    label: "Restauração convencional",
+    efeitos: [
+      // B6: compõe o denominador (é restauração) mas não o numerador (não é ART).
+      { indicador: "Trat. Restaurador Atraumático", deltaNum: 0, deltaDenom: 1 },
+      // B3 e B5: idem — só dilui o denominador.
+      { indicador: "Taxa de Exodontias",             deltaNum: 0, deltaDenom: 1 },
+      { indicador: "Proced. Odont. Preventivos",     deltaNum: 0, deltaDenom: 1 },
+    ],
+  },
+};
+
+// Sugere, por indicador em foco, qual procedimento-candidato é a "ação direta"
+// que melhora aquele indicador especificamente — usado para pré-selecionar a
+// opção recomendada no simulador. Para B3 (menor-melhor), aumentar preventivos
+// dilui o denominador sem tocar o numerador de exodontias, o que já melhora
+// a taxa — por isso a ação direta de B3 também é "preventivo".
+const ACAO_DIRETA_POR_INDICADOR: Partial<Record<string, keyof typeof PROCEDIMENTO_CANDIDATOS>> = {
+  "Trat. Restaurador Atraumático": "art",
+  "Proced. Odont. Preventivos":    "preventivo",
+  "Taxa de Exodontias":            "preventivo",
+};
+
 // ── Card de correlação cruzada B3 / B5 / B6 ──────────────────────────────────
 // Mostra, ao lado do indicador expandido, o estado dos indicadores que
 // compartilham códigos SIGTAP no denominador — para sinalizar quando uma
-// melhora em um decorre (ou ocorre às custas) de um movimento no outro.
+// melhora em um decorre (ou ocorre às custas) de um movimento no outro, por
+// que isso acontece, o que fazer, e o efeito quantitativo estimado.
 const CorrelacaoCruzadaCard = ({
   ind,
   todosIndicadores,
@@ -532,6 +608,9 @@ const CorrelacaoCruzadaCard = ({
   ind: IndicadorResult;
   todosIndicadores?: IndicadorResult[];
 }) => {
+  const [rawQtd, setRawQtd] = useState("0");
+  const qtd = Math.max(0, parseInt(rawQtd, 10) || 0);
+
   const relacionados = CRUZADO_RELACIONADOS[ind.indicador];
   if (!relacionados || !todosIndicadores) return null;
 
@@ -556,50 +635,151 @@ const CorrelacaoCruzadaCard = ({
       (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel"),
   );
 
+  const infoCausal = CAUSA_E_ACAO[ind.indicador];
+  const acaoKey = ACAO_DIRETA_POR_INDICADOR[ind.indicador];
+  const candidato = acaoKey ? PROCEDIMENTO_CANDIDATOS[acaoKey] : undefined;
+
+  // Para cada indicador da tríade (o próprio + relacionados), calcula a nova
+  // % se "qtd" unidades do procedimento-candidato forem lançadas, a partir
+  // dos totais agregados já calculados (numerador/denominador atuais).
+  // É uma projeção proporcional — não uma contagem real por código SIGTAP.
+  const todosTriade = [ind, ...linhas.map((l) => l.rel)];
+  const projecoes = candidato
+    ? todosTriade.map((indAlvo) => {
+        const efeito = candidato.efeitos.find((e) => e.indicador === indAlvo.indicador);
+        const dNum = (efeito?.deltaNum ?? 0) * qtd;
+        const dDen = (efeito?.deltaDenom ?? 0) * qtd;
+        const novoNum = indAlvo.numerador + dNum;
+        const novoDenom = indAlvo.denominador + dDen;
+        const pctAtual = indAlvo.denominador > 0 ? (indAlvo.numerador / indAlvo.denominador) * 100 : 0;
+        const novaPct = novoDenom > 0 ? (novoNum / novoDenom) * 100 : 0;
+        return { indAlvo, pctAtual, novaPct, afetado: !!efeito };
+      })
+    : [];
+
   return (
     <div
-      className={`flex flex-wrap items-center gap-3 rounded-lg px-3 py-2 shadow-sm w-full border ${
+      className={`flex flex-col gap-2.5 rounded-lg px-3 py-2.5 shadow-sm w-full max-w-[640px] border ${
         temConflito ? "bg-rose-50 border-rose-200" : "bg-sky-50 border-sky-200"
       }`}
     >
-      <div className="flex flex-col shrink-0">
-        <p className={`text-[10px] font-bold uppercase tracking-wide ${temConflito ? "text-rose-700" : "text-sky-700"}`}>
-          Correlação SIGTAP
-        </p>
-        <p className="text-[10px] text-muted-foreground leading-snug">
-          Mesmos procedimentos no denominador de:
-        </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col shrink-0">
+          <p className={`text-[10px] font-bold uppercase tracking-wide ${temConflito ? "text-rose-700" : "text-sky-700"}`}>
+            Correlação SIGTAP
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-snug">
+            Mesmos procedimentos no denominador de:
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {linhas.map(({ rel, direcaoRel }) => {
+            const conflitoLinha =
+              (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
+              (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel");
+            return (
+              <div key={rel.indicador} className="flex items-center gap-2">
+                <span className="text-[10px] text-foreground" title={rel.indicador}>
+                  {rel.indicador}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={`${CONCEITO_COLORS[rel.conceito]} text-[10px] shrink-0 ${conflitoLinha ? "ring-1 ring-rose-400" : ""}`}
+                >
+                  {CONCEITO_LABELS[rel.conceito]}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+
+        {temConflito ? (
+          <p className="text-[10px] font-medium text-rose-600 leading-snug flex-1 min-w-[200px]">
+            Movimento divergente: verifique se o ganho aqui não decorre de procedimentos que penalizam o indicador relacionado.
+          </p>
+        ) : (
+          <p className="text-[10px] font-medium text-sky-600">
+            Sem divergência no momento.
+          </p>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        {linhas.map(({ rel, direcaoRel }) => {
-          const conflitoLinha =
-            (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
-            (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel");
-          return (
-            <div key={rel.indicador} className="flex items-center gap-2">
-              <span className="text-[10px] text-foreground" title={rel.indicador}>
-                {rel.indicador}
+      {infoCausal && (
+        <div className="w-full h-px bg-current opacity-10" />
+      )}
+
+      {infoCausal && (
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] text-foreground leading-snug">
+            <span className={`font-bold ${temConflito ? "text-rose-700" : "text-sky-700"}`}>Por quê: </span>
+            {infoCausal.causa}
+          </p>
+          <p className="text-[10px] text-foreground leading-snug">
+            <span className={`font-bold ${temConflito ? "text-rose-700" : "text-sky-700"}`}>O que fazer: </span>
+            {infoCausal.acao}
+          </p>
+        </div>
+      )}
+
+      {candidato && (
+        <>
+          <div className="w-full h-px bg-current opacity-10" />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col items-center gap-0.5 shrink-0">
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                simular +N · {candidato.label}
               </span>
-              <Badge
-                variant="outline"
-                className={`${CONCEITO_COLORS[rel.conceito]} text-[10px] shrink-0 ${conflitoLinha ? "ring-1 ring-rose-400" : ""}`}
-              >
-                {CONCEITO_LABELS[rel.conceito]}
-              </Badge>
+              <div className="flex items-center gap-1">
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); setRawQtd(String(Math.max(0, qtd - 1))); }}
+                  className="w-6 h-6 flex items-center justify-center rounded border border-current opacity-70 hover:opacity-100 font-bold text-sm select-none"
+                >−</button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={rawQtd}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "");
+                    setRawQtd(v === "" ? "0" : v);
+                  }}
+                  onFocus={(e) => e.target.select()}
+                  className="w-14 h-6 text-center text-sm font-mono font-bold border border-current rounded bg-background focus:outline-none"
+                />
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); setRawQtd(String(qtd + 1)); }}
+                  className="w-6 h-6 flex items-center justify-center rounded border border-current opacity-70 hover:opacity-100 font-bold text-sm select-none"
+                >+</button>
+              </div>
             </div>
-          );
-        })}
-      </div>
 
-      {temConflito ? (
-        <p className="text-[10px] font-medium text-rose-600 leading-snug flex-1 min-w-[200px]">
-          Movimento divergente: verifique se o ganho aqui não decorre de procedimentos que penalizam o indicador relacionado.
-        </p>
-      ) : (
-        <p className="text-[10px] font-medium text-sky-600">
-          Sem divergência no momento.
-        </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {projecoes.map(({ indAlvo, pctAtual, novaPct, afetado }) => {
+                const ganho = novaPct - pctAtual;
+                const polaridade = POLARIDADE[indAlvo.indicador];
+                const isBomGanho = polaridade === "menor_melhor" ? ganho <= 0 : ganho >= 0;
+                return (
+                  <div key={indAlvo.indicador} className="flex items-baseline gap-1.5">
+                    <span className="text-[10px] text-muted-foreground" title={indAlvo.indicador}>
+                      {indAlvo.indicador}:
+                    </span>
+                    <span className="text-[11px] font-mono font-bold">
+                      {novaPct.toFixed(1)}%
+                    </span>
+                    {qtd > 0 && afetado && ganho !== 0 && (
+                      <span className={`text-[10px] font-medium ${isBomGanho ? "text-emerald-600" : "text-red-600"}`}>
+                        ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <p className="text-[9px] text-muted-foreground leading-snug">
+            Estimativa proporcional sobre os totais atuais — não é uma contagem real por procedimento individual.
+          </p>
+        </>
       )}
     </div>
   );
@@ -743,7 +923,7 @@ const DetalheRow = ({
             )}
 
             {(hasSimCard || hasCruzadoCard) && (
-              <div className="self-stretch flex flex-col gap-2">
+              <div className="self-start flex flex-col gap-2">
                 {hasSimCard && (
                   <SimulacaoCard
                     b1Numerador={b1?.numerador ?? 0}
