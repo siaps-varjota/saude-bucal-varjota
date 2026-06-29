@@ -119,6 +119,27 @@ function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHO
   return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
 }
 
+// ── B3 (Taxa de Exodontias) — menor-melhor, faixa NÃO monotônica ────────────
+// Conforme Nota Metodológica B3: Ótimo é uma faixa intermediária (≥3% e <10%),
+// não o extremo — abaixo de 3% também é Regular. derivaConceito() genérico
+// (que assume "maior % = melhor", crescente) não serve aqui; B3 precisa de
+// função própria fiel à tabela de parâmetros da nota metodológica:
+//   Ótimo:      ≥ 3%  e < 10%
+//   Bom:        ≥ 10% e < 12%
+//   Suficiente: ≥ 12% e < 14%
+//   Regular:    < 3%  ou ≥ 14%
+function derivaConceitoB3(pct: number): {
+  label: string; textColor: string; bgBorder: string; nota: string;
+} {
+  if (pct >= 3 && pct < 10)
+    return { label: "Ótimo",      textColor: "text-blue-700",    bgBorder: "bg-blue-50 border-blue-200",       nota: "1,00" };
+  if (pct >= 10 && pct < 12)
+    return { label: "Bom",        textColor: "text-emerald-700", bgBorder: "bg-emerald-50 border-emerald-200", nota: "0,75" };
+  if (pct >= 12 && pct < 14)
+    return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "0,50" };
+  return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
+}
+
 // ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
 const MetaQuadrimestreCard = ({
   denominador,
