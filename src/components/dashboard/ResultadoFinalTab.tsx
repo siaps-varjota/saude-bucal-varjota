@@ -477,10 +477,128 @@ const STATUS_RELACIONADOS: Partial<Record<string, string[]>> = {
   "Proced. Odont. Preventivos": ["1ª Consulta Odontológica", "Tratamento Concluído"],
 };
 
+// ── Correlação cruzada B3 / B5 / B6 ──────────────────────────────────────────
+// Conforme as Notas Metodológicas (SIGTAP):
+//  · ART (03.07.01.007-4) é numerador de B6 e, simultaneamente, compõe os
+//    denominadores de B3 (proced. preventivos+curativos+exodontias) e B5
+//    (total de proced. individuais).
+//  · Restaurações convencionais (003-1, 008-2, 010-4, 011-2, 012-0) compõem
+//    os denominadores de B3, B5 e B6 ao mesmo tempo, sem entrar em nenhum
+//    numerador além do seu próprio indicador.
+//  · Exodontia (013-8 / 014-6) é numerador de B3 e também compõe o
+//    denominador de B5.
+// Por isso B3 (menor-melhor) e B5/B6 (maior-melhor) tendem a se mover em
+// direções opostas a partir do mesmo lançamento clínico — e essa correlação
+// não é visível olhando cada indicador isoladamente.
+const POLARIDADE: Partial<Record<string, "maior_melhor" | "menor_melhor">> = {
+  "Taxa de Exodontias":             "menor_melhor",
+  "Proced. Odont. Preventivos":     "maior_melhor",
+  "Trat. Restaurador Atraumático":  "maior_melhor",
+};
+
+const CRUZADO_RELACIONADOS: Partial<Record<string, string[]>> = {
+  "Taxa de Exodontias":            ["Proced. Odont. Preventivos", "Trat. Restaurador Atraumático"],
+  "Proced. Odont. Preventivos":    ["Taxa de Exodontias", "Trat. Restaurador Atraumático"],
+  "Trat. Restaurador Atraumático": ["Taxa de Exodontias", "Proced. Odont. Preventivos"],
+};
+
+// Conceito ordenado para permitir comparação de "subiu/caiu" entre indicadores
+// com polaridades diferentes (B3 é menor-melhor; B5/B6 são maior-melhor).
+const CONCEITO_RANK: Record<Conceito, number> = {
+  regular: 0, suficiente: 1, bom: 2, otimo: 3, none: -1,
+};
+
+function direcaoConceito(c: Conceito): "favoravel" | "desfavoravel" | "neutro" {
+  if (c === "none") return "neutro";
+  if (CONCEITO_RANK[c] >= CONCEITO_RANK.bom) return "favoravel";
+  if (CONCEITO_RANK[c] <= CONCEITO_RANK.regular) return "desfavoravel";
+  return "neutro";
+}
+
 const STATUS_CONFIG: Record<string, { label: string; unit: string; deltaNum: number; deltaDenom: number }> = {
   "1ª Consulta Odontológica": { label: "B1",  unit: "atend.",    deltaNum: 1, deltaDenom: 0 },
   "Tratamento Concluído":     { label: "B2",  unit: "trat.",     deltaNum: 1, deltaDenom: 0 },
   "Proced. Odont. Preventivos": { label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2 },
+};
+
+// ── Card de correlação cruzada B3 / B5 / B6 ──────────────────────────────────
+// Mostra, ao lado do indicador expandido, o estado dos indicadores que
+// compartilham códigos SIGTAP no denominador — para sinalizar quando uma
+// melhora em um decorre (ou ocorre às custas) de um movimento no outro.
+const CorrelacaoCruzadaCard = ({
+  ind,
+  todosIndicadores,
+}: {
+  ind: IndicadorResult;
+  todosIndicadores?: IndicadorResult[];
+}) => {
+  const relacionados = CRUZADO_RELACIONADOS[ind.indicador];
+  if (!relacionados || !todosIndicadores) return null;
+
+  const direcaoAtual = direcaoConceito(ind.conceito);
+
+  const linhas = relacionados
+    .map((nome) => todosIndicadores.find((i) => i.indicador === nome))
+    .filter((rel): rel is IndicadorResult => !!rel)
+    .map((rel) => ({
+      rel,
+      direcaoRel: direcaoConceito(rel.conceito),
+    }));
+
+  if (linhas.length === 0) return null;
+
+  // Conflito = este indicador está favorável e algum relacionado está
+  // desfavorável (ou vice-versa) — sinal de que o mesmo procedimento clínico
+  // pode estar empurrando os dois indicadores em direções opostas.
+  const temConflito = linhas.some(
+    ({ direcaoRel }) =>
+      (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
+      (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel"),
+  );
+
+  return (
+    <div
+      className={`flex flex-col justify-center rounded-lg px-3 py-2 shadow-sm min-w-[210px] border ${
+        temConflito ? "bg-rose-50 border-rose-200" : "bg-sky-50 border-sky-200"
+      }`}
+    >
+      <p className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${temConflito ? "text-rose-700" : "text-sky-700"}`}>
+        Correlação SIGTAP
+      </p>
+      <p className="text-[10px] text-muted-foreground leading-snug mb-1.5">
+        Mesmos procedimentos entram no denominador de:
+      </p>
+      <div className="flex flex-col gap-1">
+        {linhas.map(({ rel, direcaoRel }) => {
+          const conflitoLinha =
+            (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
+            (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel");
+          return (
+            <div key={rel.indicador} className="flex items-center justify-between gap-2">
+              <span className="text-[10px] text-foreground truncate" title={rel.indicador}>
+                {rel.indicador}
+              </span>
+              <Badge
+                variant="outline"
+                className={`${CONCEITO_COLORS[rel.conceito]} text-[10px] shrink-0 ${conflitoLinha ? "ring-1 ring-rose-400" : ""}`}
+              >
+                {CONCEITO_LABELS[rel.conceito]}
+              </Badge>
+            </div>
+          );
+        })}
+      </div>
+      {temConflito ? (
+        <p className="text-[10px] font-medium text-rose-600 mt-1.5 leading-snug">
+          Movimento divergente: verifique se o ganho aqui não decorre de procedimentos que penalizam o indicador relacionado.
+        </p>
+      ) : (
+        <p className="text-[10px] font-medium text-sky-600 mt-1.5">
+          Sem divergência no momento.
+        </p>
+      )}
+    </div>
+  );
 };
 
 // ── Card de status de um indicador relacionado ────────────────────────────────
@@ -552,12 +670,13 @@ const DetalheRow = ({
   const metaThresholds = META_THRESHOLDS[ind.indicador];
   const hasMeses       = ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
   const hasSimCard     = INDICADORES_COM_SIMULACAO.has(ind.indicador);
+  const hasCruzadoCard = !!CRUZADO_RELACIONADOS[ind.indicador];
 
   const b1 = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
   const b2 = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
   const b5 = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
-  const hasLeftCol = metaThresholds || hasMeses;
+  const hasLeftCol = metaThresholds || hasMeses || hasCruzadoCard;
 
   return (
     <TableRow className="bg-muted/20">
@@ -587,6 +706,13 @@ const DetalheRow = ({
                     })}
                   </div>
                 )}
+
+                {hasCruzadoCard && (
+                  <div className="flex items-stretch gap-2 flex-wrap">
+                    <CorrelacaoCruzadaCard ind={ind} todosIndicadores={todosIndicadores} />
+                  </div>
+                )}
+
 
                 {hasMeses && (
                   <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm flex-grow">
@@ -685,10 +811,11 @@ const ResultTable = ({
             </TableHeader>
             <TableBody>
               {result.indicadores.map((ind, idx) => {
-                const isExpanded   = expandedRows.has(idx);
-                const hasMeses     = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
-                const hasMetaCard  = showMeses && !!META_THRESHOLDS[ind.indicador];
-                const isExpandable = hasMeses || hasMetaCard;
+                const isExpanded    = expandedRows.has(idx);
+                const hasMeses      = showMeses && ind.mesesDetalhe && ind.mesesDetalhe.length > 0;
+                const hasMetaCard   = showMeses && !!META_THRESHOLDS[ind.indicador];
+                const hasCruzCard   = !!CRUZADO_RELACIONADOS[ind.indicador];
+                const isExpandable  = hasMeses || hasMetaCard || hasCruzCard;
 
                 return (
                   <>
@@ -790,7 +917,8 @@ const IndicadorComparativo = ({
     });
 
   const hasMetaCard = !!META_THRESHOLDS[indicadorNome];
-  const geralExpandable = showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard);
+  const hasCruzCard = !!CRUZADO_RELACIONADOS[indicadorNome];
+  const geralExpandable = showMeses && (geralInd.mesesDetalhe?.length > 0 || hasMetaCard || hasCruzCard);
 
   return (
     <Card className="border shadow-md">
@@ -856,7 +984,7 @@ const IndicadorComparativo = ({
 
               {/* ── Linhas por equipe ── */}
               {equipeRows.map(({ equipe, ind }, idx) => {
-                const isExpandable = showMeses && (ind.mesesDetalhe?.length > 0 || hasMetaCard);
+                const isExpandable = showMeses && (ind.mesesDetalhe?.length > 0 || hasMetaCard || hasCruzCard);
                 const isExpanded   = expandedEquipes.has(equipe);
 
                 return (
