@@ -325,6 +325,8 @@ const SimulacaoCard = ({
   b1Denominador,
   b2Numerador,
   b2Denominador,
+  b3Numerador,
+  b3Denominador,
   b5Numerador,
   b5Denominador,
   todosIndicadores,
@@ -333,6 +335,8 @@ const SimulacaoCard = ({
   b1Denominador: number;
   b2Numerador: number;
   b2Denominador: number;
+  b3Numerador: number;
+  b3Denominador: number;
   b5Numerador: number;
   b5Denominador: number;
   todosIndicadores?: IndicadorResult[];
@@ -360,6 +364,15 @@ const SimulacaoCard = ({
   const b2PctAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
   const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
+  // B3: consulta ou trat. concluído → +2 den (entram no total de proced.
+  // individuais, denominador de B3), sem mexer no numerador (exodontias)
+  const extraB3Den  = (extraConsultas + extraConclusoes) * 2;
+  const b3NovoNum   = b3Numerador;
+  const b3NovaDenom = b3Denominador + extraB3Den;
+  const b3NovaPct   = b3NovaDenom > 0 ? (b3NovoNum / b3NovaDenom) * 100 : 0;
+  const b3PctAtual  = b3Denominador > 0 ? (b3Numerador / b3Denominador) * 100 : 0;
+  const b3Conceito  = derivaConceitoB3(b3NovaPct);
+
   const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
   const b5NovaDenom = b5Denominador + (extraConsultas + extraConclusoes) * 2;
   const b5NovaPct   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
@@ -373,10 +386,12 @@ const SimulacaoCard = ({
 
   const b1Ind = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
   const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
+  const b3Ind = todosIndicadores?.find(i => i.indicador === "Taxa de Exodontias");
   const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
 
   const b1ConceitoAtual = derivaConceito(b1PctAtual, b1Thresh);
   const b2ConceitoAtual = derivaConceito(b2PctAtual, b2Thresh);
+  const b3ConceitoAtual = derivaConceitoB3(b3PctAtual);
   const b5ConceitoAtual = derivaConceito(b5PctAtual, b5Thresh);
 
   const ajusteSeConceitoMudou = (
@@ -396,6 +411,7 @@ const SimulacaoCard = ({
       : notaFinalAtual
           + ajusteSeConceitoMudou(b1Ind, b1ConceitoAtual, b1Conceito)
           + ajusteSeConceitoMudou(b2Ind, b2ConceitoAtual, b2Conceito)
+          + ajusteSeConceitoMudou(b3Ind, b3ConceitoAtual, b3Conceito)
           + ajusteSeConceitoMudou(b5Ind, b5ConceitoAtual, b5Conceito);
 
   const notaDelta = notaFinalProjetada - notaFinalAtual;
@@ -474,6 +490,17 @@ const SimulacaoCard = ({
           pctAtual={b2PctAtual}
           anyInput={anyInput}
           conceitoInfo={b2Conceito}
+        />
+        <div className="w-px self-stretch bg-orange-200" />
+        <ProjecaoBloco
+          titulo="Projeção B3"
+          descricao="consulta ou trat. → +2 den (num fixo — menor-melhor)"
+          novoNum={b3NovoNum}
+          novoDenom={b3NovaDenom}
+          novaPct={b3NovaPct}
+          pctAtual={b3PctAtual}
+          anyInput={anyInput}
+          conceitoInfo={b3Conceito}
         />
         <div className="w-px self-stretch bg-orange-200" />
         <ProjecaoBloco
@@ -951,6 +978,8 @@ const DetalheRow = ({
                     b1Denominador={b1?.denominador ?? 0}
                     b2Numerador={b2?.numerador ?? 0}
                     b2Denominador={b2?.denominador ?? 0}
+                    b3Numerador={todosIndicadores?.find(i => i.indicador === "Taxa de Exodontias")?.numerador ?? 0}
+                    b3Denominador={todosIndicadores?.find(i => i.indicador === "Taxa de Exodontias")?.denominador ?? 0}
                     b5Numerador={b5?.numerador ?? 0}
                     b5Denominador={b5?.denominador ?? 0}
                     todosIndicadores={todosIndicadores}
