@@ -259,10 +259,10 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       // impressas neste relatório consolidado por equipe — apenas as contagens
       // (cards de Resumo, acima) e a simulação de impacto na nota.
       if (y > 175) { doc.addPage(); y = 15; }
-      doc.setFontSize(9);
+      doc.setFontSize(12);
       doc.setFont("helvetica", "italic");
       const notaRodape = doc.splitTextToSize(
-        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais.",
+        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais para realizar busca-ativa com apoio do(a) ACS.",
         pageW - 36,
       );
       const alturaCaixa = notaRodape.length * 4.5 + 6;
