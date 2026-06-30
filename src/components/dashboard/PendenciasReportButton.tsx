@@ -188,7 +188,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       // ── Resumo de Simulação por Indicador ─────────────────────────────────
       if (equipeResult && equipeResult.indicadores?.length) {
         if (y > 160) { doc.addPage(); y = 15; }
-        doc.setFontSize(14);
+        doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30);
         doc.text("Resumo de Simulação — Próximo Conceito por Indicador", 14, y);
@@ -216,8 +216,8 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
           head: [["Indicador", "Atual", "Conceito Atual", "Próximo Conceito", "Faltam", "Nota Projetada", "Impacto na Nota"]],
           body: simRows.map((r) => [r.indicador, r.atual, r.conceitoAtual, r.proximo, r.faltam, r.notaProj, r.impacto]),
           theme: "grid",
-          headStyles: { fillColor: [255, 237, 213], textColor: [120, 53, 15], fontStyle: "bold", fontSize: 8, halign: "center" },
-          bodyStyles: { fontSize: 8 },
+          headStyles: { fillColor: [255, 237, 213], textColor: [120, 53, 15], fontStyle: "bold", fontSize: 10, halign: "center" },
+          bodyStyles: { fontSize: 10 },
           columnStyles: {
             0: { cellWidth: 65 },
             1: { halign: "center", cellWidth: 32 },
