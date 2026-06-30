@@ -211,6 +211,18 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
           return acc + notaBase * ind.peso;
         }, 0);
 
+        // Larguras proporcionais às originais (65/32/25/40/40/22/26 = 250mm de
+        // referência), reescaladas para preencher exatamente a largura útil da
+        // página (pageW - 28), igual ao card cinza de baixo (roundedRect usa a
+        // mesma largura) — evita a tabela ficar mais estreita que o restante
+        // do relatório quando pageW varia (ex.: A4 vs Letter, landscape).
+        const larguraUtil = pageW - 28;
+        const proporcoes = [65, 32, 25, 40, 40, 22, 26];
+        const somaProporcoes = proporcoes.reduce((a, b) => a + b, 0);
+        const [w0, w1, w2, w3, w4, w5, w6] = proporcoes.map(
+          (p) => Math.round((p / somaProporcoes) * larguraUtil * 10) / 10,
+        );
+
         (doc as any).autoTable({
           startY: y + 3,
           head: [["Indicador", "Atual", "Conceito Atual", "Próximo Conceito", "Faltam", "Nota Projetada", "Impacto na Nota"]],
@@ -218,14 +230,15 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
           theme: "grid",
           headStyles: { fillColor: [255, 237, 213], textColor: [120, 53, 15], fontStyle: "bold", fontSize: 10, halign: "center" },
           bodyStyles: { fontSize: 10 },
+          tableWidth: larguraUtil,
           columnStyles: {
-            0: { cellWidth: 65 },
-            1: { halign: "center", cellWidth: 32 },
-            2: { halign: "center", cellWidth: 25 },
-            3: { halign: "center", cellWidth: 40 },
-            4: { halign: "center", cellWidth: 40 },
-            5: { halign: "center", cellWidth: 22, fontStyle: "bold" },
-            6: { halign: "center", cellWidth: 26, fontStyle: "bold", textColor: [21, 128, 61] },
+            0: { cellWidth: w0 },
+            1: { halign: "center", cellWidth: w1 },
+            2: { halign: "center", cellWidth: w2 },
+            3: { halign: "center", cellWidth: w3 },
+            4: { halign: "center", cellWidth: w4 },
+            5: { halign: "center", cellWidth: w5, fontStyle: "bold" },
+            6: { halign: "center", cellWidth: w6, fontStyle: "bold", textColor: [21, 128, 61] },
           },
           margin: { left: 14, right: 14 },
           alternateRowStyles: { fillColor: [253, 250, 245] },
