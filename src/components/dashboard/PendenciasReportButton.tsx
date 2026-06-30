@@ -155,12 +155,12 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       doc.setFont("helvetica", "normal");
       doc.text(`Equipe: ${equipe}`, 14, y);
       y += 5;
-      doc.setFontSize(9);
+      doc.setFontSize(19);
       doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, y);
       y += 8;
 
       // Resumo
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.text("Resumo", 14, y);
       y += 5;
@@ -188,7 +188,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       // ── Resumo de Simulação por Indicador ─────────────────────────────────
       if (equipeResult && equipeResult.indicadores?.length) {
         if (y > 160) { doc.addPage(); y = 15; }
-        doc.setFontSize(12);
+        doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30);
         doc.text("Resumo de Simulação — Próximo Conceito por Indicador", 14, y);
@@ -233,7 +233,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         });
         y = (doc as any).lastAutoTable.finalY + 4;
 
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(120, 53, 15);
         doc.text(
@@ -243,7 +243,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         );
         doc.setTextColor(110);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7);
+        doc.setFontSize(9);
         y += 4;
         const rodapeTexto = doc.splitTextToSize(
           "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den). B3 e B6 não usam simulação por incremento. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador especificamente ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
