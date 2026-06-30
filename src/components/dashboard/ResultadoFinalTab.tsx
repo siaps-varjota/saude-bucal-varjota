@@ -649,52 +649,52 @@ const ACAO_DIRETA_POR_INDICADOR: Partial<Record<string, keyof typeof PROCEDIMENT
 // mostra quais códigos SIGTAP são compartilhados entre os três indicadores —
 // e se cada um entra no numerador, no denominador, ou em ambos.
 const SigtapCorrelacaoDiagrama = () => (
-  <div className="flex flex-col gap-2 text-[10px]">
+  <div className="flex flex-col gap-2 text-[10px] min-w-0 w-full">
     <div className="grid grid-cols-3 gap-2">
-      <div className="rounded border border-red-200 bg-red-50 px-2 py-1 text-center">
+      <div className="min-w-0 rounded border border-red-200 bg-red-50 px-2 py-1 text-center break-words">
         <p className="font-bold text-red-700">B3 — Taxa de Exodontia</p>
         <p className="text-red-600">menor-melhor</p>
       </div>
-      <div className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-center">
+      <div className="min-w-0 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-center break-words">
         <p className="font-bold text-emerald-700">B5 — Preventivos</p>
         <p className="text-emerald-600">maior-melhor</p>
       </div>
-      <div className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-center">
+      <div className="min-w-0 rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-center break-words">
         <p className="font-bold text-indigo-700">B6 — ART</p>
         <p className="text-indigo-600">maior-melhor</p>
       </div>
     </div>
 
     <div className="grid grid-cols-3 gap-2">
-      <div className="rounded border border-red-200 bg-red-50/60 px-2 py-1 text-center text-red-700">
+      <div className="min-w-0 rounded border border-red-200 bg-red-50/60 px-2 py-1 text-center text-red-700 break-words">
         Exodontia · 013-8 / 014-6
       </div>
-      <div className="rounded border border-emerald-200 bg-emerald-50/60 px-2 py-1 text-center text-emerald-700">
+      <div className="min-w-0 rounded border border-emerald-200 bg-emerald-50/60 px-2 py-1 text-center text-emerald-700 break-words">
         Preventivos · 005-8 … 012-0, 004-0
       </div>
-      <div className="rounded border border-indigo-200 bg-indigo-50/60 px-2 py-1 text-center text-indigo-700">
+      <div className="min-w-0 rounded border border-indigo-200 bg-indigo-50/60 px-2 py-1 text-center text-indigo-700 break-words">
         ART · 007-4
       </div>
     </div>
     <p className="text-center text-muted-foreground">↑ numerador de cada indicador</p>
 
-    <div className="flex flex-col gap-1 rounded border border-dashed border-border px-2 py-1.5">
-      <p className="text-muted-foreground">denominador — códigos que entram no cálculo de cada indicador:</p>
-      <div className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-indigo-700">
+    <div className="flex flex-col gap-1 rounded border border-dashed border-border px-2 py-1.5 min-w-0">
+      <p className="text-muted-foreground break-words">denominador — códigos que entram no cálculo de cada indicador:</p>
+      <div className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-indigo-700 break-words">
         <span className="font-bold">ART · 007-4</span> → denominador de B3, B5 e B6 (compartilhado pelos 3)
       </div>
-      <div className="rounded border border-muted bg-muted/40 px-2 py-1 text-foreground">
+      <div className="rounded border border-muted bg-muted/40 px-2 py-1 text-foreground break-words">
         <span className="font-bold">Restaurações convencionais</span> · 003-1, 008-2, 010-4, 011-2, 012-0 → denominador de B3, B5 e B6 (sem somar em numerador algum)
       </div>
-      <div className="rounded border border-orange-200 bg-orange-50 px-2 py-1 text-orange-700">
+      <div className="rounded border border-orange-200 bg-orange-50 px-2 py-1 text-orange-700 break-words">
         <span className="font-bold">Exodontia</span> · 013-8 / 014-6 → numerador de B3 e também denominador de B5
       </div>
-      <div className="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-rose-700 line-through decoration-rose-400">
+      <div className="rounded border border-rose-200 bg-rose-50 px-2 py-1 text-rose-700 line-through decoration-rose-400 break-words">
         Amálgama · 009-0 e 013-9 — excluído do denominador de B3 e B6 (NM maio/2026)
       </div>
     </div>
 
-    <p className="text-muted-foreground leading-snug">
+    <p className="text-muted-foreground leading-snug break-words">
       Leitura: melhorar B6 (mais ART) e B5 (mais preventivos) tende a melhorar B3 também — mas qualquer
       restauração convencional dilui B5 sem ajudar B6, e exodontia piora B3 e dilui B5 ao mesmo tempo.
     </p>
@@ -710,38 +710,38 @@ const ArvoreDecisaoClinicaDiagrama = () => (
       Dente cariado a tratar
     </div>
     <div className="grid grid-cols-3 gap-2">
-      <div className="rounded border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-center">
+      <div className="min-w-0 rounded border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-center break-words">
         <p className="font-bold text-emerald-700">ART</p>
         <p className="text-emerald-600">007-4 — minimamente invasivo</p>
       </div>
-      <div className="rounded border border-border bg-muted/40 px-2 py-1.5 text-center">
+      <div className="min-w-0 rounded border border-border bg-muted/40 px-2 py-1.5 text-center break-words">
         <p className="font-bold text-foreground">Restauração convencional</p>
         <p className="text-muted-foreground">003-1, 008-2, 010-4, 011-2, 012-0</p>
       </div>
-      <div className="rounded border border-orange-300 bg-orange-50 px-2 py-1.5 text-center">
+      <div className="min-w-0 rounded border border-orange-300 bg-orange-50 px-2 py-1.5 text-center break-words">
         <p className="font-bold text-orange-700">Exodontia</p>
         <p className="text-orange-600">013-8 / 014-6 — extração</p>
       </div>
     </div>
     <div className="grid grid-cols-3 gap-2">
-      <div className="flex flex-col gap-1">
-        <div className="rounded border border-emerald-200 bg-emerald-50/70 px-2 py-1 text-center text-emerald-700">B6 ↑ favorável</div>
-        <div className="rounded border border-muted bg-muted/30 px-2 py-1 text-center text-muted-foreground">B3 neutro · B5 neutro</div>
+      <div className="min-w-0 flex flex-col gap-1">
+        <div className="rounded border border-emerald-200 bg-emerald-50/70 px-2 py-1 text-center text-emerald-700 break-words">B6 ↑ favorável</div>
+        <div className="rounded border border-muted bg-muted/30 px-2 py-1 text-center text-muted-foreground break-words">B3 neutro · B5 neutro</div>
       </div>
-      <div className="flex flex-col gap-1">
-        <div className="rounded border border-muted bg-muted/30 px-2 py-1 text-center text-muted-foreground">B6 ↓ desfavorável</div>
-        <div className="rounded border border-muted bg-muted/30 px-2 py-1 text-center text-muted-foreground">B3 neutro · B5 neutro</div>
+      <div className="min-w-0 flex flex-col gap-1">
+        <div className="rounded border border-muted bg-muted/30 px-2 py-1 text-center text-muted-foreground break-words">B6 ↓ desfavorável</div>
+        <div className="rounded border border-muted bg-muted/30 px-2 py-1 text-center text-muted-foreground break-words">B3 neutro · B5 neutro</div>
       </div>
-      <div className="flex flex-col gap-1">
-        <div className="rounded border border-orange-200 bg-orange-50/70 px-2 py-1 text-center text-orange-700">B3 ↑ desfavorável</div>
-        <div className="rounded border border-orange-200 bg-orange-50/70 px-2 py-1 text-center text-orange-700">B5 ↓ desfavorável</div>
+      <div className="min-w-0 flex flex-col gap-1">
+        <div className="rounded border border-orange-200 bg-orange-50/70 px-2 py-1 text-center text-orange-700 break-words">B3 ↑ desfavorável</div>
+        <div className="rounded border border-orange-200 bg-orange-50/70 px-2 py-1 text-center text-orange-700 break-words">B5 ↓ desfavorável</div>
       </div>
     </div>
-    <div className="rounded border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-emerald-800">
+    <div className="rounded border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-emerald-800 break-words">
       <span className="font-bold">ART é a única opção sem efeito desfavorável em nenhum dos três</span> — melhora B6
       diretamente e mantém B3/B5 neutros; a exodontia penaliza B3 e B5 ao mesmo tempo.
     </div>
-    <p className="text-muted-foreground leading-snug">
+    <p className="text-muted-foreground leading-snug break-words">
       Indicação clínica vem primeiro: ART não substitui exodontia quando há indicação real de extração — a meta
       é só evitar escolher restauração convencional ou exodontia por hábito quando ART seria adequado.
     </p>
@@ -767,17 +767,17 @@ const AjudaDecisaoClinicaModal = () => {
           onClick={() => setOpen(false)}
         >
           <div
-            className="max-w-lg w-full bg-background border rounded-xl shadow-xl p-4"
+            className="max-w-lg w-full max-h-[85vh] overflow-y-auto overflow-x-hidden bg-background border rounded-xl shadow-xl p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5">
-                <GitBranch className="h-3.5 w-3.5 text-emerald-600" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <GitBranch className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-foreground break-words">
                   Como decidir entre ART, restauração e exodontia?
                 </span>
               </div>
-              <button onClick={() => setOpen(false)} className="opacity-60 hover:opacity-100">
+              <button onClick={() => setOpen(false)} className="opacity-60 hover:opacity-100 shrink-0">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -924,7 +924,7 @@ const CorrelacaoCruzadaCard = ({
             {mostrarDiagrama ? "Ocultar diagrama" : "Ver diagrama de correlação SIGTAP"}
           </button>
           {mostrarDiagrama && (
-            <div className="mt-1 rounded-lg border border-current/20 bg-background/60 p-2">
+            <div className="mt-1 min-w-0 w-full overflow-x-hidden rounded-lg border border-current/20 bg-background/60 p-2">
               <SigtapCorrelacaoDiagrama />
             </div>
           )}
