@@ -829,6 +829,32 @@ const CorrelacaoCruzadaCard = ({
       (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel"),
   );
 
+  // Antes de interpretar o conceito "Regular/Suficiente" deste indicador como
+  // uma piora em disputa com os relacionados, checamos o volume ABSOLUTO de
+  // procedimentos (numerador/denominador) — não só o percentual. Com poucos
+  // casos no período (ex.: 2 ART em 138 procedimentos restauradores), o
+  // problema real costuma ser "quase não está sendo feito", não uma troca
+  // direta com outro indicador — e o percentual sozinho não distingue isso.
+  const AMOSTRA_MINIMA_DENOM = 20;
+  const AMOSTRA_MINIMA_NUM = 5;
+  const amostraBaixa =
+    direcaoAtual === "desfavoravel" &&
+    ((ind.denominador > 0 && ind.denominador < AMOSTRA_MINIMA_DENOM) ||
+      ind.numerador < AMOSTRA_MINIMA_NUM);
+
+  const estado: "conflito" | "amostra" | "ok" =
+    amostraBaixa ? "amostra" : temConflito ? "conflito" : "ok";
+  const corTitulo =
+    estado === "conflito" ? "text-rose-700" : estado === "amostra" ? "text-amber-700" : "text-sky-700";
+  const corCardBg =
+    estado === "conflito"
+      ? "bg-rose-50 border-rose-200"
+      : estado === "amostra"
+        ? "bg-amber-50 border-amber-200"
+        : "bg-sky-50 border-sky-200";
+  const corTextoVeredito =
+    estado === "conflito" ? "text-rose-600" : estado === "amostra" ? "text-amber-700" : "text-sky-600";
+
   const infoCausal = CAUSA_E_ACAO[ind.indicador];
   const acaoKey = ACAO_DIRETA_POR_INDICADOR[ind.indicador];
   const candidato = acaoKey ? PROCEDIMENTO_CANDIDATOS[acaoKey] : undefined;
@@ -853,13 +879,11 @@ const CorrelacaoCruzadaCard = ({
 
   return (
     <div
-      className={`flex flex-col gap-2.5 rounded-lg px-3 py-2.5 shadow-sm w-full max-w-[640px] border ${
-        temConflito ? "bg-rose-50 border-rose-200" : "bg-sky-50 border-sky-200"
-      }`}
+      className={`flex flex-col gap-2.5 rounded-lg px-3 py-2.5 shadow-sm w-full max-w-[640px] border ${corCardBg}`}
     >
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-col shrink-0">
-          <p className={`text-[10px] font-bold uppercase tracking-wide ${temConflito ? "text-rose-700" : "text-sky-700"}`}>
+          <p className={`text-[10px] font-bold uppercase tracking-wide ${corTitulo}`}>
             Correlação SIGTAP
           </p>
           <p className="text-[10px] text-muted-foreground leading-snug">
@@ -888,7 +912,14 @@ const CorrelacaoCruzadaCard = ({
           })}
         </div>
 
-        {temConflito ? (() => {
+        {estado === "amostra" ? (
+          <p className="text-[10px] font-medium text-amber-700 leading-snug flex-1 min-w-[200px]">
+            Atenção: volume baixo, não necessariamente piora — são apenas {fmtNum(ind.numerador)} de{" "}
+            {fmtNum(ind.denominador)} procedimentos no período ({ind.indicador} quase não está sendo realizado
+            nesta equipe). Com tão poucos casos, o percentual oscila muito e não dá pra concluir que há disputa
+            com os indicadores relacionados — o que precisa de atenção aqui é aumentar o volume de registros.
+          </p>
+        ) : estado === "conflito" ? (() => {
           const nomesConflito = linhas
             .filter(({ direcaoRel }) =>
               (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
@@ -899,13 +930,13 @@ const CorrelacaoCruzadaCard = ({
           const fraseEste = direcaoAtual === "favoravel" ? "melhorou" : "piorou";
           const fraseRelacionado = direcaoAtual === "favoravel" ? verboRelacionado : (nomesConflito.length > 1 ? "melhoraram" : "melhorou");
           return (
-            <p className="text-[10px] font-medium text-rose-600 leading-snug flex-1 min-w-[200px]">
+            <p className={`text-[10px] font-medium ${corTextoVeredito} leading-snug flex-1 min-w-[200px]`}>
               Atenção: este indicador {fraseEste}, mas {nomesConflito.join(" e ")} {fraseRelacionado} —
               provavelmente pelo mesmo procedimento. Confira antes de comemorar.
             </p>
           );
         })() : (
-          <p className="text-[10px] font-medium text-sky-600">
+          <p className={`text-[10px] font-medium ${corTextoVeredito}`}>
             Sem divergência no momento.
           </p>
         )}
