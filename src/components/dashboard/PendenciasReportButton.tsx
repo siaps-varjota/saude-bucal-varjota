@@ -266,7 +266,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       doc.setFont("helvetica", "italic");
       doc.setTextColor(90);
       const notaRodape = doc.splitTextToSize(
-        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais.",
+        As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais."
         pageW - 36,
       );
       doc.text(notaRodape, 14 + 4, y + 6);
