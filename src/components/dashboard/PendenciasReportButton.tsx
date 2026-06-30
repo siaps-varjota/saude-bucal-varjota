@@ -39,8 +39,8 @@ const SIM_CONFIG: Record<
   },
   "Proced. Odont. Preventivos": {
     label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2,
-    thresholdBom: 0.5499, labelBom: "≥ 55%",
-    thresholdOtimo: 0.6499, labelOtimo: "≥ 65%",
+    thresholdBom: 0.5499, labelBom: ">= 55%",
+    thresholdOtimo: 0.6499, labelOtimo: ">= 65%",
   },
   "Escovação Supervisionada": {
     label: "B4", unit: "consultas", deltaNum: 1, deltaDenom: 0,
@@ -100,7 +100,7 @@ function buildSimRow(ind: IndicadorResult) {
     atual: `${ind.numerador}/${ind.denominador} (${pct.toFixed(1)}%)`,
     conceitoAtual: conceitoLabel(ind.conceito),
     proximo: proximoLabel ?? "—",
-    faltam: isOtimo ? "✓ atingido" : `${faltam.toLocaleString("pt-BR")} ${cfg.unit}`,
+    faltam: isOtimo ? "OK — atingido" : `${faltam.toLocaleString("pt-BR")} ${cfg.unit}`,
     notaProj: notaProjPonderada.toFixed(2).replace(".", ","),
     impacto: isOtimo || impactoPontos <= 0 ? "—" : `+${impactoPontos.toFixed(2).replace(".", ",")} pts`,
     obs: isOtimo ? "Já no Ótimo." : `Atinge ${proximoLabel?.split(" ")[0]} com +${faltam} ${cfg.unit}.`,
@@ -194,7 +194,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         doc.text("Resumo de Simulação — Próximo Conceito por Indicador", 14, y);
         y += 2;
 
-        const ordem = ["1ª Consulta Odontológica", "Tratamento Concluído", "Taxa de Exodontias", "Proced. Odont. Preventivos", "Escovação Supervisionada", "Trat. Restaurador Atraumático"];
+        const ordem = ["1ª Consulta Odontológica", "Tratamento Concluído", "Taxa de Exodontias", "Escovação Supervisionada", "Proced. Odont. Preventivos", "Trat. Restaurador Atraumático"];
         const indSorted = [...equipeResult.indicadores].sort(
           (a, b) => ordem.indexOf(a.indicador) - ordem.indexOf(b.indicador),
         );
@@ -259,7 +259,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       // impressas neste relatório consolidado por equipe — apenas as contagens
       // (cards de Resumo, acima) e a simulação de impacto na nota.
       if (y > 175) { doc.addPage(); y = 15; }
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
       const notaRodape = doc.splitTextToSize(
         "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais.",
