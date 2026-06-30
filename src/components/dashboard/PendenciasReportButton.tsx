@@ -258,19 +258,20 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       // Nota: as listas nominais de pacientes pendentes (B1/B2) não são mais
       // impressas neste relatório consolidado por equipe — apenas as contagens
       // (cards de Resumo, acima) e a simulação de impacto na nota.
-      if (y > 180) { doc.addPage(); y = 15; }
-      doc.setDrawColor(220);
-      doc.setFillColor(250, 250, 250);
-      doc.roundedRect(14, y, pageW - 28, 16, 2, 2, "FD");
-      doc.setFontSize(8);
+      if (y > 175) { doc.addPage(); y = 15; }
+      doc.setFontSize(10);
       doc.setFont("helvetica", "italic");
-      doc.setTextColor(90);
       const notaRodape = doc.splitTextToSize(
         "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais.",
         pageW - 36,
       );
+      const alturaCaixa = notaRodape.length * 4.5 + 6;
+      doc.setDrawColor(220);
+      doc.setFillColor(250, 250, 250);
+      doc.roundedRect(14, y, pageW - 28, alturaCaixa, 2, 2, "FD");
+      doc.setTextColor(90);
       doc.text(notaRodape, 14 + 4, y + 6);
-      y += 20;
+      y += alturaCaixa + 4;
 
       const slug = equipe.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       doc.save(`pendencias-${slug}-${new Date().toISOString().split("T")[0]}.pdf`);
