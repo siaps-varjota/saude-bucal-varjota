@@ -820,27 +820,33 @@ const CorrelacaoCruzadaCard = ({
 
   if (linhas.length === 0) return null;
 
-  // Conflito = este indicador está favorável e algum relacionado está
-  // desfavorável (ou vice-versa) — sinal de que o mesmo procedimento clínico
-  // pode estar empurrando os dois indicadores em direções opostas.
-  const temConflito = linhas.some(
-    ({ direcaoRel }) =>
-      (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
-      (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel"),
-  );
-
-  // Antes de interpretar o conceito "Regular/Suficiente" deste indicador como
-  // uma piora em disputa com os relacionados, checamos o volume ABSOLUTO de
-  // procedimentos (numerador/denominador) — não só o percentual. Com poucos
-  // casos no período (ex.: 2 ART em 138 procedimentos restauradores), o
-  // problema real costuma ser "quase não está sendo feito", não uma troca
-  // direta com outro indicador — e o percentual sozinho não distingue isso.
+  // Amostra baixa: com poucos casos no período (ex.: 3 ART em 147
+  // procedimentos restauradores), uma queda de % costuma ser ruído
+  // estatístico, não uma troca real com outro indicador — o percentual
+  // sozinho não distingue isso. Esta checagem é aplicada tanto ao indicador
+  // em foco quanto a cada relacionado individualmente, para que os dois
+  // cards (ex.: B5 e B6) cheguem ao MESMO diagnóstico sobre o mesmo evento,
+  // em vez de um dizer "ruído" e o outro "disputa real" sobre o mesmo dado.
   const AMOSTRA_MINIMA_DENOM = 20;
   const AMOSTRA_MINIMA_NUM = 5;
-  const amostraBaixa =
-    direcaoAtual === "desfavoravel" &&
-    ((ind.denominador > 0 && ind.denominador < AMOSTRA_MINIMA_DENOM) ||
-      ind.numerador < AMOSTRA_MINIMA_NUM);
+  const temAmostraBaixa = (i: IndicadorResult, direcao: "favoravel" | "desfavoravel" | "neutro") =>
+    direcao === "desfavoravel" &&
+    ((i.denominador > 0 && i.denominador < AMOSTRA_MINIMA_DENOM) || i.numerador < AMOSTRA_MINIMA_NUM);
+
+  const amostraBaixa = temAmostraBaixa(ind, direcaoAtual);
+
+  // Conflito = este indicador está favorável e algum relacionado está
+  // desfavorável (ou vice-versa) — sinal de que o mesmo procedimento clínico
+  // pode estar empurrando os dois indicadores em direções opostas. Um
+  // relacionado com amostra baixa não conta como conflito real (é ruído
+  // dele, não disputa com este indicador).
+  const linhasEmConflito = linhas.filter(
+    ({ rel, direcaoRel }) =>
+      ((direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
+        (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel")) &&
+      !temAmostraBaixa(rel, direcaoRel),
+  );
+  const temConflito = linhasEmConflito.length > 0;
 
   const estado: "conflito" | "amostra" | "ok" =
     amostraBaixa ? "amostra" : temConflito ? "conflito" : "ok";
@@ -893,13 +899,21 @@ const CorrelacaoCruzadaCard = ({
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           {linhas.map(({ rel, direcaoRel }) => {
+            const relComAmostraBaixa = temAmostraBaixa(rel, direcaoRel);
             const conflitoLinha =
-              (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
-              (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel");
+              ((direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
+                (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel")) &&
+              !relComAmostraBaixa;
             return (
               <div key={rel.indicador} className="flex items-center gap-2">
                 <span className="text-[10px] text-foreground" title={rel.indicador}>
                   {rel.indicador}
+                  {relComAmostraBaixa && (
+                    <span className="text-amber-600" title="Amostra baixa neste relacionado">
+                      {" "}
+                      (amostra baixa)
+                    </span>
+                  )}
                 </span>
                 <Badge
                   variant="outline"
@@ -920,12 +934,7 @@ const CorrelacaoCruzadaCard = ({
             com os indicadores relacionados — o que precisa de atenção aqui é aumentar o volume de registros.
           </p>
         ) : estado === "conflito" ? (() => {
-          const nomesConflito = linhas
-            .filter(({ direcaoRel }) =>
-              (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
-              (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel"),
-            )
-            .map(({ rel }) => rel.indicador);
+          const nomesConflito = linhasEmConflito.map(({ rel }) => rel.indicador);
           const verboRelacionado = nomesConflito.length > 1 ? "pioraram" : "piorou";
           const fraseEste = direcaoAtual === "favoravel" ? "melhorou" : "piorou";
           const fraseRelacionado = direcaoAtual === "favoravel" ? verboRelacionado : (nomesConflito.length > 1 ? "melhoraram" : "melhorou");
