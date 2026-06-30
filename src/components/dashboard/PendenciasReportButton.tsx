@@ -136,7 +136,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
 
       const b2Pendentes = tratamentos
         .filter((p) => normalizeEquipe(p.equipe) === equipeNorm)
-        .filter((p) => p.comTratamentoConcluido !== "Concluído")
+        .filter((p) => p.comTratamentoConcluido === "Pendente")
         .sort((a, b) => {
           const am = parseInt(a.microarea) || 0;
           const bm = parseInt(b.microarea) || 0;
