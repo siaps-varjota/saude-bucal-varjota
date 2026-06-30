@@ -155,7 +155,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       doc.setFont("helvetica", "normal");
       doc.text(`Equipe: ${equipe}`, 14, y);
       y += 5;
-      doc.setFontSize(19);
+      doc.setFontSize(12);
       doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, y);
       y += 8;
 
