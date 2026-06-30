@@ -94,15 +94,11 @@ const getConceitoB3 = (pct: number): Conceito => {
   return "regular";
 };
 
+// B4 — Escovação Supervisionada (NM B4, maio/2026)
+// Parâmetro: Ótimo >1% | Bom >0,5% e ≤1% | Suficiente >0,25% e ≤0,5% | Regular ≤0,25%
+// Numerador:   crianças 6-12 anos participantes da escovação supervisionada (SIGTAP 01.01.02.003-1)
+// Denominador: crianças 6-12 anos vinculadas à eSF/eAP de referência da eSB
 const getConceitoB4 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct >= 65 && pct <= 85) return "otimo";
-  if (pct >= 55 && pct < 65)  return "bom";
-  if (pct >= 40 && pct < 55)  return "suficiente";
-  return "regular";
-};
-
-const getConceitoB5 = (pct: number): Conceito => {
   if (pct <= 0)   return "none";
   if (pct > 1)    return "otimo";
   if (pct > 0.5)  return "bom";
@@ -110,6 +106,26 @@ const getConceitoB5 = (pct: number): Conceito => {
   return "regular";
 };
 
+// B5 — Procedimentos Odontológicos Preventivos (NM B5, maio/2026)
+// Parâmetro: Ótimo ≥65% e ≤85% | Bom ≥55% e <65% | Suficiente ≥40% e <55% | Regular <40% ou >85%
+// Numerador:   procedimentos preventivos individuais (SIGTAP: 01.01.02.005-8, 006-6, 007-4,
+//              008-2, 010-4, 012-0, 03.07.03.004-0) — inclui Profilaxia e Orientação prótese
+//              conforme atualização maio/2026; exclui 01.01.02.009-0, 03.07.01.013-9, 03.07.01.009-0
+// Denominador: total de procedimentos odontológicos individuais realizados pela eSB
+const getConceitoB5 = (pct: number): Conceito => {
+  if (pct <= 0)            return "none";
+  if (pct >= 65 && pct <= 85) return "otimo";
+  if (pct >= 55 && pct < 65)  return "bom";
+  if (pct >= 40 && pct < 55)  return "suficiente";
+  return "regular";
+};
+
+// B6 — Tratamento Restaurador Atraumático (NM B6, maio/2026)
+// Parâmetro: Ótimo >8% | Bom >6% e ≤8% | Suficiente >3% e ≤6% | Regular ≤3%
+// Numerador:   procedimentos ART (SIGTAP 03.07.01.007-4)
+// Denominador: total de procedimentos restauradores (SIGTAP 03.07.01.007-4, 003-1, 008-2,
+//              010-4, 011-2, 012-0) — EXCLUÍDOS 03.07.01.009-0 e 03.07.01.013-9 (amálgama)
+//              conforme atualização maio/2026
 const getConceitoB6 = (pct: number): Conceito => {
   if (pct <= 0) return "none";
   if (pct > 8) return "otimo";
@@ -122,8 +138,10 @@ const INDICADORES = [
   { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
   { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
   { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-  { key: "B4", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB4 },
-  { key: "B5", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB5 },
+  // B4 — Escovação Supervisionada (peso 1, parâmetros de proporção sobre população 6-12 anos)
+  { key: "B4", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB4 },
+  // B5 — Procedimentos Odontológicos Preventivos (peso 2, parâmetros de % sobre total de proced.)
+  { key: "B5", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB5 },
   { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
 ];
 
@@ -172,8 +190,11 @@ const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
 
 type BIndicador = "B1" | "B2" | "B3" | "B4" | "B5" | "B6";
 
+// Mapeamento de chave interna → campo no CSV de dados oficiais (SIAPS).
+// B4 = Escovação Supervisionada → coluna B4 no CSV
+// B5 = Procedimentos Preventivos → coluna B5 no CSV
 const INDICADOR_TO_CSV_FIELD: Record<BIndicador, "B1" | "B2" | "B3" | "B4" | "B5" | "B6"> = {
-  B1: "B1", B2: "B2", B3: "B3", B4: "B5", B5: "B4", B6: "B6",
+  B1: "B1", B2: "B2", B3: "B3", B4: "B4", B5: "B5", B6: "B6",
 };
 
 function resolveOficialMes(
@@ -381,7 +402,14 @@ function calcB2(
   };
 }
 
-// ── calcB3 ────────────────────────────────────────────────────────────────────
+// ── calcB3 — Taxa de Exodontias ───────────────────────────────────────────────
+// Recebe: Tab3Record[] — totais mensais de exodontias e procedimentos por equipe
+// Numerador:   exodontias de dentes permanentes (SIGTAP 04.14.02.013-8 e 04.14.02.014-6)
+// Denominador: total de procedimentos individuais preventivos + curativos + exodontias
+//   EXCLUÍDO do denominador (NM B3, maio/2026):
+//     03.07.01.013-9  Restauração dente permanente posterior com amálgama
+//   (inclui orientação higienização próteses 01.01.02.012-0 e fotobiomodulação 03.07.05.001-7)
+// Polaridade: Menor-Melhor
 function calcB3(
   tab3: Tab3Record[],
   quad: Quadrimestre,
@@ -447,74 +475,11 @@ function calcB3(
   };
 }
 
-// ── calcB4 ────────────────────────────────────────────────────────────────────
+// ── calcB4 — Escovação Supervisionada ────────────────────────────────────────
+// Recebe: Tab4Patient[] — registros de escovação dental supervisionada (ação coletiva)
+// Numerador:   crianças 6-12 anos participantes (SIGTAP 01.01.02.003-1, MIAC código 4)
+// Denominador: crianças 6-12 anos vinculadas à eSF/eAP (NM B4, maio/2026)
 function calcB4(
-  tab5: Tab5Record[],
-  quad: Quadrimestre,
-  equipe?: string,
-  oficialData?: OficialData,
-  mesesFiltro?: string[],
-): RawCalc {
-  const source = equipe ? tab5.filter((r) => equipeMatch(r.equipe, equipe)) : tab5;
-
-  if (quad === "todos") {
-    let sumPrev = 0, sumTot = 0;
-    source.forEach(r => { sumPrev += r.preventivos; sumTot += r.totalIndividuais; });
-    return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-
-  const byMonth = new Map<number, { preventivos: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
-    ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
-    byMonth.set(mesIdx, ex);
-  });
-
-  let sumPrev = 0, sumTot = 0;
-  let todosMesesOficiais = true;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    if (skipMes(m, year, mesesFiltro)) return;
-    const prelData = byMonth.get(m) || { preventivos: 0, total: 0 };
-
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index) : null;
-    const isOficial = !!oficial;
-    const prev = isOficial ? oficial!.num : prelData.preventivos;
-    const tot  = isOficial ? oficial!.den  : prelData.total;
-
-    if (!isOficial) todosMesesOficiais = false;
-    sumPrev += prev;
-    sumTot  += tot;
-
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: prev,
-      denominador: tot,
-      porcentagem: tot > 0 ? (prev / tot) * 100 : 0,
-      fonte: isOficial ? "oficial" : "preliminar",
-    });
-  });
-
-  return {
-    numerador: sumPrev,
-    denominador: sumTot,
-    porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0,
-    mesesDetalhe,
-    todosOficiais: todosMesesOficiais,
-  };
-}
-
-// ── calcB5 ────────────────────────────────────────────────────────────────────
-function calcB5(
   allTab4: Tab4Patient[],
   quad: Quadrimestre,
   equipe?: string,
@@ -557,7 +522,7 @@ function calcB5(
       return d && getMonth(d) === m && getYear(d) === year;
     }).length;
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index) : null;
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index) : null;
     const isOficial = !!oficial;
     const count = isOficial ? oficial!.num : prelCount;
     const den   = isOficial ? oficial!.den  : totalPatients;
@@ -588,7 +553,97 @@ function calcB5(
   };
 }
 
-// ── calcB6 ────────────────────────────────────────────────────────────────────
+// ── calcB5 — Procedimentos Odontológicos Preventivos ─────────────────────────
+// Recebe: Tab5Record[] — totais mensais de procedimentos individuais por equipe
+// Numerador:   total de procedimentos individuais PREVENTIVOS realizados pela eSB
+//   SIGTAP numerador (NM B5, maio/2026):
+//     01.01.02.005-8  Aplicação de cariostático (por dente)
+//     01.01.02.006-6  Aplicação de selante (por dente)
+//     01.01.02.007-4  Aplicação tópica de flúor (individual por sessão)
+//     01.01.02.008-2  Evidenciação de placa bacteriana
+//     01.01.02.010-4  Orientação de higiene bucal
+//     01.01.02.012-0  Orientação de higienização de próteses dentárias ← incluído maio/2026
+//     03.07.03.004-0  Profilaxia / Remoção da placa bacteriana ← incluído maio/2026
+//   EXCLUÍDOS do numerador: 01.01.02.009-0 (selamento provisório), 03.07.01.013-9 e 03.07.01.009-0 (amálgama)
+// Denominador: total de procedimentos odontológicos individuais (lista completa na NM B5 seção 24d)
+function calcB5(
+  tab5: Tab5Record[],
+  quad: Quadrimestre,
+  equipe?: string,
+  oficialData?: OficialData,
+  mesesFiltro?: string[],
+): RawCalc {
+  const source = equipe ? tab5.filter((r) => equipeMatch(r.equipe, equipe)) : tab5;
+
+  if (quad === "todos") {
+    let sumPrev = 0, sumTot = 0;
+    source.forEach(r => { sumPrev += r.preventivos; sumTot += r.totalIndividuais; });
+    return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0, mesesDetalhe: [] };
+  }
+
+  const [q, yearStr] = quad.split("-");
+  const year = parseInt(yearStr, 10);
+  const months = QUAD_MONTHS[q] || [];
+
+  const byMonth = new Map<number, { preventivos: number; total: number }>();
+  source.forEach(r => {
+    const parts = r.mesAno.split("/");
+    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
+    const ano = parseInt(parts[1]);
+    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
+    const ex = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
+    ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
+    byMonth.set(mesIdx, ex);
+  });
+
+  let sumPrev = 0, sumTot = 0;
+  let todosMesesOficiais = true;
+  const mesesDetalhe: MesDetalhe[] = [];
+
+  months.forEach((m) => {
+    if (skipMes(m, year, mesesFiltro)) return;
+    const prelData = byMonth.get(m) || { preventivos: 0, total: 0 };
+
+    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index) : null;
+    const isOficial = !!oficial;
+    const prev = isOficial ? oficial!.num : prelData.preventivos;
+    const tot  = isOficial ? oficial!.den  : prelData.total;
+
+    if (!isOficial) todosMesesOficiais = false;
+    sumPrev += prev;
+    sumTot  += tot;
+
+    mesesDetalhe.push({
+      mes: `${MONTH_ABBR[m]}/${year}`,
+      numerador: prev,
+      denominador: tot,
+      porcentagem: tot > 0 ? (prev / tot) * 100 : 0,
+      fonte: isOficial ? "oficial" : "preliminar",
+    });
+  });
+
+  return {
+    numerador: sumPrev,
+    denominador: sumTot,
+    porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0,
+    mesesDetalhe,
+    todosOficiais: todosMesesOficiais,
+  };
+}
+
+// ── calcB6 — Tratamento Restaurador Atraumático ───────────────────────────────
+// Recebe: Tab6Record[] — totais mensais de ART e procedimentos restauradores por equipe
+// Numerador:   procedimentos ART (SIGTAP 03.07.01.007-4)
+// Denominador: total de procedimentos restauradores:
+//     03.07.01.007-4  ART (TRA/ART)
+//     03.07.01.003-1  Restauração dente permanente anterior com resina composta
+//     03.07.01.008-2  Restauração dente decíduo posterior com resina composta
+//     03.07.01.010-4  Restauração dente decíduo posterior com ionômero de vidro
+//     03.07.01.011-2  Restauração dente decíduo anterior com resina composta
+//     03.07.01.012-0  Restauração dente permanente posterior com resina composta
+//   EXCLUÍDOS do denominador (NM B6, maio/2026):
+//     03.07.01.009-0  Restauração dente decíduo posterior com amálgama
+//     03.07.01.013-9  Restauração dente permanente posterior com amálgama
 function calcB6(
   tab6: Tab6Record[],
   quad: Quadrimestre,
@@ -696,8 +751,10 @@ export function useResultadoFinal(
       buildIndicador("B1", rawB1),
       buildIndicador("B2", rawB2),
       buildIndicador("B3", calcB3(tab3, quad, equipe, oficialData, mf)),
-      buildIndicador("B5", calcB5(tab4, quad, equipe, oficialData, mf)),
-      buildIndicador("B4", calcB4(tab5, quad, equipe, oficialData, mf), {
+      // B4 — Escovação Supervisionada: usa tab4 (ação coletiva de escovação)
+      buildIndicador("B4", calcB4(tab4, quad, equipe, oficialData, mf)),
+      // B5 — Procedimentos Preventivos: usa tab5 (procedimentos individuais preventivos/curativos)
+      buildIndicador("B5", calcB5(tab5, quad, equipe, oficialData, mf), {
         b1Numerador:   Math.round(rawB1.numerador),
         b1Denominador: Math.round(rawB1.denominador),
         b2Numerador:   Math.round(rawB2.numerador),
@@ -716,8 +773,10 @@ export function useResultadoFinal(
       buildIndicador("B1", rawB1),
       buildIndicador("B2", rawB2),
       buildIndicador("B3", calcB3(tab3, quad, eq, oficialData, mf)),
-      buildIndicador("B5", calcB5(tab4, quad, eq, oficialData, mf)),
-      buildIndicador("B4", calcB4(tab5, quad, eq, oficialData, mf), {
+      // B4 — Escovação Supervisionada: usa tab4
+      buildIndicador("B4", calcB4(tab4, quad, eq, oficialData, mf)),
+      // B5 — Procedimentos Preventivos: usa tab5
+      buildIndicador("B5", calcB5(tab5, quad, eq, oficialData, mf), {
         b1Numerador:   Math.round(rawB1.numerador),
         b1Denominador: Math.round(rawB1.denominador),
         b2Numerador:   Math.round(rawB2.numerador),
