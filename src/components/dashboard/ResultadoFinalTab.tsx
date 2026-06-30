@@ -888,11 +888,23 @@ const CorrelacaoCruzadaCard = ({
           })}
         </div>
 
-        {temConflito ? (
-          <p className="text-[10px] font-medium text-rose-600 leading-snug flex-1 min-w-[200px]">
-            Movimento divergente: verifique se o ganho aqui não decorre de procedimentos que penalizam o indicador relacionado.
-          </p>
-        ) : (
+        {temConflito ? (() => {
+          const nomesConflito = linhas
+            .filter(({ direcaoRel }) =>
+              (direcaoAtual === "favoravel" && direcaoRel === "desfavoravel") ||
+              (direcaoAtual === "desfavoravel" && direcaoRel === "favoravel"),
+            )
+            .map(({ rel }) => rel.indicador);
+          const verboRelacionado = nomesConflito.length > 1 ? "pioraram" : "piorou";
+          const fraseEste = direcaoAtual === "favoravel" ? "melhorou" : "piorou";
+          const fraseRelacionado = direcaoAtual === "favoravel" ? verboRelacionado : (nomesConflito.length > 1 ? "melhoraram" : "melhorou");
+          return (
+            <p className="text-[10px] font-medium text-rose-600 leading-snug flex-1 min-w-[200px]">
+              Atenção: este indicador {fraseEste}, mas {nomesConflito.join(" e ")} {fraseRelacionado} —
+              provavelmente pelo mesmo procedimento. Confira antes de comemorar.
+            </p>
+          );
+        })() : (
           <p className="text-[10px] font-medium text-sky-600">
             Sem divergência no momento.
           </p>
