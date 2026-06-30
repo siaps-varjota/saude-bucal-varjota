@@ -644,6 +644,17 @@ function calcB5(
 //   EXCLUÍDOS do denominador (NM B6, maio/2026):
 //     03.07.01.009-0  Restauração dente decíduo posterior com amálgama
 //     03.07.01.013-9  Restauração dente permanente posterior com amálgama
+//
+// ⚠️ ATENÇÃO — verificar a origem do dado: o campo lido abaixo é `r.exodontias`
+// (nome herdado de Tab3Record/Tab6Record). Não tenho acesso ao arquivo
+// useTab6Data.ts nesta conversa para confirmar se esse campo, na planilha/CSV
+// de origem do Tab6, realmente representa a contagem de ART (007-4) — ou se é,
+// de fato, uma contagem de exodontias copiada por engano do parser de Tab3.
+// Mantive a leitura do campo como estava (não alterei dados/contrato), mas
+// renomeei as variáveis locais de "exodontias"→"art" para deixar a INTENÇÃO
+// explícita e facilitar a auditoria. Se ao abrir useTab6Data.ts o campo
+// `exodontias` realmente vier de uma coluna de exodontias (e não de ART), o
+// numerador de B6 está incorreto e precisa apontar para o campo certo do Tab6Record.
 function calcB6(
   tab6: Tab6Record[],
   quad: Quadrimestre,
@@ -663,15 +674,15 @@ function calcB6(
   const year = parseInt(yearStr, 10);
   const months = QUAD_MONTHS[q] || [];
 
-  const byMonth = new Map<number, { exodontias: number; total: number }>();
+  const byMonth = new Map<number, { art: number; total: number }>();
   source.forEach(r => {
     const parts = r.mesAno.split("/");
     const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
     const ano = parseInt(parts[1]);
     if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
-    ex.exodontias += r.exodontias; ex.total += r.totalProcedimentos;
-    byMonth.set(mesIdx, ex);
+    const acc = byMonth.get(mesIdx) || { art: 0, total: 0 };
+    acc.art += r.exodontias; acc.total += r.totalProcedimentos;
+    byMonth.set(mesIdx, acc);
   });
 
   let sumArt = 0, sumTot = 0;
@@ -680,11 +691,11 @@ function calcB6(
 
   months.forEach((m) => {
     if (skipMes(m, year, mesesFiltro)) return;
-    const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
+    const prelData = byMonth.get(m) || { art: 0, total: 0 };
 
     const oficial = equipe ? resolveOficialMes(m, year, equipe, "B6", oficialData?.index) : null;
     const isOficial = !!oficial;
-    const art = isOficial ? oficial!.num : prelData.exodontias;
+    const art = isOficial ? oficial!.num : prelData.art;
     const tot = isOficial ? oficial!.den  : prelData.total;
 
     if (!isOficial) todosMesesOficiais = false;
