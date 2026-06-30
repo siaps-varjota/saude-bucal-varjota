@@ -52,6 +52,13 @@ const SIM_CONFIG: Record<
 const conceitoLabel = (c: string) =>
   c === "otimo" ? "Ótimo" : c === "bom" ? "Bom" : c === "suficiente" ? "Suficiente" : c === "regular" ? "Regular" : "—";
 
+// Indicadores que não entram em SIM_CONFIG (sem simulação por incremento),
+// mas que ainda precisam do prefixo "B3 —" / "B6 —" no relatório, igual aos demais.
+const LABEL_SEM_SIMULACAO: Record<string, string> = {
+  "Taxa de Exodontias": "B3",
+  "Trat. Restaurador Atraumático": "B6",
+};
+
 function calcFaltam(num: number, den: number, threshold: number, deltaNum: number, deltaDenom: number): number {
   if (den > 0 && num / den >= threshold) return 0;
   if (deltaDenom > 0) {
@@ -66,9 +73,10 @@ function buildSimRow(ind: IndicadorResult) {
   const notaAtualPonderada = ind.nota * ind.peso;
   const cfg = SIM_CONFIG[ind.indicador];
   if (!cfg) {
-    // B3 / B6 — sem simulação por incremento
+    // B3 / B6 — sem simulação por incremento, mas ainda com prefixo de label
+    const prefixo = LABEL_SEM_SIMULACAO[ind.indicador];
     return {
-      indicador: ind.indicador,
+      indicador: prefixo ? `${prefixo} — ${ind.indicador}` : ind.indicador,
       atual: `${ind.numerador}/${ind.denominador} (${ind.porcentagem.toFixed(1)}%)`,
       conceitoAtual: conceitoLabel(ind.conceito),
       proximo: "—",
@@ -258,7 +266,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       doc.setFont("helvetica", "italic");
       doc.setTextColor(90);
       const notaRodape = doc.splitTextToSize(
-        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte a tela de pacientes/tratamentos filtrada pela equipe selecionada para visualizar os nomes individuais.",
+        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais.",
         pageW - 36,
       );
       doc.text(notaRodape, 14 + 4, y + 6);
