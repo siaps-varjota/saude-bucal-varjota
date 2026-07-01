@@ -987,9 +987,9 @@ const CorrelacaoCruzadaCard = ({
         <>
           <div className="w-full h-px bg-current opacity-10" />
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-col items-center gap-0.5 shrink-0 max-w-[180px]">
-              <span className="flex items-start gap-1 w-full">
-                <span className="text-[10px] text-muted-foreground text-center leading-snug break-words flex-1">
+            <div className="flex flex-col items-center gap-0.5 shrink-0">
+            <span className="flex items-start gap-1">
+            <span className="text-[10px] text-muted-foreground text-center leading-snug whitespace-nowrap">
                   simular +N · {candidato.label}
                 </span>
                 <AjudaDecisaoClinicaModal />
