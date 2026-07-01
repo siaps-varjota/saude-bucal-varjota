@@ -185,6 +185,8 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       });
       y += cardH + 8;
 
+      let sugestaoIntensificacao = "";
+
       // ── Resumo de Simulação por Indicador ─────────────────────────────────
       if (equipeResult && equipeResult.indicadores?.length) {
         if (y > 160) { doc.addPage(); y = 15; }
@@ -200,6 +202,23 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         );
 
         const simRows = indSorted.map(buildSimRow);
+
+        // Indicadores com pendências reais (exclui "—" e "OK — atingido")
+        const pendentes = simRows.filter(
+          (r) => r.faltam !== "—" && r.faltam !== "OK — atingido",
+        );
+        if (pendentes.length > 0) {
+          const listaPendentes = pendentes
+            .map((r) => `${r.indicador.split(" — ")[0]} (faltam ${r.faltam})`)
+            .join("; ");
+          const temB5Pendente = pendentes.some((r) => r.indicador.startsWith("B5"));
+          sugestaoIntensificacao =
+            ` Indicadores com pendências: ${listaPendentes}. Recomenda-se intensificar o uso das listas de busca ativa com apoio do(a) ACS` +
+            (temB5Pendente
+              ? ", priorizando a realização de procedimentos odontológicos preventivos (flúor, selante, profilaxia) para avanço do B5."
+              : ".");
+        }
+
         const notaAtual = equipeResult.notaFinal;
         const notaProjTotal = indSorted.reduce((acc, ind) => {
           const cfg = SIM_CONFIG[ind.indicador];
@@ -275,7 +294,8 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       doc.setFontSize(12);
       doc.setFont("helvetica", "italic");
       const notaRodape = doc.splitTextToSize(
-        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais para realizar busca-ativa com apoio do(a) ACS.",
+        "As listas nominais de pacientes pendentes em B1 (sem 1ª consulta) e B2 (tratamento não concluído) não constam neste relatório consolidado. Consulte as Abas B1 (1ª consulta Odontológica) e B2 (Tratamento concluído) e filtre pela equipe selecionada e Status Pendente para visualizar os nomes individuais para realizar busca-ativa com apoio do(a) ACS." +
+          sugestaoIntensificacao,
         pageW - 36,
       );
       const alturaCaixa = notaRodape.length * 4.5 + 6;
