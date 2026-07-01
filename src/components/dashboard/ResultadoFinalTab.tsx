@@ -676,10 +676,10 @@ const SigtapCorrelacaoDiagrama = () => (
         ART · 007-4
       </div>
     </div>
-    <p className="text-center text-muted-foreground">↑ numerador de cada indicador</p>
+    <p className="text-center text-muted-foreground">↑ numerador de cada indicador (entrar aqui aumenta o %)</p>
 
     <div className="flex flex-col gap-1 rounded border border-dashed border-border px-2 py-1.5 min-w-0">
-      <p className="text-muted-foreground break-words">denominador — códigos que entram no cálculo de cada indicador:</p>
+      <p className="text-muted-foreground break-words">denominador — códigos que entram no cálculo de cada indicador (entrar aqui dilui e diminui o %):</p>
       <div className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-indigo-700 break-words">
         <span className="font-bold">ART · 007-4</span> → denominador de B3, B5 e B6 (compartilhado pelos 3)
       </div>
@@ -894,6 +894,9 @@ const CorrelacaoCruzadaCard = ({
           </p>
           <p className="text-[13px] text-muted-foreground leading-snug">
             Mesmos procedimentos no denominador de:
+          </p>
+          <p className="text-[11px] text-muted-foreground/80 leading-snug">
+            (entrar no denominador dilui e diminui o %; entrar no numerador aumenta o %)
           </p>
         </div>
 
