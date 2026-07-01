@@ -188,7 +188,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       // ── Resumo de Simulação por Indicador ─────────────────────────────────
       if (equipeResult && equipeResult.indicadores?.length) {
         if (y > 160) { doc.addPage(); y = 15; }
-        doc.setFontSize(18);
+        doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30);
         doc.text("Resumo de Simulação — Próximo Conceito por Indicador", 14, y);
