@@ -889,10 +889,10 @@ const CorrelacaoCruzadaCard = ({
     >
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-col shrink-0">
-          <p className={`text-[10px] font-bold uppercase tracking-wide ${corTitulo}`}>
+          <p className={`text-[13px] font-bold uppercase tracking-wide ${corTitulo}`}>
             Correlação SIGTAP
           </p>
-          <p className="text-[10px] text-muted-foreground leading-snug">
+          <p className="text-[13px] text-muted-foreground leading-snug">
             Mesmos procedimentos no denominador de:
           </p>
         </div>
@@ -906,7 +906,7 @@ const CorrelacaoCruzadaCard = ({
               !relComAmostraBaixa;
             return (
               <div key={rel.indicador} className="flex items-center gap-2">
-                <span className="text-[10px] text-foreground" title={rel.indicador}>
+                <span className="text-[13px] text-foreground" title={rel.indicador}>
                   {rel.indicador}
                   {relComAmostraBaixa && (
                     <span className="text-amber-600" title="Amostra baixa neste relacionado">
@@ -917,7 +917,7 @@ const CorrelacaoCruzadaCard = ({
                 </span>
                 <Badge
                   variant="outline"
-                  className={`${CONCEITO_COLORS[rel.conceito]} text-[10px] shrink-0 ${conflitoLinha ? "ring-1 ring-rose-400" : ""}`}
+                  className={`${CONCEITO_COLORS[rel.conceito]} text-[13px] shrink-0 ${conflitoLinha ? "ring-1 ring-rose-400" : ""}`}
                 >
                   {CONCEITO_LABELS[rel.conceito]}
                 </Badge>
@@ -927,7 +927,7 @@ const CorrelacaoCruzadaCard = ({
         </div>
 
         {estado === "amostra" ? (
-          <p className="text-[10px] font-medium text-amber-700 leading-snug flex-1 min-w-[200px]">
+          <p className="text-[13px] font-medium text-amber-700 leading-snug flex-1 min-w-[200px]">
             Atenção: volume baixo, não necessariamente piora — são apenas {fmtNum(ind.numerador)} de{" "}
             {fmtNum(ind.denominador)} procedimentos no período ({ind.indicador} quase não está sendo realizado
             nesta equipe). Com tão poucos casos, o percentual oscila muito e não dá pra concluir que há disputa
@@ -939,13 +939,13 @@ const CorrelacaoCruzadaCard = ({
           const fraseEste = direcaoAtual === "favoravel" ? "melhorou" : "piorou";
           const fraseRelacionado = direcaoAtual === "favoravel" ? verboRelacionado : (nomesConflito.length > 1 ? "melhoraram" : "melhorou");
           return (
-            <p className={`text-[10px] font-medium ${corTextoVeredito} leading-snug flex-1 min-w-[200px]`}>
+            <p className={`text-[13px] font-medium ${corTextoVeredito} leading-snug flex-1 min-w-[200px]`}>
               Atenção: este indicador {fraseEste}, mas {nomesConflito.join(" e ")} {fraseRelacionado} —
               provavelmente pelo mesmo procedimento. Confira antes de comemorar.
             </p>
           );
         })() : (
-          <p className={`text-[10px] font-medium ${corTextoVeredito}`}>
+          <p className={`text-[13px] font-medium ${corTextoVeredito}`}>
             Sem divergência no momento.
           </p>
         )}
@@ -957,18 +957,18 @@ const CorrelacaoCruzadaCard = ({
 
       {infoCausal && (
         <div className="flex flex-col gap-1">
-          <p className="text-[10px] text-foreground leading-snug">
+          <p className="text-[13px] text-foreground leading-snug">
             <span className={`font-bold ${temConflito ? "text-rose-700" : "text-sky-700"}`}>Por quê: </span>
             {infoCausal.causa}
           </p>
-          <p className="text-[10px] text-foreground leading-snug">
+          <p className="text-[13px] text-foreground leading-snug">
             <span className={`font-bold ${temConflito ? "text-rose-700" : "text-sky-700"}`}>O que fazer: </span>
             {infoCausal.acao}
           </p>
           <button
             type="button"
             onClick={() => setMostrarDiagrama((v) => !v)}
-            className={`self-start flex items-center gap-1 text-[10px] font-medium mt-0.5 ${
+            className={`self-start flex items-center gap-1 text-[13px] font-medium mt-0.5 ${
               temConflito ? "text-rose-700" : "text-sky-700"
             } opacity-80 hover:opacity-100`}
           >
@@ -989,7 +989,7 @@ const CorrelacaoCruzadaCard = ({
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex flex-col items-center gap-0.5 shrink-0">
             <span className="flex items-start gap-1">
-            <span className="text-[10px] text-muted-foreground text-center leading-snug whitespace-nowrap">
+            <span className="text-[13px] text-muted-foreground text-center leading-snug whitespace-nowrap">
                   simular +N · {candidato.label}
                 </span>
                 <AjudaDecisaoClinicaModal />
@@ -997,7 +997,7 @@ const CorrelacaoCruzadaCard = ({
               <div className="flex items-center gap-1">
                 <button
                   onMouseDown={(e) => { e.preventDefault(); setRawQtd(String(Math.max(0, qtd - 1))); }}
-                  className="w-6 h-6 flex items-center justify-center rounded border border-current opacity-70 hover:opacity-100 font-bold text-sm select-none"
+                  className="w-6 h-6 flex items-center justify-center rounded border border-current opacity-70 hover:opacity-100 font-bold text-[18px] select-none"
                 >−</button>
                 <input
                   type="text"
@@ -1008,11 +1008,11 @@ const CorrelacaoCruzadaCard = ({
                     setRawQtd(v === "" ? "0" : v);
                   }}
                   onFocus={(e) => e.target.select()}
-                  className="w-14 h-6 text-center text-sm font-mono font-bold border border-current rounded bg-background focus:outline-none"
+                  className="w-14 h-6 text-center text-[18px] font-mono font-bold border border-current rounded bg-background focus:outline-none"
                 />
                 <button
                   onMouseDown={(e) => { e.preventDefault(); setRawQtd(String(qtd + 1)); }}
-                  className="w-6 h-6 flex items-center justify-center rounded border border-current opacity-70 hover:opacity-100 font-bold text-sm select-none"
+                  className="w-6 h-6 flex items-center justify-center rounded border border-current opacity-70 hover:opacity-100 font-bold text-[18px] select-none"
                 >+</button>
               </div>
             </div>
@@ -1024,14 +1024,14 @@ const CorrelacaoCruzadaCard = ({
                 const isBomGanho = polaridade === "menor_melhor" ? ganho <= 0 : ganho >= 0;
                 return (
                   <div key={indAlvo.indicador} className="flex items-baseline gap-1.5">
-                    <span className="text-[10px] text-muted-foreground" title={indAlvo.indicador}>
+                    <span className="text-[13px] text-muted-foreground" title={indAlvo.indicador}>
                       {indAlvo.indicador}:
                     </span>
-                    <span className="text-[11px] font-mono font-bold">
+                    <span className="text-[14px] font-mono font-bold">
                       {novaPct.toFixed(1)}%
                     </span>
                     {qtd > 0 && afetado && ganho !== 0 && (
-                      <span className={`text-[10px] font-medium ${isBomGanho ? "text-emerald-600" : "text-red-600"}`}>
+                      <span className={`text-[13px] font-medium ${isBomGanho ? "text-emerald-600" : "text-red-600"}`}>
                         ({ganho >= 0 ? "+" : ""}{ganho.toFixed(1)} pp)
                       </span>
                     )}
@@ -1040,7 +1040,7 @@ const CorrelacaoCruzadaCard = ({
               })}
             </div>
           </div>
-          <p className="text-[9px] text-muted-foreground leading-snug">
+          <p className="text-[12px] text-muted-foreground leading-snug">
             Estimativa proporcional sobre os totais atuais — não é uma contagem real por procedimento individual.
           </p>
         </>
