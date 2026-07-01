@@ -203,6 +203,16 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
 
         const simRows = indSorted.map(buildSimRow);
 
+        // Sugestões de quais procedimentos intensificar, por indicador
+        const SUGESTAO_PROCEDIMENTO: Record<string, string> = {
+          B1: "captação de 1ª consulta odontológica (busca ativa de pacientes ainda sem consulta inicial)",
+          B2: "conclusão dos tratamentos odontológicos já iniciados (retorno dos pacientes com tratamento em aberto)",
+          B3: "redução de exodontias, priorizando tratamento conservador/restaurador no lugar da extração",
+          B4: "ações de escovação supervisionada (ações coletivas em escolas, creches e grupos)",
+          B5: "procedimentos odontológicos preventivos (flúor, selante, profilaxia)",
+          B6: "Tratamento Restaurador Atraumático — ART (especialmente em crianças)",
+        };
+
         // Indicadores com pendências reais (exclui "—" e "OK — atingido")
         const pendentes = simRows.filter(
           (r) => r.faltam !== "—" && r.faltam !== "OK — atingido",
@@ -211,12 +221,16 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
           const listaPendentes = pendentes
             .map((r) => `${r.indicador.split(" — ")[0]} (faltam ${r.faltam})`)
             .join("; ");
-          const temB5Pendente = pendentes.some((r) => r.indicador.startsWith("B5"));
+          const sugestoesProcedimentos = pendentes
+            .map((r) => {
+              const codigo = r.indicador.split(" — ")[0];
+              const texto = SUGESTAO_PROCEDIMENTO[codigo];
+              return texto ? `${codigo}: intensificar ${texto}` : null;
+            })
+            .filter((s): s is string => Boolean(s))
+            .join("; ");
           sugestaoIntensificacao =
-            ` Indicadores com pendências: ${listaPendentes}. Recomenda-se intensificar o uso das listas de busca ativa com apoio do(a) ACS` +
-            (temB5Pendente
-              ? ", priorizando a realização de procedimentos odontológicos preventivos (flúor, selante, profilaxia) para avanço do B5."
-              : ".");
+            ` Indicadores com pendências: ${listaPendentes}. Recomenda-se intensificar o uso das listas de busca ativa com apoio do(a) ACS, focando em: ${sugestoesProcedimentos}.`;
         }
 
         const notaAtual = equipeResult.notaFinal;
