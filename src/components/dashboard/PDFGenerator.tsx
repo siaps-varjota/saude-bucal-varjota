@@ -109,7 +109,7 @@ export const PDFGenerator = ({
         }, {} as Record<string, any>)
       );
 
-      (doc as any).autoTable({
+      autoTable(doc, {
         startY: y,
         columns: tableColumns,
         body: tableRows,
