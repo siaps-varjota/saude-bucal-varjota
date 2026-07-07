@@ -1712,7 +1712,7 @@ export const ResultadoFinalTab = ({
             axb:         ind.notaFinal.toFixed(2).replace(".", ","),
           }));
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           startY: y,
           columns: [
             { header: "Indicador (A)",  dataKey: "indicador" },
