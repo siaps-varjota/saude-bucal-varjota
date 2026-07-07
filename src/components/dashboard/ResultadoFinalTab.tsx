@@ -1529,7 +1529,7 @@ export const ResultadoFinalTab = ({
     toast.info("Gerando PDF...");
     try {
       const { default: jsPDF } = await import("jspdf");
-      await import("jspdf-autotable");
+      const { default: autoTable } = await import("jspdf-autotable");
 
       const doc = new (jsPDF as any)({ orientation: "landscape", unit: "mm", format: "a4" });
       let y = 15;
@@ -1712,7 +1712,7 @@ export const ResultadoFinalTab = ({
             axb:         ind.notaFinal.toFixed(2).replace(".", ","),
           }));
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           startY: y,
           columns: [
             { header: "Indicador (A)",  dataKey: "indicador" },
