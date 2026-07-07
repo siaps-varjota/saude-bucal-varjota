@@ -36,7 +36,7 @@ export const PDFGenerator = ({
 
     try {
       const { default: jsPDF } = await import("jspdf");
-      await import("jspdf-autotable");
+      const { default: autoTable } = await import("jspdf-autotable");
 
       const doc = new (jsPDF as any)({ orientation: "landscape", unit: "mm", format: "a4" });
 
