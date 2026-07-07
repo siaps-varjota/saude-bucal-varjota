@@ -296,7 +296,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         doc.setFontSize(9);
         y += 4;
         const rodapeTexto = doc.splitTextToSize(
-          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den). B3 e B6 não usam simulação por incremento. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador especificamente ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
+          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den, B6: +1 ART num/+1 den). B3 não usa simulação por incremento. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador especificamente ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
           pageW - 28,
         );
         doc.text(rodapeTexto, 14, y);
