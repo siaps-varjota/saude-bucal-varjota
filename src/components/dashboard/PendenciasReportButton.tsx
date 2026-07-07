@@ -47,16 +47,20 @@ const SIM_CONFIG: Record<
     thresholdBom: 0.005, labelBom: "> 0,5%",
     thresholdOtimo: 0.01, labelOtimo: "> 1%",
   },
+  "Trat. Restaurador Atraumático": {
+    label: "B6", unit: "ART", deltaNum: 1, deltaDenom: 1,
+    thresholdBom: 0.0601, labelBom: "> 6%",
+    thresholdOtimo: 0.0801, labelOtimo: "> 8%",
+  },
 };
 
 const conceitoLabel = (c: string) =>
   c === "otimo" ? "Ótimo" : c === "bom" ? "Bom" : c === "suficiente" ? "Suficiente" : c === "regular" ? "Regular" : "—";
 
 // Indicadores que não entram em SIM_CONFIG (sem simulação por incremento),
-// mas que ainda precisam do prefixo "B3 —" / "B6 —" no relatório, igual aos demais.
+// mas que ainda precisam do prefixo "B3 —" no relatório, igual aos demais.
 const LABEL_SEM_SIMULACAO: Record<string, string> = {
   "Taxa de Exodontias": "B3",
-  "Trat. Restaurador Atraumático": "B6",
 };
 
 function calcFaltam(num: number, den: number, threshold: number, deltaNum: number, deltaDenom: number): number {
@@ -292,7 +296,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         doc.setFontSize(9);
         y += 4;
         const rodapeTexto = doc.splitTextToSize(
-          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den). B3 e B6 não usam simulação por incremento. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador especificamente ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
+          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den, B6: +1 ART num/+1 den). B3 não usa simulação por incremento. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador especificamente ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
           pageW - 28,
         );
         doc.text(rodapeTexto, 14, y);
