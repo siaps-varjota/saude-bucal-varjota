@@ -47,16 +47,20 @@ const SIM_CONFIG: Record<
     thresholdBom: 0.005, labelBom: "> 0,5%",
     thresholdOtimo: 0.01, labelOtimo: "> 1%",
   },
+  "Trat. Restaurador Atraumático": {
+    label: "B6", unit: "ART", deltaNum: 1, deltaDenom: 1,
+    thresholdBom: 0.0601, labelBom: "> 6%",
+    thresholdOtimo: 0.0801, labelOtimo: "> 8%",
+  },
 };
 
 const conceitoLabel = (c: string) =>
   c === "otimo" ? "Ótimo" : c === "bom" ? "Bom" : c === "suficiente" ? "Suficiente" : c === "regular" ? "Regular" : "—";
 
 // Indicadores que não entram em SIM_CONFIG (sem simulação por incremento),
-// mas que ainda precisam do prefixo "B3 —" / "B6 —" no relatório, igual aos demais.
+// mas que ainda precisam do prefixo "B3 —" no relatório, igual aos demais.
 const LABEL_SEM_SIMULACAO: Record<string, string> = {
   "Taxa de Exodontias": "B3",
-  "Trat. Restaurador Atraumático": "B6",
 };
 
 function calcFaltam(num: number, den: number, threshold: number, deltaNum: number, deltaDenom: number): number {
