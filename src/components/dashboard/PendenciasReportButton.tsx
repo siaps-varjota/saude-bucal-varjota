@@ -260,7 +260,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
           (p) => Math.round((p / somaProporcoes) * larguraUtil * 10) / 10,
         );
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           startY: y + 3,
           head: [["Indicador", "Atual", "Conceito Atual", "Próximo Conceito", "Faltam", "Nota Projetada", "Impacto na Nota"]],
           body: simRows.map((r) => [r.indicador, r.atual, r.conceitoAtual, r.proximo, r.faltam, r.notaProj, r.impacto]),
