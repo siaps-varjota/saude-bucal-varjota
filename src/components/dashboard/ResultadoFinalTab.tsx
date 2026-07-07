@@ -79,6 +79,11 @@ const META_THRESHOLDS: Partial<Record<string, {
     labelBom: "> 0,5%",  thresholdBom: 0.005,
     labelOtimo: "> 1%",  thresholdOtimo: 0.01,
   },
+  "Trat. Restaurador Atraumático": {
+    labelBom: "> 6%",   thresholdBom: 0.0601,
+    labelOtimo: "> 8%", thresholdOtimo: 0.0801,
+    unit: "ART",
+  },
 };
 
 // ── Indicadores que exibem o card de Simulação ────────────────────────────────
