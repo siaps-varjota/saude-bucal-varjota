@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://awvhspvzuvvgokidskcb.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "saude-bucal-varjota-mcp",
+      "version": "0.1.0",
+      "title": "Saúde Bucal Varjota"
+    },
+    "tools": [
+      {
+        "name": "listar_fontes",
+        "title": "Listar fontes de dados",
+        "description": "Lista as fontes de dados (indicadores B1 a B6 e consolidado oficial) disponíveis no painel de Saúde Bucal de Varjota.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "explicar_indicadores",
+        "title": "Explicar indicadores e parâmetros",
+        "description": "Explica os indicadores B1 a B6 do painel de Saúde Bucal de Varjota, seus conceitos (Regular, Suficiente, Bom, Ótimo) e a divisão em quadrimestres.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "consultar_dados",
+        "title": "Consultar dados de um indicador",
+        "description": "Retorna as linhas de uma fonte de dados do painel (ex.: b1_primeira_consulta, b5_preventivos). Permite filtrar por equipe, microárea ou mês e limitar a quantidade de linhas.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "fonte": {
+              "type": "string",
+              "description": "Id da fonte. Valores válidos: b1_primeira_consulta, b1_denominador, b2_tratamento, b3_exodontias, b4_escovacao, b5_preventivos, b6_art, dados_oficiais"
+            },
+            "equipe": {
+              "type": "string",
+              "description": "Filtro parcial por equipe (ESB/ESF são equivalentes)."
+            },
+            "microarea": {
+              "type": "string",
+              "description": "Filtro parcial por microárea."
+            },
+            "mes": {
+              "type": "string",
+              "description": "Filtro parcial por mês de referência."
+            },
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "description": "Máximo de linhas (padrão 100)."
+            }
+          },
+          "required": [
+            "fonte"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_equipes",
+        "title": "Listar equipes",
+        "description": "Lista as equipes (ESB) encontradas em uma fonte de dados do painel, com a contagem de linhas de cada uma.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "fonte": {
+              "type": "string",
+              "default": "b1_primeira_consulta",
+              "description": "Id da fonte. Valores válidos: b1_primeira_consulta, b1_denominador, b2_tratamento, b3_exodontias, b4_escovacao, b5_preventivos, b6_art, dados_oficiais"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_pendencias",
+        "title": "Listar pendências por equipe",
+        "description": "Lista pacientes pendentes de uma equipe: B1 (sem 1ª consulta odontológica) ou B2 (tratamento odontológico não concluído).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "indicador": {
+              "type": "string",
+              "enum": [
+                "b1",
+                "b2"
+              ],
+              "description": "b1 = sem 1ª consulta; b2 = tratamento pendente."
+            },
+            "equipe": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Nome (ou parte) da equipe, ex.: 'Acampamento'."
+            },
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "description": "Máximo de pacientes (padrão 200)."
+            }
+          },
+          "required": [
+            "indicador",
+            "equipe"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
