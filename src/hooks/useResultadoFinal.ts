@@ -797,9 +797,12 @@ export function useResultadoFinal(
     ];
   };
 
-  const geralIndicadores = equipeFilter === "all" ? buildGeral() : buildGeral(equipeFilter);
+  // O "Geral" deve sempre refletir o consolidado de TODAS as equipes,
+  // independente da equipe selecionada no filtro — esse filtro só deve
+  // restringir o bloco "Por Equipe" (porEquipe), nunca o Geral.
+  const geralIndicadores = buildGeral();
   const geral: EquipeResult = {
-    equipe: equipeFilter === "all" ? "Geral" : equipeFilter,
+    equipe: "Geral",
     indicadores: geralIndicadores,
     notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
   };
