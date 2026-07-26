@@ -124,6 +124,12 @@ function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHO
   return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
 }
 
+// ── Meta mínima INTEIRA para superar estritamente o threshold ───────────────
+// Evita que percentuais exatamente iguais ao threshold (ex: 1,0% para B4)
+// sejam considerados "meta atingida" quando o parâmetro exige "> X%".
+const strictMeta = (den: number, threshold: number): number =>
+  den > 0 ? Math.floor(threshold * den) + 1 : 0;
+
 // ── B3 (Taxa de Exodontias) — menor-melhor, faixa NÃO monotônica ────────────
 // Conforme Nota Metodológica B3: Ótimo é uma faixa intermediária (≥3% e <10%),
 // não o extremo — abaixo de 3% também é Regular. derivaConceito() genérico
@@ -163,20 +169,18 @@ const MetaQuadrimestreCard = ({
   faltaUnit?: string;
   mesesDecorridos?: number;
 }) => {
-  const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
-  const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
+  const metaBom   = strictMeta(denominador, thresholds.thresholdBom);
+  const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
   const calcFaltam = (threshold: number): number => {
-    if (denominador > 0 && numerador / denominador >= threshold) return 0;
+    if (denominador > 0 && numerador / denominador > threshold) return 0;
     const dn = deltaNum  ?? 1;
     const dd = deltaDenom ?? 0;
-    if (dd > 0) {
-      const den = dn - dd * threshold;
-      if (den <= 0) return 0;
-      return Math.max(0, Math.ceil((threshold * denominador - numerador) / den));
-    }
-    return Math.max(0, Math.ceil(denominador * threshold) - numerador);
+    const den = dn - dd * threshold;
+    if (den <= 0) return 0;
+    const x = (threshold * denominador - numerador) / den;
+    return Math.max(0, Math.floor(x) + 1);
   };
 
   const faltamBom   = calcFaltam(thresholds.thresholdBom);
