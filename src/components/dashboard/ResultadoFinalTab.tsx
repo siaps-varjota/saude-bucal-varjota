@@ -124,6 +124,12 @@ function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHO
   return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
 }
 
+// ── Meta mínima INTEIRA para superar estritamente o threshold ───────────────
+// Evita que percentuais exatamente iguais ao threshold (ex: 1,0% para B4)
+// sejam considerados "meta atingida" quando o parâmetro exige "> X%".
+const strictMeta = (den: number, threshold: number): number =>
+  den > 0 ? Math.ceil((threshold + 1e-9) * den) : 0;
+
 // ── B3 (Taxa de Exodontias) — menor-melhor, faixa NÃO monotônica ────────────
 // Conforme Nota Metodológica B3: Ótimo é uma faixa intermediária (≥3% e <10%),
 // não o extremo — abaixo de 3% também é Regular. derivaConceito() genérico
