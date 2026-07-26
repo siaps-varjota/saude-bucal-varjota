@@ -169,20 +169,21 @@ const MetaQuadrimestreCard = ({
   faltaUnit?: string;
   mesesDecorridos?: number;
 }) => {
-  const metaBom   = Math.ceil(denominador * thresholds.thresholdBom);
-  const metaOtimo = Math.ceil(denominador * thresholds.thresholdOtimo);
+  const metaBom   = strictMeta(denominador, thresholds.thresholdBom);
+  const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
   const calcFaltam = (threshold: number): number => {
-    if (denominador > 0 && numerador / denominador >= threshold) return 0;
+    if (denominador > 0 && numerador / denominador > threshold) return 0;
     const dn = deltaNum  ?? 1;
     const dd = deltaDenom ?? 0;
+    const metaMin = strictMeta(denominador, threshold);
     if (dd > 0) {
       const den = dn - dd * threshold;
       if (den <= 0) return 0;
-      return Math.max(0, Math.ceil((threshold * denominador - numerador) / den));
+      return Math.max(0, Math.ceil((metaMin - numerador) / den));
     }
-    return Math.max(0, Math.ceil(denominador * threshold) - numerador);
+    return Math.max(0, metaMin - numerador);
   };
 
   const faltamBom   = calcFaltam(thresholds.thresholdBom);
