@@ -177,13 +177,10 @@ const MetaQuadrimestreCard = ({
     if (denominador > 0 && numerador / denominador > threshold) return 0;
     const dn = deltaNum  ?? 1;
     const dd = deltaDenom ?? 0;
-    const metaMin = strictMeta(denominador, threshold);
-    if (dd > 0) {
-      const den = dn - dd * threshold;
-      if (den <= 0) return 0;
-      return Math.max(0, Math.ceil((metaMin - numerador) / den));
-    }
-    return Math.max(0, metaMin - numerador);
+    const den = dn - dd * threshold;
+    if (den <= 0) return 0;
+    const x = (threshold * denominador - numerador) / den;
+    return Math.max(0, Math.floor(x) + 1);
   };
 
   const faltamBom   = calcFaltam(thresholds.thresholdBom);
