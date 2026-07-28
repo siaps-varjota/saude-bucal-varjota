@@ -63,14 +63,15 @@ const LABEL_SEM_SIMULACAO: Record<string, string> = {
   "Taxa de Exodontias": "B3",
 };
 
+// Superar ESTRITAMENTE o threshold (ex.: B4 exige > 1%, não = 1%).
 function calcFaltam(num: number, den: number, threshold: number, deltaNum: number, deltaDenom: number): number {
-  if (den > 0 && num / den >= threshold) return 0;
-  if (deltaDenom > 0) {
-    const d = deltaNum - deltaDenom * threshold;
-    if (d <= 0) return 0;
-    return Math.max(0, Math.ceil((threshold * den - num) / d));
-  }
-  return Math.max(0, Math.ceil(den * threshold) - num);
+  if (den > 0 && num / den > threshold) return 0;
+  const dn = deltaNum || 1;
+  const dd = deltaDenom || 0;
+  const d = dn - dd * threshold;
+  if (d <= 0) return 0;
+  const x = (threshold * den - num) / d;
+  return Math.max(0, Math.floor(x) + 1);
 }
 
 function buildSimRow(ind: IndicadorResult) {
