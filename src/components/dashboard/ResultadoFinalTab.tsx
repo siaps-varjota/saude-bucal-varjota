@@ -54,37 +54,8 @@ const NOTA_SCORE: Record<Conceito, string> = {
 };
 
 // ── Thresholds para Meta do Quadrimestre ─────────────────────────────────────
-const META_THRESHOLDS: Partial<Record<string, {
-  labelBom: string;
-  thresholdBom: number;
-  labelOtimo: string;
-  thresholdOtimo: number;
-  unit?: string;
-}>> = {
-  "1ª Consulta Odontológica": {
-    labelBom: "> 0,75%",   thresholdBom: 0.0075,
-    labelOtimo: "> 1,25%", thresholdOtimo: 0.0125,
-  },
-  "Tratamento Concluído": {
-    labelBom: "> 50%",   thresholdBom: 0.501,
-    labelOtimo: "> 75%", thresholdOtimo: 0.751,
-    unit: "trat.",
-  },
-  "Proced. Odont. Preventivos": {
-    labelBom: "≥ 55%",   thresholdBom: 0.5499,
-    labelOtimo: "≥ 65%", thresholdOtimo: 0.6499,
-    unit: "prev.",
-  },
-  "Escovação Supervisionada": {
-    labelBom: "> 0,5%",  thresholdBom: 0.005,
-    labelOtimo: "> 1%",  thresholdOtimo: 0.01,
-  },
-  "Trat. Restaurador Atraumático": {
-    labelBom: "> 6%",   thresholdBom: 0.0601,
-    labelOtimo: "> 8%", thresholdOtimo: 0.0801,
-    unit: "ART",
-  },
-};
+// Regra única compartilhada com o PDF de pendências (src/lib/metaThresholds.ts)
+
 
 // ── Indicadores que exibem o card de Simulação ────────────────────────────────
 const INDICADORES_COM_SIMULACAO = new Set([
