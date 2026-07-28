@@ -1627,7 +1627,7 @@ export const ResultadoFinalTab = ({
         );
       });
 
-      y += cardH + 12;
+      y += cardH + 7.2;
 
       // ── Tabelas por equipe ────────────────────────────────────────────────────
       const equipesList =
