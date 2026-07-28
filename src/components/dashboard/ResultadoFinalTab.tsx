@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared } from "@/lib/metaThresholds";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
 
@@ -83,7 +84,7 @@ function fmtNum(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHOLDS[string]>): {
+function derivaConceito(pct: number, thresholds: NonNullable<(typeof META_THRESHOLDS)[string]>): {
   label: string; textColor: string; bgBorder: string; nota: string;
 } {
   if (pct > thresholds.thresholdOtimo * 100)
@@ -94,12 +95,6 @@ function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHO
     return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "0,50" };
   return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
 }
-
-// ── Meta mínima INTEIRA para superar estritamente o threshold ───────────────
-// Evita que percentuais exatamente iguais ao threshold (ex: 1,0% para B4)
-// sejam considerados "meta atingida" quando o parâmetro exige "> X%".
-const strictMeta = (den: number, threshold: number): number =>
-  den > 0 ? Math.floor(threshold * den) + 1 : 0;
 
 // ── B3 (Taxa de Exodontias) — menor-melhor, faixa NÃO monotônica ────────────
 // Conforme Nota Metodológica B3: Ótimo é uma faixa intermediária (≥3% e <10%),
@@ -134,7 +129,7 @@ const MetaQuadrimestreCard = ({
 }: {
   denominador: number;
   numerador: number;
-  thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
+  thresholds: NonNullable<(typeof META_THRESHOLDS)[string]>;
   deltaNum?: number;
   deltaDenom?: number;
   faltaUnit?: string;
@@ -144,15 +139,8 @@ const MetaQuadrimestreCard = ({
   const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  const calcFaltam = (threshold: number): number => {
-    if (denominador > 0 && numerador / denominador > threshold) return 0;
-    const dn = deltaNum  ?? 1;
-    const dd = deltaDenom ?? 0;
-    const den = dn - dd * threshold;
-    if (den <= 0) return 0;
-    const x = (threshold * denominador - numerador) / den;
-    return Math.max(0, Math.floor(x) + 1);
-  };
+  const calcFaltam = (threshold: number): number =>
+    calcFaltamShared(numerador, denominador, threshold, deltaNum ?? 1, deltaDenom ?? 0);
 
   const faltamBom   = calcFaltam(thresholds.thresholdBom);
   const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
@@ -1041,16 +1029,8 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
   const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
   const conceito = derivaConceito(pct, thresholds);
 
-  const calcFaltam = (threshold: number): number => {
-    if (ind.denominador > 0 && ind.numerador / ind.denominador >= threshold) return 0;
-    const { deltaNum: dn, deltaDenom: dd } = cfg;
-    if (dd > 0) {
-      const den = dn - dd * threshold;
-      if (den <= 0) return 0;
-      return Math.max(0, Math.ceil((threshold * ind.denominador - ind.numerador) / den));
-    }
-    return Math.max(0, Math.ceil(ind.denominador * threshold) - ind.numerador);
-  };
+  const calcFaltam = (threshold: number): number =>
+    calcFaltamShared(ind.numerador, ind.denominador, threshold, cfg.deltaNum, cfg.deltaDenom);
 
   const isOtimo   = pct > thresholds.thresholdOtimo * 100;
   const isBom     = pct > thresholds.thresholdBom   * 100;
