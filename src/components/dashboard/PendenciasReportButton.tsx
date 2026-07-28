@@ -5,6 +5,7 @@ import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
 import type { EquipeResult, IndicadorResult } from "@/hooks/useResultadoFinal";
+import { META_THRESHOLDS, LABEL_SEM_SIMULACAO, calcFaltam } from "@/lib/metaThresholds";
 
 interface Props {
   equipe: string; // "all" or specific equipe name
@@ -13,66 +14,11 @@ interface Props {
 
 const normalizeEquipe = (e: string) => e.replace(/ESF/gi, "ESB").trim();
 
-// Espelho dos thresholds usados no ResultadoFinalTab (Bom/Ótimo) para simulação
-const SIM_CONFIG: Record<
-  string,
-  {
-    label: string;
-    unit: string;
-    deltaNum: number;
-    deltaDenom: number;
-    thresholdBom: number;
-    labelBom: string;
-    thresholdOtimo: number;
-    labelOtimo: string;
-  }
-> = {
-  "1ª Consulta Odontológica": {
-    label: "B1", unit: "atend.", deltaNum: 1, deltaDenom: 0,
-    thresholdBom: 0.0075, labelBom: "> 0,75%",
-    thresholdOtimo: 0.0125, labelOtimo: "> 1,25%",
-  },
-  "Tratamento Concluído": {
-    label: "B2", unit: "trat.", deltaNum: 1, deltaDenom: 0,
-    thresholdBom: 0.501, labelBom: "> 50%",
-    thresholdOtimo: 0.751, labelOtimo: "> 75%",
-  },
-  "Proced. Odont. Preventivos": {
-    label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2,
-    thresholdBom: 0.5499, labelBom: ">= 55%",
-    thresholdOtimo: 0.6499, labelOtimo: ">= 65%",
-  },
-  "Escovação Supervisionada": {
-    label: "B4", unit: "consultas", deltaNum: 1, deltaDenom: 0,
-    thresholdBom: 0.005, labelBom: "> 0,5%",
-    thresholdOtimo: 0.01, labelOtimo: "> 1%",
-  },
-  "Trat. Restaurador Atraumático": {
-    label: "B6", unit: "ART", deltaNum: 1, deltaDenom: 1,
-    thresholdBom: 0.0601, labelBom: "> 6%",
-    thresholdOtimo: 0.0801, labelOtimo: "> 8%",
-  },
-};
+// Regra única de thresholds (compartilhada com o Resultado Final).
+const SIM_CONFIG = META_THRESHOLDS;
 
 const conceitoLabel = (c: string) =>
   c === "otimo" ? "Ótimo" : c === "bom" ? "Bom" : c === "suficiente" ? "Suficiente" : c === "regular" ? "Regular" : "—";
-
-// Indicadores que não entram em SIM_CONFIG (sem simulação por incremento),
-// mas que ainda precisam do prefixo "B3 —" no relatório, igual aos demais.
-const LABEL_SEM_SIMULACAO: Record<string, string> = {
-  "Taxa de Exodontias": "B3",
-};
-
-// Superar ESTRITAMENTE o threshold (ex.: B4 exige > 1%, não = 1%).
-function calcFaltam(num: number, den: number, threshold: number, deltaNum: number, deltaDenom: number): number {
-  if (den > 0 && num / den > threshold) return 0;
-  const dn = deltaNum || 1;
-  const dd = deltaDenom || 0;
-  const d = dn - dd * threshold;
-  if (d <= 0) return 0;
-  const x = (threshold * den - num) / d;
-  return Math.max(0, Math.floor(x) + 1);
-}
 
 function buildSimRow(ind: IndicadorResult) {
   const notaAtualPonderada = ind.nota * ind.peso;
@@ -101,7 +47,7 @@ function buildSimRow(ind: IndicadorResult) {
   const notaProjPonderada = notaProjBase * ind.peso;
   const impactoPontos = notaProjPonderada - notaAtualPonderada;
   return {
-    indicador: `${cfg.label} — ${ind.indicador}`,
+    indicador: `${cfg.code} — ${ind.indicador}`,
     atual: `${ind.numerador}/${ind.denominador} (${pct.toFixed(1)}%)`,
     conceitoAtual: conceitoLabel(ind.conceito),
     proximo: proximoLabel ?? "—",
