@@ -5,6 +5,7 @@ import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
 import type { EquipeResult, IndicadorResult } from "@/hooks/useResultadoFinal";
+import { META_THRESHOLDS, LABEL_SEM_SIMULACAO, calcFaltam } from "@/lib/metaThresholds";
 
 interface Props {
   equipe: string; // "all" or specific equipe name
@@ -12,8 +13,6 @@ interface Props {
 }
 
 const normalizeEquipe = (e: string) => e.replace(/ESF/gi, "ESB").trim();
-
-import { META_THRESHOLDS, LABEL_SEM_SIMULACAO, calcFaltam } from "@/lib/metaThresholds";
 
 // Regra única de thresholds (compartilhada com o Resultado Final).
 const SIM_CONFIG = META_THRESHOLDS;
