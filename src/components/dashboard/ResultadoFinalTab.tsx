@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared } from "@/lib/metaThresholds";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
 
@@ -55,8 +54,37 @@ const NOTA_SCORE: Record<Conceito, string> = {
 };
 
 // ── Thresholds para Meta do Quadrimestre ─────────────────────────────────────
-// Regra única compartilhada com o PDF de pendências (src/lib/metaThresholds.ts)
-
+const META_THRESHOLDS: Partial<Record<string, {
+  labelBom: string;
+  thresholdBom: number;
+  labelOtimo: string;
+  thresholdOtimo: number;
+  unit?: string;
+}>> = {
+  "1ª Consulta Odontológica": {
+    labelBom: "> 0,75%",   thresholdBom: 0.0075,
+    labelOtimo: "> 1,25%", thresholdOtimo: 0.0125,
+  },
+  "Tratamento Concluído": {
+    labelBom: "> 50%",   thresholdBom: 0.501,
+    labelOtimo: "> 75%", thresholdOtimo: 0.751,
+    unit: "trat.",
+  },
+  "Proced. Odont. Preventivos": {
+    labelBom: "≥ 55%",   thresholdBom: 0.5499,
+    labelOtimo: "≥ 65%", thresholdOtimo: 0.6499,
+    unit: "prev.",
+  },
+  "Escovação Supervisionada": {
+    labelBom: "> 0,5%",  thresholdBom: 0.005,
+    labelOtimo: "> 1%",  thresholdOtimo: 0.01,
+  },
+  "Trat. Restaurador Atraumático": {
+    labelBom: "> 6%",   thresholdBom: 0.0601,
+    labelOtimo: "> 8%", thresholdOtimo: 0.0801,
+    unit: "ART",
+  },
+};
 
 // ── Indicadores que exibem o card de Simulação ────────────────────────────────
 const INDICADORES_COM_SIMULACAO = new Set([
@@ -84,7 +112,7 @@ function fmtNum(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-function derivaConceito(pct: number, thresholds: NonNullable<(typeof META_THRESHOLDS)[string]>): {
+function derivaConceito(pct: number, thresholds: NonNullable<typeof META_THRESHOLDS[string]>): {
   label: string; textColor: string; bgBorder: string; nota: string;
 } {
   if (pct > thresholds.thresholdOtimo * 100)
@@ -95,6 +123,12 @@ function derivaConceito(pct: number, thresholds: NonNullable<(typeof META_THRESH
     return { label: "Suficiente", textColor: "text-amber-700",   bgBorder: "bg-amber-50 border-amber-200",     nota: "0,50" };
   return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
 }
+
+// ── Meta mínima INTEIRA para superar estritamente o threshold ───────────────
+// Evita que percentuais exatamente iguais ao threshold (ex: 1,0% para B4)
+// sejam considerados "meta atingida" quando o parâmetro exige "> X%".
+const strictMeta = (den: number, threshold: number): number =>
+  den > 0 ? Math.floor(threshold * den) + 1 : 0;
 
 // ── B3 (Taxa de Exodontias) — menor-melhor, faixa NÃO monotônica ────────────
 // Conforme Nota Metodológica B3: Ótimo é uma faixa intermediária (≥3% e <10%),
@@ -129,7 +163,7 @@ const MetaQuadrimestreCard = ({
 }: {
   denominador: number;
   numerador: number;
-  thresholds: NonNullable<(typeof META_THRESHOLDS)[string]>;
+  thresholds: NonNullable<typeof META_THRESHOLDS[string]>;
   deltaNum?: number;
   deltaDenom?: number;
   faltaUnit?: string;
@@ -139,8 +173,15 @@ const MetaQuadrimestreCard = ({
   const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  const calcFaltam = (threshold: number): number =>
-    calcFaltamShared(numerador, denominador, threshold, deltaNum ?? 1, deltaDenom ?? 0);
+  const calcFaltam = (threshold: number): number => {
+    if (denominador > 0 && numerador / denominador > threshold) return 0;
+    const dn = deltaNum  ?? 1;
+    const dd = deltaDenom ?? 0;
+    const den = dn - dd * threshold;
+    if (den <= 0) return 0;
+    const x = (threshold * denominador - numerador) / den;
+    return Math.max(0, Math.floor(x) + 1);
+  };
 
   const faltamBom   = calcFaltam(thresholds.thresholdBom);
   const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
@@ -1029,8 +1070,16 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
   const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
   const conceito = derivaConceito(pct, thresholds);
 
-  const calcFaltam = (threshold: number): number =>
-    calcFaltamShared(ind.numerador, ind.denominador, threshold, cfg.deltaNum, cfg.deltaDenom);
+  const calcFaltam = (threshold: number): number => {
+    if (ind.denominador > 0 && ind.numerador / ind.denominador >= threshold) return 0;
+    const { deltaNum: dn, deltaDenom: dd } = cfg;
+    if (dd > 0) {
+      const den = dn - dd * threshold;
+      if (den <= 0) return 0;
+      return Math.max(0, Math.ceil((threshold * ind.denominador - ind.numerador) / den));
+    }
+    return Math.max(0, Math.ceil(ind.denominador * threshold) - ind.numerador);
+  };
 
   const isOtimo   = pct > thresholds.thresholdOtimo * 100;
   const isBom     = pct > thresholds.thresholdBom   * 100;
