@@ -4,7 +4,7 @@
 //
 // Convenção: TODOS os thresholds são superados de forma ESTRITA (valor > threshold).
 // Parâmetros do tipo "≥ X%" são representados por um threshold levemente inferior
-// (ex.: ≥ 55% -> 0.5499), de modo que "> 0.5499" equivale a "≥ 55%".
+// (ex.: ≥ 55% -> 0.55 - 1e-9), de modo que "> (0,55 - ε)" equivale a "≥ 55%".
 
 export interface MetaThreshold {
   /** Código do indicador (B1, B2, ...) */
