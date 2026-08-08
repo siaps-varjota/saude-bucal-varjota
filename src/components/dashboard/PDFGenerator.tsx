@@ -23,6 +23,20 @@ interface PDFGeneratorProps {
   fileName?: string;
 }
 
+// Detecta os erros clássicos de "chunk desatualizado" que o Vite lança
+// quando o navegador ainda tem o index.html de um deploy anterior em cache
+// e tenta buscar um arquivo /assets/*.js que já não existe mais no servidor
+// (foi substituído por um novo hash no deploy mais recente).
+function isStaleChunkError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /Failed to fetch dynamically imported module/i.test(message) ||
+    /Failed to load resource/i.test(message) ||
+    /Loading chunk .* failed/i.test(message) ||
+    /Importing a module script failed/i.test(message)
+  );
+}
+
 export const PDFGenerator = ({
   title,
   filterInfo,
@@ -66,10 +80,17 @@ export const PDFGenerator = ({
       doc.text("Resumo dos Indicadores", 14, y);
       y += 5;
 
-      const cardW = 50;
+      const cardGap = 4;
+      const usableWidth = pageW - 14 * 2;
+      // Calcula a largura do card dinamicamente para caber todos os cards
+      // sem estourar a página (antes era fixo em 50mm, o que jogava cards
+      // para fora da folha quando havia mais de ~4-5 cards).
+      const cardW = summaryCards.length > 0
+        ? Math.min(50, (usableWidth - cardGap * (summaryCards.length - 1)) / summaryCards.length)
+        : 50;
       const cardH = 16;
       summaryCards.forEach((card, i) => {
-        const x = 14 + i * (cardW + 4);
+        const x = 14 + i * (cardW + cardGap);
         doc.setDrawColor(200);
         doc.setFillColor(245, 245, 245);
         doc.roundedRect(x, y, cardW, cardH, 2, 2, "FD");
@@ -97,7 +118,7 @@ export const PDFGenerator = ({
       doc.text(`Dados (${data.length} registros)`, 14, y);
       y += 4;
 
-      const tableColumns = columns.map((col, idx) => ({
+      const tableColumns = columns.map((col) => ({
         header: col.header,
         dataKey: col.key,
       }));
@@ -107,6 +128,12 @@ export const PDFGenerator = ({
           acc[col.key] = row[col.key] ?? "-";
           return acc;
         }, {} as Record<string, any>)
+      );
+
+      // Índice da coluna "Nome" calculado dinamicamente (antes era fixo em 3,
+      // o que quebrava o alinhamento se a ordem/quantidade de colunas mudasse).
+      const nomeColIndex = columns.findIndex(
+        (col) => col.key.toLowerCase() === "nome" || col.header.toLowerCase() === "nome"
       );
 
       autoTable(doc, {
@@ -125,10 +152,7 @@ export const PDFGenerator = ({
           fontSize: 8,
           halign: "center",
         },
-        columnStyles: {
-          // Coluna Nome (índice 3) alinhada à esquerda
-          3: { halign: "left" },
-        },
+        columnStyles: nomeColIndex >= 0 ? { [nomeColIndex]: { halign: "left" } } : {},
         // Repete o cabeçalho em cada página automaticamente
         showHead: "everyPage",
         margin: { left: 14, right: 14 },
@@ -140,6 +164,26 @@ export const PDFGenerator = ({
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
+
+      // Caso especial: o chunk do jsPDF/autoTable não foi encontrado no servidor
+      // porque o navegador ainda está com o index.html de um deploy anterior
+      // (o Vite gera hashes novos a cada build e apaga os arquivos antigos).
+      // Nesse caso, um reload resolve, então recarregamos automaticamente
+      // em vez de deixar o usuário preso num erro genérico.
+      if (isStaleChunkError(error)) {
+        const alreadyReloaded = sessionStorage.getItem("pdf-chunk-reload");
+        if (!alreadyReloaded) {
+          sessionStorage.setItem("pdf-chunk-reload", "1");
+          toast.error("Nova versão do site detectada. Atualizando a página...");
+          setTimeout(() => window.location.reload(), 1200);
+          return;
+        }
+        // Se já tentou recarregar uma vez e ainda falhou, evita loop.
+        sessionStorage.removeItem("pdf-chunk-reload");
+        toast.error("Erro ao carregar o gerador de PDF. Verifique sua conexão e tente novamente.");
+        return;
+      }
+
       toast.error("Erro ao gerar PDF");
     }
   };
