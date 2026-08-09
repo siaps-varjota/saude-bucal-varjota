@@ -783,7 +783,12 @@ export function useResultadoFinal(
       }),
       buildIndicador("B6", calcB6(tab6, quad, equipe, oficialData, mf)),
     ];
-    return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
+    return {
+      equipe,
+      indicadores,
+      notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0),
+      desempate: indicadores.reduce((s, i) => s + i.desempatePontos, 0),
+    };
   });
 
   const buildGeral = (eq?: string) => {
