@@ -1473,7 +1473,10 @@ export const ResultadoFinalTab = ({
   }, [quadrimestre]);
 
   const sortedEquipes = useMemo(
-    () => [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal),
+    () =>
+      [...porEquipe].sort(
+        (a, b) => b.notaFinal - a.notaFinal || b.desempate - a.desempate
+      ),
     [porEquipe]
   );
 
