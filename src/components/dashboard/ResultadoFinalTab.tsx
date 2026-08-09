@@ -13,6 +13,7 @@ import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFin
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
 import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared } from "@/lib/metaThresholds";
+import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
 
@@ -1257,6 +1258,9 @@ const ResultTable = ({
                       <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
                       <TableCell className="text-center font-mono font-semibold">
                         {ind.notaFinal.toFixed(2).replace(".", ",")}
+                        <div className="text-[10px] font-normal text-muted-foreground" title="Pontos de desempate deste indicador">
+                          {formatDesempate(ind.desempatePontos)} pts
+                        </div>
                       </TableCell>
                     </TableRow>
 
@@ -1279,6 +1283,9 @@ const ResultTable = ({
                 <TableCell className="text-center">Nota Final</TableCell>
                 <TableCell className={`text-center text-lg font-mono ${getNotaFinalColor(result.notaFinal)}`}>
                   {result.notaFinal.toFixed(2).replace(".", ",")}
+                  <div className="text-[10px] font-normal text-muted-foreground" title="Pontuação de desempate (0–1000)">
+                    {formatDesempate(result.desempate)} pts
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -1473,7 +1480,10 @@ export const ResultadoFinalTab = ({
   }, [quadrimestre]);
 
   const sortedEquipes = useMemo(
-    () => [...porEquipe].sort((a, b) => b.notaFinal - a.notaFinal),
+    () =>
+      [...porEquipe].sort(
+        (a, b) => b.notaFinal - a.notaFinal || b.desempate - a.desempate
+      ),
     [porEquipe]
   );
 
@@ -1651,7 +1661,11 @@ export const ResultadoFinalTab = ({
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30);
-        doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
+        doc.text(
+          `${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}  |  Desempate: ${formatDesempate(result.desempate)} / 1000`,
+          14,
+          y
+        );
         y += 4;
 
         const rows = result.indicadores
@@ -1791,6 +1805,9 @@ export const ResultadoFinalTab = ({
               {geral.notaFinal.toFixed(2).replace(".", ",")}
             </p>
             <p className="text-[10px] text-muted-foreground">Nota Final</p>
+            <p className="text-[9px] text-muted-foreground font-mono" title="Pontuação de desempate (0–1000)">
+              {formatDesempate(geral.desempate)} pts
+            </p>
           </div>
 
           <div className="self-stretch w-px bg-border mx-1" />
@@ -1828,6 +1845,9 @@ export const ResultadoFinalTab = ({
                 </p>
                 <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
                   {eq.notaFinal.toFixed(2).replace(".", ",")}
+                </p>
+                <p className="text-[9px] text-muted-foreground font-mono" title="Pontuação de desempate (0–1000)">
+                  {formatDesempate(eq.desempate)} pts
                 </p>
               </div>
             );

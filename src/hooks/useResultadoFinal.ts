@@ -7,6 +7,7 @@ import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
 import { OficialData, makeOficialKey, normalizeMes, normalizeEquipe } from "@/hooks/useOficialData";
+import { pontosDesempateIndicador, normalizarIndicador, IndicadorKey } from "@/lib/desempateScore";
 
 const parseDate = (val: string): Date | null => {
   if (!val || val === "-" || val.trim() === "") return null;
@@ -52,6 +53,10 @@ export interface IndicadorResult {
   conceito: Conceito;
   nota: number;
   notaFinal: number;
+  /** Escala contínua 0–100 usada no desempate */
+  desempateNormalizado: number;
+  /** Pontos de desempate deste indicador (0–100 × peso) */
+  desempatePontos: number;
   mesesDetalhe: MesDetalhe[];
   fonte?: "oficial" | "preliminar";
   b1Numerador?: number;
@@ -64,6 +69,8 @@ export interface EquipeResult {
   equipe: string;
   indicadores: IndicadorResult[];
   notaFinal: number;
+  /** Pontuação total de desempate (0–1000) */
+  desempate: number;
 }
 
 const CONCEITO_SCORES: Record<Conceito, number> = {
@@ -167,6 +174,7 @@ function buildIndicador(
   const conceito = config.getConceito(raw.porcentagem);
   const nota = CONCEITO_SCORES[conceito];
   const fonte: "oficial" | "preliminar" = raw.todosOficiais ? "oficial" : "preliminar";
+  const dKey = key as IndicadorKey;
   return {
     indicador: config.label,
     peso: config.peso,
@@ -176,6 +184,8 @@ function buildIndicador(
     conceito,
     nota,
     notaFinal: nota * config.peso,
+    desempateNormalizado: normalizarIndicador(dKey, raw.porcentagem),
+    desempatePontos: pontosDesempateIndicador(dKey, raw.porcentagem, config.peso),
     mesesDetalhe: raw.mesesDetalhe,
     fonte,
     ...extras,
@@ -773,7 +783,12 @@ export function useResultadoFinal(
       }),
       buildIndicador("B6", calcB6(tab6, quad, equipe, oficialData, mf)),
     ];
-    return { equipe, indicadores, notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0) };
+    return {
+      equipe,
+      indicadores,
+      notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0),
+      desempate: indicadores.reduce((s, i) => s + i.desempatePontos, 0),
+    };
   });
 
   const buildGeral = (eq?: string) => {
@@ -805,6 +820,7 @@ export function useResultadoFinal(
     equipe: "Geral",
     indicadores: geralIndicadores,
     notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
+    desempate: geralIndicadores.reduce((s, i) => s + i.desempatePontos, 0),
   };
 
   return { geral, porEquipe };
