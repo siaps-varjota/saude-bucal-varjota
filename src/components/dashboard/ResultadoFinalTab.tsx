@@ -1258,6 +1258,9 @@ const ResultTable = ({
                       <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
                       <TableCell className="text-center font-mono font-semibold">
                         {ind.notaFinal.toFixed(2).replace(".", ",")}
+                        <div className="text-[10px] font-normal text-muted-foreground" title="Pontos de desempate deste indicador">
+                          {formatDesempate(ind.desempatePontos)} pts
+                        </div>
                       </TableCell>
                     </TableRow>
 
