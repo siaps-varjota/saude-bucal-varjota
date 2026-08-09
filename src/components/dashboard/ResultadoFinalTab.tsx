@@ -13,6 +13,7 @@ import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFin
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
 import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared } from "@/lib/metaThresholds";
+import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
 
