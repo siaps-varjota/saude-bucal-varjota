@@ -820,6 +820,7 @@ export function useResultadoFinal(
     equipe: "Geral",
     indicadores: geralIndicadores,
     notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
+    desempate: geralIndicadores.reduce((s, i) => s + i.desempatePontos, 0),
   };
 
   return { geral, porEquipe };
