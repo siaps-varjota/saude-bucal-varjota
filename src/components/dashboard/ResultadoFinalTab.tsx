@@ -1795,6 +1795,9 @@ export const ResultadoFinalTab = ({
               {geral.notaFinal.toFixed(2).replace(".", ",")}
             </p>
             <p className="text-[10px] text-muted-foreground">Nota Final</p>
+            <p className="text-[9px] text-muted-foreground font-mono" title="Pontuação de desempate (0–1000)">
+              {formatDesempate(geral.desempate)} pts
+            </p>
           </div>
 
           <div className="self-stretch w-px bg-border mx-1" />
