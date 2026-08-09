@@ -1280,6 +1280,9 @@ const ResultTable = ({
                 <TableCell className="text-center">Nota Final</TableCell>
                 <TableCell className={`text-center text-lg font-mono ${getNotaFinalColor(result.notaFinal)}`}>
                   {result.notaFinal.toFixed(2).replace(".", ",")}
+                  <div className="text-[10px] font-normal text-muted-foreground" title="Pontuação de desempate (0–1000)">
+                    {formatDesempate(result.desempate)} pts
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
