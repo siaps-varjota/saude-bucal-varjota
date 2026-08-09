@@ -174,6 +174,7 @@ function buildIndicador(
   const conceito = config.getConceito(raw.porcentagem);
   const nota = CONCEITO_SCORES[conceito];
   const fonte: "oficial" | "preliminar" = raw.todosOficiais ? "oficial" : "preliminar";
+  const dKey = key as IndicadorKey;
   return {
     indicador: config.label,
     peso: config.peso,
@@ -183,6 +184,8 @@ function buildIndicador(
     conceito,
     nota,
     notaFinal: nota * config.peso,
+    desempateNormalizado: normalizarIndicador(dKey, raw.porcentagem),
+    desempatePontos: pontosDesempateIndicador(dKey, raw.porcentagem, config.peso),
     mesesDetalhe: raw.mesesDetalhe,
     fonte,
     ...extras,
