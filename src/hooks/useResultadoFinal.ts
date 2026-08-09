@@ -7,6 +7,7 @@ import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
 import { OficialData, makeOficialKey, normalizeMes, normalizeEquipe } from "@/hooks/useOficialData";
+import { pontosDesempateIndicador, normalizarIndicador, IndicadorKey } from "@/lib/desempateScore";
 
 const parseDate = (val: string): Date | null => {
   if (!val || val === "-" || val.trim() === "") return null;
