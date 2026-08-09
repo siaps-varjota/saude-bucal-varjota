@@ -1655,7 +1655,11 @@ export const ResultadoFinalTab = ({
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(30);
-        doc.text(`${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}`, 14, y);
+        doc.text(
+          `${label} — Nota Final: ${result.notaFinal.toFixed(2).replace(".", ",")}  |  Desempate: ${formatDesempate(result.desempate)} / 1000`,
+          14,
+          y
+        );
         y += 4;
 
         const rows = result.indicadores
