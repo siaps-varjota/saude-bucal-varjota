@@ -53,6 +53,10 @@ export interface IndicadorResult {
   conceito: Conceito;
   nota: number;
   notaFinal: number;
+  /** Escala contínua 0–100 usada no desempate */
+  desempateNormalizado: number;
+  /** Pontos de desempate deste indicador (0–100 × peso) */
+  desempatePontos: number;
   mesesDetalhe: MesDetalhe[];
   fonte?: "oficial" | "preliminar";
   b1Numerador?: number;
@@ -65,6 +69,8 @@ export interface EquipeResult {
   equipe: string;
   indicadores: IndicadorResult[];
   notaFinal: number;
+  /** Pontuação total de desempate (0–1000) */
+  desempate: number;
 }
 
 const CONCEITO_SCORES: Record<Conceito, number> = {
