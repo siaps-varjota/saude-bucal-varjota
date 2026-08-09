@@ -1832,6 +1832,9 @@ export const ResultadoFinalTab = ({
                 <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
                   {eq.notaFinal.toFixed(2).replace(".", ",")}
                 </p>
+                <p className="text-[9px] text-muted-foreground font-mono" title="Pontuação de desempate (0–1000)">
+                  {formatDesempate(eq.desempate)} pts
+                </p>
               </div>
             );
           })}
