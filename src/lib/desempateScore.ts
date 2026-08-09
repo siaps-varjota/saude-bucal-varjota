@@ -20,19 +20,17 @@ export function normalizarB2(a: number): number {
   return Math.max(0, Math.min(100, a));
 }
 
-// ===== B3 - Taxa de exodontia (não monotônico: Ótimo 3 ≤ x < 10) =====
+// ===== B3 - Taxa de exodontia (menor-melhor; Ótimo é a faixa 3 ≤ x < 10) =====
+// Polaridade menor-melhor: dentro da própria faixa Ótima, o valor mais baixo
+// (perto de 3) é o melhor, caindo a nota conforme "a" sobe em direção a 10.
+// Abaixo de 3 volta a Regular (provável subnotificação/piso).
 export function normalizarB3(a: number): number {
-  if (a < 3) return Math.max(0, (a / 3) * 25);
-  if (a < 10) {
-    const meio = (3 + 10) / 2;
-    return a <= meio
-      ? 76 + ((a - 3) / (meio - 3)) * (100 - 76)
-      : 100 - ((a - meio) / (10 - meio)) * (100 - 76);
-  }
-  if (a < 12) return 75 - ((a - 10) / (12 - 10)) * (75 - 51);
-  if (a < 14) return 50 - ((a - 12) / (14 - 12)) * (50 - 26);
+  if (a < 3) return Math.max(0, (a / 3) * 25); // Regular (piso)
+  if (a < 10) return 100 - ((a - 3) / (10 - 3)) * (100 - 76); // Ótimo: 100 em a=3 → 76 em a=10
+  if (a < 12) return 75 - ((a - 10) / (12 - 10)) * (75 - 51); // Bom: 75 → 51
+  if (a < 14) return 50 - ((a - 12) / (14 - 12)) * (50 - 26); // Suficiente: 50 → 26
   const tetoAlto = 14 * 1.5; // 21
-  if (a < tetoAlto) return 25 - ((a - 14) / (tetoAlto - 14)) * 25;
+  if (a < tetoAlto) return 25 - ((a - 14) / (tetoAlto - 14)) * 25; // Regular (excesso)
   return 0;
 }
 
@@ -46,19 +44,17 @@ export function normalizarB4(a: number): number {
   return 100;
 }
 
-// ===== B5 - Procedimentos preventivos (não monotônico: Ótimo 65 ≤ x ≤ 85) =====
+// ===== B5 - Procedimentos preventivos (maior-melhor; Ótimo é 65 ≤ x ≤ 85) =====
+// Polaridade maior-melhor: dentro da própria faixa Ótima, o valor mais alto
+// (perto de 85) é o melhor, subindo a nota conforme "a" cresce de 65 a 85.
+// Acima de 85 volta a Regular (provável excesso/erro de registro).
 export function normalizarB5(a: number): number {
-  if (a < 40) return Math.max(0, (a / 40) * 25);
-  if (a < 55) return 26 + ((a - 40) / (55 - 40)) * (50 - 26);
-  if (a < 65) return 51 + ((a - 55) / (65 - 55)) * (75 - 51);
-  if (a <= 85) {
-    const meio = (65 + 85) / 2;
-    return a <= meio
-      ? 76 + ((a - 65) / (meio - 65)) * (100 - 76)
-      : 100 - ((a - meio) / (85 - meio)) * (100 - 76);
-  }
+  if (a < 40) return Math.max(0, (a / 40) * 25); // Regular (piso)
+  if (a < 55) return 26 + ((a - 40) / (55 - 40)) * (50 - 26); // Suficiente: 26 → 50
+  if (a < 65) return 51 + ((a - 55) / (65 - 55)) * (75 - 51); // Bom: 51 → 75
+  if (a <= 85) return 76 + ((a - 65) / (85 - 65)) * (100 - 76); // Ótimo: 76 em a=65 → 100 em a=85
   const tetoAlto = 85 * 1.3; // ~110.5
-  if (a < tetoAlto) return 25 - ((a - 85) / (tetoAlto - 85)) * 25;
+  if (a < tetoAlto) return 25 - ((a - 85) / (tetoAlto - 85)) * 25; // Regular (excesso)
   return 0;
 }
 
