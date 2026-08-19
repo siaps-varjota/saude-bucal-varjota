@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +118,9 @@ function derivaConceitoB3(pct: number): {
   return   { label: "Regular",   textColor: "text-red-700",     bgBorder: "bg-red-50 border-red-200",         nota: "0,25" };
 }
 
+// Nº de meses do período visualizado (4 = quadrimestre completo)
+const PeriodoMesesContext = createContext(4);
+
 // ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
 const MetaQuadrimestreCard = ({
   denominador,
@@ -136,6 +139,7 @@ const MetaQuadrimestreCard = ({
   faltaUnit?: string;
   mesesDecorridos?: number;
 }) => {
+  const periodoMeses = useContext(PeriodoMesesContext);
   const metaBom   = strictMeta(denominador, thresholds.thresholdBom);
   const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
@@ -148,7 +152,7 @@ const MetaQuadrimestreCard = ({
   const exibeUnit   = faltaUnitProp ?? unit;
 
   const mesesUsados      = mesesDecorridos ?? 0;
-  const semanasRestantes = Math.max(0, 4 - mesesUsados) * 4.33;
+  const semanasRestantes = Math.max(0, periodoMeses - mesesUsados) * 4.33;
   const fmtSemanal = (faltam: number) =>
     semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
@@ -157,7 +161,7 @@ const MetaQuadrimestreCard = ({
       <div className="flex items-center gap-1.5 mb-2">
         <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
         <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
-          Meta do Quadrimestre
+          {periodoMeses === 1 ? "Meta do Mês" : periodoMeses === 4 ? "Meta do Quadrimestre" : `Meta do Período (${periodoMeses} meses)`}
         </span>
         <span className="text-xs text-muted-foreground ml-0.5">
           de {denominador.toLocaleString("pt-BR")}
@@ -171,8 +175,8 @@ const MetaQuadrimestreCard = ({
             {metaBom.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
           </p>
-          <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / 4).toFixed(1)}</p>
-          <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (4 * 4.33)).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / periodoMeses).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (periodoMeses * 4.33)).toFixed(1)}</p>
           {faltamBom > 0
             ? <>
                 <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {exibeUnit}</p>
@@ -186,8 +190,8 @@ const MetaQuadrimestreCard = ({
             {metaOtimo.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
           </p>
-          <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / 4).toFixed(1)}</p>
-          <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (4 * 4.33)).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / periodoMeses).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (periodoMeses * 4.33)).toFixed(1)}</p>
           {faltamOtimo > 0
             ? <>
                 <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {exibeUnit}</p>
@@ -1730,7 +1734,10 @@ export const ResultadoFinalTab = ({
     }
   };
 
+  const periodoMeses = mesesFiltro && mesesFiltro.length > 0 ? mesesFiltro.length : 4;
+
   return (
+    <PeriodoMesesContext.Provider value={periodoMeses}>
     <div className="space-y-8">
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
@@ -1914,5 +1921,6 @@ export const ResultadoFinalTab = ({
         </div>
       </div>
     </div>
+    </PeriodoMesesContext.Provider>
   );
 };
