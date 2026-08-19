@@ -321,7 +321,11 @@ function calcB1(
 
   const mesesComDados   = mesesDetalhe.length || 1;
   const denominadorFinal = Math.round(sumDen / mesesComDados);
-  const denominadorTotal = denominadorFinal * 4;
+  // Escala o denominador conforme o período selecionado:
+  // sem filtro de mês => quadrimestre (4x a média mensal);
+  // com filtro => nº de meses selecionados (1x mensal, 2x bimestral, etc.)
+  const fatorPeriodo = mesesFiltro && mesesFiltro.length > 0 ? mesesComDados : 4;
+  const denominadorTotal = denominadorFinal * fatorPeriodo;
 
   return {
     numerador: sumNum,
@@ -552,7 +556,8 @@ function calcB4(
 
   const mesesComDados    = mesesDetalhe.length || 1;
   const denominadorFinal = mesesComDados > 0 ? Math.round(sumDen / mesesComDados) : totalPatients;
-  const denominadorTotal = denominadorFinal * 4;
+  const fatorPeriodo = mesesFiltro && mesesFiltro.length > 0 ? mesesComDados : 4;
+  const denominadorTotal = denominadorFinal * fatorPeriodo;
 
   return {
     numerador: sumNum,
