@@ -358,7 +358,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             <TabsTrigger value="tab4"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Escovação Supervisionada</TabsTrigger>
             <TabsTrigger value="tab5"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
             <TabsTrigger value="tab6"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
-            <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold font-display">📊 Resultado Final</TabsTrigger>
+            <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
           </TabsList>
 
           {/* ── Tab 1 ─────────────────────────────────────────────────────── */}
