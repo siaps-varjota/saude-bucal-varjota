@@ -1796,6 +1796,20 @@ export const ResultadoFinalTab = ({
         </div>
       </div>
 
+      {/* Cabeçalho elegante do Resultado Final */}
+      <header className="text-center space-y-2 pb-2">
+        <h1 className="text-4xl md:text-5xl font-bold italic tracking-tight text-foreground font-display">
+          Resultado Final
+        </h1>
+        <div className="flex items-center justify-center gap-3">
+          <div className="h-px w-12 bg-border" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
+            Relatório Oficial de Classificação
+          </p>
+          <div className="h-px w-12 bg-border" />
+        </div>
+      </header>
+
       {/* Ranking Cards */}
       <div className="relative">
         <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted">
