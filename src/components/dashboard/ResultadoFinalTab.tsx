@@ -1738,7 +1738,7 @@ export const ResultadoFinalTab = ({
 
   return (
     <PeriodoMesesContext.Provider value={periodoMeses}>
-    <div className="space-y-8">
+    <div className="space-y-8 font-display">
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
         <div className="flex items-center gap-2">
