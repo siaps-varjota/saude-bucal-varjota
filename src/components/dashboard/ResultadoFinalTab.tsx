@@ -171,7 +171,7 @@ const MetaQuadrimestreCard = ({
       <div className="flex gap-6">
         <div>
           <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
-          <p className="text-xl font-bold font-mono text-emerald-700 leading-tight">
+          <p className="text-xl font-bold text-emerald-700 leading-tight">
             {metaBom.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
           </p>
@@ -186,7 +186,7 @@ const MetaQuadrimestreCard = ({
         </div>
         <div>
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
-          <p className="text-xl font-bold font-mono text-blue-700 leading-tight">
+          <p className="text-xl font-bold text-blue-700 leading-tight">
             {metaOtimo.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
           </p>
@@ -229,7 +229,7 @@ const ProjecaoBloco = ({
     <div className="flex flex-col gap-1 min-w-[110px] max-w-[150px]">
       <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">{titulo}</p>
       <p className="text-[9px] text-muted-foreground leading-snug whitespace-pre-line">{descricao}</p>
-      <p className="text-sm font-mono font-bold leading-tight mt-0.5">
+      <p className="text-sm font-bold leading-tight mt-0.5">
         {Number.isInteger(novoNum) ? novoNum.toLocaleString("pt-BR") : novoNum.toFixed(1)}
         <span className="text-xs font-normal text-muted-foreground"> / {novoDenom.toLocaleString("pt-BR")}</span>
       </p>
@@ -281,7 +281,7 @@ const InputStepper = ({
           onRawChange(v === "" ? "0" : v);
         }}
         onFocus={(e) => e.target.select()}
-        className="w-16 h-6 text-center text-sm font-mono font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
+        className="w-16 h-6 text-center text-sm font-bold border border-orange-300 rounded bg-white text-orange-800 focus:outline-none focus:ring-1 focus:ring-orange-400"
       />
       <button
         onMouseDown={(e) => { e.preventDefault(); onIncrement(); }}
@@ -421,13 +421,13 @@ const SimulacaoCard = ({
           <div className="flex flex-col items-end gap-1 shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Nota atual</span>
-              <span className={`text-lg font-bold font-mono ${getNotaFinalColor(notaFinalAtual)}`}>
+              <span className={`text-lg font-bold ${getNotaFinalColor(notaFinalAtual)}`}>
                 {notaFinalAtual.toFixed(2).replace(".", ",")}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Com simulação</span>
-              <span className={`text-lg font-bold font-mono ${getNotaFinalColor(notaFinalProjetada)}`}>
+              <span className={`text-lg font-bold ${getNotaFinalColor(notaFinalProjetada)}`}>
                 {notaFinalProjetada.toFixed(2).replace(".", ",")}
               </span>
               {anyInput && notaDelta !== 0 && (
@@ -984,7 +984,7 @@ const CorrelacaoCruzadaCard = ({
                     setRawQtd(v === "" ? "0" : v);
                   }}
                   onFocus={(e) => e.target.select()}
-                  className="w-14 h-6 text-center text-[18px] font-mono font-bold border border-current rounded bg-background focus:outline-none"
+                  className="w-14 h-6 text-center text-[18px] font-bold border border-current rounded bg-background focus:outline-none"
                 />
                 <button
                   onMouseDown={(e) => { e.preventDefault(); setRawQtd(String(qtd + 1)); }}
@@ -1003,7 +1003,7 @@ const CorrelacaoCruzadaCard = ({
                     <span className="text-[13px] text-muted-foreground" title={indAlvo.indicador}>
                       {indAlvo.indicador}:
                     </span>
-                    <span className="text-[14px] font-mono font-bold">
+                    <span className="text-[14px] font-bold">
                       {novaPct.toFixed(1)}%
                     </span>
                     {qtd > 0 && afetado && ganho !== 0 && (
@@ -1049,7 +1049,7 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
       <p className="text-[10px] text-muted-foreground leading-snug mb-1.5 truncate" title={ind.indicador}>
         {ind.indicador}
       </p>
-      <p className="text-sm font-mono font-bold leading-tight">
+      <p className="text-sm font-bold leading-tight">
         {fmtNum(ind.numerador)}
         <span className="text-xs font-normal text-muted-foreground"> / {fmtNum(ind.denominador)}</span>
       </p>
@@ -1141,7 +1141,7 @@ const DetalheRow = ({
                           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                             {mes.mes}
                           </span>
-                          <span className="text-sm font-mono font-bold">{mes.numerador}</span>
+                          <span className="text-sm font-bold">{mes.numerador}</span>
                           <span className="text-xs text-muted-foreground">de {mes.denominador}</span>
                           <span className="text-xs font-medium text-primary mt-0.5">
                             {mes.porcentagem.toFixed(1)}%
@@ -1251,16 +1251,16 @@ const ResultTable = ({
                       )}
                       <TableCell className="font-medium">{ind.indicador}</TableCell>
                       <TableCell className="text-center">{ind.peso}</TableCell>
-                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
-                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
+                      <TableCell className="text-center text-sm">{fmtNum(ind.numerador)}</TableCell>
+                      <TableCell className="text-center text-sm">{fmtNum(ind.denominador)}</TableCell>
                       <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
                           {CONCEITO_LABELS[ind.conceito]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
-                      <TableCell className="text-center font-mono font-semibold">
+                      <TableCell className="text-center">{NOTA_SCORE[ind.conceito]}</TableCell>
+                      <TableCell className="text-center font-semibold">
                         {ind.notaFinal.toFixed(2).replace(".", ",")}
                         <div className="text-[10px] font-normal text-muted-foreground" title="Pontos de desempate deste indicador">
                           {formatDesempate(ind.desempatePontos)} pts
@@ -1285,7 +1285,7 @@ const ResultTable = ({
                 <TableCell className="text-center">10</TableCell>
                 <TableCell /><TableCell /><TableCell /><TableCell />
                 <TableCell className="text-center">Nota Final</TableCell>
-                <TableCell className={`text-center text-lg font-mono ${getNotaFinalColor(result.notaFinal)}`}>
+                <TableCell className={`text-center text-lg ${getNotaFinalColor(result.notaFinal)}`}>
                   {result.notaFinal.toFixed(2).replace(".", ",")}
                   <div className="text-[10px] font-normal text-muted-foreground" title="Pontuação de desempate (0–1000)">
                     {formatDesempate(result.desempate)} pts
@@ -1381,16 +1381,16 @@ const IndicadorComparativo = ({
                   </TableCell>
                 )}
                 <TableCell>🏆 Geral</TableCell>
-                <TableCell className="text-center font-mono text-sm">{fmtNum(geralInd.numerador)}</TableCell>
-                <TableCell className="text-center font-mono text-sm">{fmtNum(geralInd.denominador)}</TableCell>
+                <TableCell className="text-center text-sm">{fmtNum(geralInd.numerador)}</TableCell>
+                <TableCell className="text-center text-sm">{fmtNum(geralInd.denominador)}</TableCell>
                 <TableCell className="text-center">{geralInd.porcentagem.toFixed(2)}%</TableCell>
                 <TableCell className="text-center">
                   <Badge variant="outline" className={`${CONCEITO_COLORS[geralInd.conceito]} text-xs`}>
                     {CONCEITO_LABELS[geralInd.conceito]}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-center font-mono">{NOTA_SCORE[geralInd.conceito]}</TableCell>
-                <TableCell className="text-center font-mono font-semibold">
+                <TableCell className="text-center">{NOTA_SCORE[geralInd.conceito]}</TableCell>
+                <TableCell className="text-center font-semibold">
                   {geralInd.notaFinal.toFixed(2).replace(".", ",")}
                 </TableCell>
               </TableRow>
@@ -1426,16 +1426,16 @@ const IndicadorComparativo = ({
                         </TableCell>
                       )}
                       <TableCell className="font-medium">#{idx + 1} {equipe}</TableCell>
-                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.numerador)}</TableCell>
-                      <TableCell className="text-center font-mono text-sm">{fmtNum(ind.denominador)}</TableCell>
+                      <TableCell className="text-center text-sm">{fmtNum(ind.numerador)}</TableCell>
+                      <TableCell className="text-center text-sm">{fmtNum(ind.denominador)}</TableCell>
                       <TableCell className="text-center">{ind.porcentagem.toFixed(2)}%</TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className={`${CONCEITO_COLORS[ind.conceito]} text-xs`}>
                           {CONCEITO_LABELS[ind.conceito]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center font-mono">{NOTA_SCORE[ind.conceito]}</TableCell>
-                      <TableCell className="text-center font-mono font-semibold">
+                      <TableCell className="text-center">{NOTA_SCORE[ind.conceito]}</TableCell>
+                      <TableCell className="text-center font-semibold">
                         {ind.notaFinal.toFixed(2).replace(".", ",")}
                       </TableCell>
                     </TableRow>
@@ -1808,11 +1808,11 @@ export const ResultadoFinalTab = ({
               <Trophy className="h-3.5 w-3.5 text-primary" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Geral</span>
             </div>
-            <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(geral.notaFinal)}`}>
+            <p className={`text-2xl font-bold leading-tight ${getNotaFinalColor(geral.notaFinal)}`}>
               {geral.notaFinal.toFixed(2).replace(".", ",")}
             </p>
             <p className="text-[10px] text-muted-foreground">Nota Final</p>
-            <p className="text-[9px] text-muted-foreground font-mono" title="Pontuação de desempate (0–1000)">
+            <p className="text-[9px] text-muted-foreground" title="Pontuação de desempate (0–1000)">
               {formatDesempate(geral.desempate)} pts
             </p>
           </div>
@@ -1850,10 +1850,10 @@ export const ResultadoFinalTab = ({
                 <p className="text-[10px] font-semibold text-center leading-tight text-foreground truncate w-full text-center px-1" title={eq.equipe}>
                   {eq.equipe}
                 </p>
-                <p className={`text-2xl font-bold font-mono leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
+                <p className={`text-2xl font-bold leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
                   {eq.notaFinal.toFixed(2).replace(".", ",")}
                 </p>
-                <p className="text-[9px] text-muted-foreground font-mono" title="Pontuação de desempate (0–1000)">
+                <p className="text-[9px] text-muted-foreground" title="Pontuação de desempate (0–1000)">
                   {formatDesempate(eq.desempate)} pts
                 </p>
               </div>
