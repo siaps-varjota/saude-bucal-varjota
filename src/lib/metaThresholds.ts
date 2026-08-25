@@ -36,8 +36,8 @@ export const META_THRESHOLDS: Partial<Record<string, MetaThreshold>> = {
   },
   "Proced. Odont. Preventivos": {
     code: "B5",
-    labelBom: "≥ 55%",   thresholdBom: 0.55 - 1e-9,
-    labelOtimo: "≥ 65%", thresholdOtimo: 0.65 - 1e-9,
+    labelBom: ">= 55%",   thresholdBom: 0.55 - 1e-9,
+    labelOtimo: ">= 65%", thresholdOtimo: 0.65 - 1e-9,
     unit: "prev.", deltaNum: 2, deltaDenom: 2,
   },
   "Escovação Supervisionada": {
