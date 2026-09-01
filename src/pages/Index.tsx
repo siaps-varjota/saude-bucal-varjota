@@ -138,6 +138,20 @@ const getCurrentQuadKey = (): string => {
   return `Q3-${y}`;
 };
 
+// Resultado Final: no primeiro mês do quadrimestre (jan/mai/set), abre por
+// padrão com o resultado do quadrimestre anterior.
+const getDefaultQuadKeyResultado = (): string => {
+  const now = new Date();
+  const m = now.getMonth();
+  const y = now.getFullYear();
+  if (m === 0) return `Q3-${y - 1}`;
+  if (m <= 3) return `Q1-${y}`;
+  if (m === 4) return `Q1-${y}`;
+  if (m <= 7) return `Q2-${y}`;
+  if (m === 8) return `Q2-${y}`;
+  return `Q3-${y}`;
+};
+
 const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null => {
   const match = quadKey.match(/Q(\d)-(\d{4})/);
   if (!match) return null;
@@ -156,7 +170,7 @@ const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState("consulta");
-  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey() as Quadrimestre);
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getDefaultQuadKeyResultado() as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
   const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
