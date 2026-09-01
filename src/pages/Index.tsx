@@ -170,7 +170,7 @@ const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState("consulta");
-  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getCurrentQuadKey() as Quadrimestre);
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getDefaultQuadKeyResultado() as Quadrimestre);
   const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
   const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
