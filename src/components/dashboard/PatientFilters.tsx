@@ -8,6 +8,14 @@ import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrim
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { MultiSelect } from "./MultiSelect";
 
+// Equipes com dados incompletos que devem ficar ocultas nos filtros até
+// serem completadas. Mantenha em sincronia com EQUIPES_OCULTAS em
+// useResultadoFinal.ts.
+const EQUIPES_OCULTAS = new Set<string>([
+  "ESB CENTRO SEDE 2",
+  "ESB CENTRO SEDE 3",
+]);
+
 export interface FilterState {
   equipes: string[];          // [] = todas
   microareas: string[];       // [] = todas
@@ -55,7 +63,9 @@ export const PatientFilters = ({
 }: PatientFiltersProps) => {
   const uniqueEquipes = useMemo(() => {
     const equipes = [...new Set(patients.map(p => p.equipe).filter(e => e && e.trim() !== ""))];
-    return equipes.sort();
+    return equipes
+      .filter(e => !EQUIPES_OCULTAS.has(e.toUpperCase()))
+      .sort();
   }, [patients]);
 
   const uniqueMicroareas = useMemo(() => {
