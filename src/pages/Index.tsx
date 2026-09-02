@@ -234,6 +234,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     if (equipes.length === 0) return denominadorB1Data.total;
     return equipes.reduce((sum, equipe) => {
       const v = denominadorB1Data.porEquipe[equipe]
+        ?? denominadorB1Data.porEquipe[equipe.replace("ESB CENTRO", "ESB SEDE 1")]
         ?? denominadorB1Data.porEquipe[equipe.replace(/^ESB\b/i, "ESF")]
         ?? 0;
       return sum + v;
