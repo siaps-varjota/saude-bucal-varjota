@@ -863,8 +863,10 @@ const CorrelacaoCruzadaCard = ({
         const dDen = (efeito?.deltaDenom ?? 0) * qtd;
         const novoNum = indAlvo.numerador + dNum;
         const novoDenom = indAlvo.denominador + dDen;
-        const pctAtual = indAlvo.denominador > 0 ? (indAlvo.numerador / indAlvo.denominador) * 100 : 0;
-        const novaPct = novoDenom > 0 ? (novoNum / novoDenom) * 100 : 0;
+        const pctAtual = indAlvo.porcentagem;
+        const aggAtual = indAlvo.denominador > 0 ? (indAlvo.numerador / indAlvo.denominador) * 100 : 0;
+        const aggNova = novoDenom > 0 ? (novoNum / novoDenom) * 100 : 0;
+        const novaPct = pctAtual + (aggNova - aggAtual);
         return { indAlvo, pctAtual, novaPct, afetado: !!efeito };
       })
     : [];
@@ -1044,7 +1046,7 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
   const cfg        = STATUS_CONFIG[ind.indicador];
   if (!thresholds || !cfg) return null;
 
-  const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
+  const pct = ind.porcentagem;
   const conceito = derivaConceito(pct, thresholds);
 
   const calcFaltam = (threshold: number): number =>
