@@ -160,6 +160,18 @@ interface RawCalc {
   todosOficiais?: boolean;
 }
 
+/**
+ * Percentual do período = MÉDIA dos percentuais mensais
+ * (e não o somatório dos numeradores dividido pelo somatório dos denominadores).
+ * Só entram na média os meses que possuem dado (denominador > 0).
+ * Sem meses com dado, mantém o percentual agregado calculado no cálculo bruto.
+ */
+export function mediaPercentualMensal(raw: RawCalc): number {
+  const meses = (raw.mesesDetalhe || []).filter((m) => m.denominador > 0);
+  if (meses.length === 0) return raw.porcentagem;
+  return meses.reduce((s, m) => s + m.porcentagem, 0) / meses.length;
+}
+
 function buildIndicador(
   key: string,
   raw: RawCalc,
@@ -171,10 +183,12 @@ function buildIndicador(
   }
 ): IndicadorResult {
   const config = INDICADORES.find((i) => i.key === key)!;
-  const conceito = config.getConceito(raw.porcentagem);
+  const porcentagem = mediaPercentualMensal(raw);
+  const conceito = config.getConceito(porcentagem);
   const nota = CONCEITO_SCORES[conceito];
   const fonte: "oficial" | "preliminar" = raw.todosOficiais ? "oficial" : "preliminar";
   const dKey = key as IndicadorKey;
+
   return {
     indicador: config.label,
     peso: config.peso,
