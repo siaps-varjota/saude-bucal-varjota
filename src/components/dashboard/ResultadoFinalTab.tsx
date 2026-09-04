@@ -325,16 +325,29 @@ const SimulacaoCard = ({
   const b2Thresh = META_THRESHOLDS["Tratamento Concluído"]!;
   const b5Thresh = META_THRESHOLDS["Proced. Odont. Preventivos"]!;
 
+  const b1Ind = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
+  const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
+  const b3Ind = todosIndicadores?.find(i => i.indicador === "Taxa de Exodontias");
+  const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
+
+  // O percentual atual é a MÉDIA dos percentuais mensais (vinda do indicador).
+  // A simulação aplica sobre ela o mesmo delta obtido no cálculo agregado.
+  const pctBase = (ind: IndicadorResult | undefined, num: number, den: number) =>
+    ind ? ind.porcentagem : (den > 0 ? (num / den) * 100 : 0);
+
   const b1NovoNum   = b1Numerador + extraConsultas;
   const b1NovaDenom = b1Denominador;
-  const b1NovaPct   = b1NovaDenom > 0 ? (b1NovoNum / b1NovaDenom) * 100 : 0;
-  const b1PctAtual  = b1NovaDenom > 0 ? (b1Numerador / b1NovaDenom) * 100 : 0;
+  const b1PctAtual  = pctBase(b1Ind, b1Numerador, b1Denominador);
+  const b1Delta     = b1NovaDenom > 0 ? ((b1NovoNum - b1Numerador) / b1NovaDenom) * 100 : 0;
+  const b1NovaPct   = b1PctAtual + b1Delta;
   const b1Conceito  = derivaConceito(b1NovaPct, b1Thresh);
 
   const b2NovoNum   = b2Numerador + extraConsultas * 0.5 + extraConclusoes;
   const b2NovaDenom = b2Denominador + extraConsultas;
-  const b2NovaPct   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
-  const b2PctAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
+  const b2PctAtual  = pctBase(b2Ind, b2Numerador, b2Denominador);
+  const b2AggAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
+  const b2AggNova   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
+  const b2NovaPct   = b2PctAtual + (b2AggNova - b2AggAtual);
   const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
   // B3: consulta ou trat. concluído → +2 den (entram no total de proced.
@@ -342,14 +355,18 @@ const SimulacaoCard = ({
   const extraB3Den  = (extraConsultas + extraConclusoes) * 2;
   const b3NovoNum   = b3Numerador;
   const b3NovaDenom = b3Denominador + extraB3Den;
-  const b3NovaPct   = b3NovaDenom > 0 ? (b3NovoNum / b3NovaDenom) * 100 : 0;
-  const b3PctAtual  = b3Denominador > 0 ? (b3Numerador / b3Denominador) * 100 : 0;
+  const b3PctAtual  = pctBase(b3Ind, b3Numerador, b3Denominador);
+  const b3AggAtual  = b3Denominador > 0 ? (b3Numerador / b3Denominador) * 100 : 0;
+  const b3AggNova   = b3NovaDenom > 0 ? (b3NovoNum / b3NovaDenom) * 100 : 0;
+  const b3NovaPct   = b3PctAtual + (b3AggNova - b3AggAtual);
   const b3Conceito  = derivaConceitoB3(b3NovaPct);
 
   const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
   const b5NovaDenom = b5Denominador + (extraConsultas + extraConclusoes) * 2;
-  const b5NovaPct   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
-  const b5PctAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
+  const b5PctAtual  = pctBase(b5Ind, b5Numerador, b5Denominador);
+  const b5AggAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
+  const b5AggNova   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
+  const b5NovaPct   = b5PctAtual + (b5AggNova - b5AggAtual);
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
   const notaFinalAtual = todosIndicadores?.reduce((s, i) => s + i.notaFinal, 0) ?? 0;
@@ -357,15 +374,11 @@ const SimulacaoCard = ({
   const notaNum = (c: ReturnType<typeof derivaConceito>): number =>
     parseFloat(c.nota.replace(",", "."));
 
-  const b1Ind = todosIndicadores?.find(i => i.indicador === "1ª Consulta Odontológica");
-  const b2Ind = todosIndicadores?.find(i => i.indicador === "Tratamento Concluído");
-  const b3Ind = todosIndicadores?.find(i => i.indicador === "Taxa de Exodontias");
-  const b5Ind = todosIndicadores?.find(i => i.indicador === "Proced. Odont. Preventivos");
-
   const b1ConceitoAtual = derivaConceito(b1PctAtual, b1Thresh);
   const b2ConceitoAtual = derivaConceito(b2PctAtual, b2Thresh);
   const b3ConceitoAtual = derivaConceitoB3(b3PctAtual);
   const b5ConceitoAtual = derivaConceito(b5PctAtual, b5Thresh);
+
 
   const ajusteSeConceitoMudou = (
     ind: IndicadorResult | undefined,
