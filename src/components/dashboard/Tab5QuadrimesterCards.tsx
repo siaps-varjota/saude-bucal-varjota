@@ -75,6 +75,8 @@ export const Tab5QuadrimesterCards = ({
       let totalIndividuais  = 0;
       let todosMesesOficiais = true;
       let monthsWithData    = 0;
+      let somaPctMensal     = 0;
+      let mesesComPct       = 0;
 
       quadMonths.forEach(mesIdx => {
         const inPast = q.year < currentYear || (q.year === currentYear && mesIdx <= currentMonth);
@@ -85,26 +87,39 @@ export const Tab5QuadrimesterCards = ({
         const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
         const isOficial = !!ofRow;
 
+        let mesNum = 0;
+        let mesDen = 0;
+
         if (isOficial) {
-          totalPreventivos += ofRow!.numB5;
-          totalIndividuais += ofRow!.denB5;
+          mesNum = ofRow!.numB5;
+          mesDen = ofRow!.denB5;
         } else {
           records.forEach((r) => {
             const parts   = r.mesAno.split("/");
             const rMesIdx = MONTH_MAP[parts[0]?.toLowerCase().trim()];
             const rAno    = parseInt(parts[1]);
             if (rMesIdx === mesIdx && rAno === q.year) {
-              totalPreventivos += r.preventivos;
-              totalIndividuais += r.totalIndividuais;
+              mesNum += r.preventivos;
+              mesDen += r.totalIndividuais;
             }
           });
           todosMesesOficiais = false;
         }
 
+        totalPreventivos += mesNum;
+        totalIndividuais += mesDen;
+        if (mesDen > 0) {
+          somaPctMensal += (mesNum / mesDen) * 100;
+          mesesComPct++;
+        }
+
         monthsWithData++;
       });
 
-      const percentage           = totalIndividuais > 0 ? (totalPreventivos / totalIndividuais) * 100 : 0;
+      // Percentual do período = média dos percentuais mensais
+      const percentage           = mesesComPct > 0
+        ? somaPctMensal / mesesComPct
+        : (totalIndividuais > 0 ? (totalPreventivos / totalIndividuais) * 100 : 0);
       const avgMonthlyPreventivos = monthsWithData > 0 ? totalPreventivos / monthsWithData : 0;
       const fonte: FonteDado     = todosMesesOficiais && monthsWithData > 0 ? "oficial" : "preliminar";
 
