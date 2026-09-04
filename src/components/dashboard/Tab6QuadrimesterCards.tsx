@@ -89,6 +89,8 @@ export const Tab6QuadrimesterCards = ({
       let totalProcedimentos = 0;
       let todosMesesOficiais = true;
       let monthsWithData     = 0;
+      let somaPctMensal      = 0;
+      let mesesComPct        = 0;
 
       quadMonths.forEach((m) => {
         const inPast = q.year < currentYear || (q.year === currentYear && m <= currentMonth);
@@ -101,9 +103,12 @@ export const Tab6QuadrimesterCards = ({
         const ofRow     = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
         const isOficial = !!ofRow;
 
+        let mesNum = 0;
+        let mesDen = 0;
+
         if (isOficial) {
-          totalExodontias    += ofRow!.numB6;
-          totalProcedimentos += ofRow!.denB6;
+          mesNum = ofRow!.numB6;
+          mesDen = ofRow!.denB6;
         } else {
           // Preliminar: soma direto dos records do mês
           records.forEach((r) => {
@@ -112,17 +117,27 @@ export const Tab6QuadrimesterCards = ({
             const ano     = parseInt(parts[1]);
             const mesIdx  = MONTH_MAP[mesName];
             if (mesIdx === m && ano === q.year) {
-              totalExodontias    += r.exodontias;
-              totalProcedimentos += r.totalProcedimentos;
+              mesNum += r.exodontias;
+              mesDen += r.totalProcedimentos;
             }
           });
           todosMesesOficiais = false;
+        }
+
+        totalExodontias    += mesNum;
+        totalProcedimentos += mesDen;
+        if (mesDen > 0) {
+          somaPctMensal += (mesNum / mesDen) * 100;
+          mesesComPct++;
         }
       });
 
       if (monthsWithData === 0) monthsWithData = 1;
 
-      const percentage           = totalProcedimentos > 0 ? (totalExodontias / totalProcedimentos) * 100 : 0;
+      // Percentual do período = média dos percentuais mensais
+      const percentage           = mesesComPct > 0
+        ? somaPctMensal / mesesComPct
+        : (totalProcedimentos > 0 ? (totalExodontias / totalProcedimentos) * 100 : 0);
       const avgMonthlyExodontias = totalExodontias / monthsWithData;
       const fonte: FonteDado     = todosMesesOficiais ? "oficial" : "preliminar";
 

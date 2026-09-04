@@ -37,7 +37,7 @@ function buildSimRow(ind: IndicadorResult) {
       obs: "Indicador sem simulação por incremento.",
     };
   }
-  const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
+  const pct = ind.porcentagem;
   const isOtimo = pct > cfg.thresholdOtimo * 100;
   const isBom = pct > cfg.thresholdBom * 100;
   const proximoLabel = isOtimo ? null : isBom ? `Ótimo (${cfg.labelOtimo})` : `Bom (${cfg.labelBom})`;
@@ -188,7 +188,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         const notaProjTotal = indSorted.reduce((acc, ind) => {
           const cfg = SIM_CONFIG[ind.indicador];
           if (!cfg) return acc + ind.nota * ind.peso;
-          const pct = ind.denominador > 0 ? (ind.numerador / ind.denominador) * 100 : 0;
+          const pct = ind.porcentagem;
           const isOtimo = pct > cfg.thresholdOtimo * 100;
           const isBom = pct > cfg.thresholdBom * 100;
           const notaBase = isOtimo ? 1.0 : isBom ? 1.0 : 0.75;

@@ -84,6 +84,8 @@ export const Tab3QuadrimesterCards = ({
       let totalAtendimentos = 0;
       let todosMesesOficiais = true;
       let monthsWithData    = 0;
+      let somaPctMensal     = 0;
+      let mesesComPct       = 0;
 
       quadMonths.forEach(mesIdx => {
         // Só considera meses já ocorridos
@@ -96,9 +98,12 @@ export const Tab3QuadrimesterCards = ({
         const ofRow     = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
         const isOficial = !!ofRow;
 
+        let mesNum = 0;
+        let mesDen = 0;
+
         if (isOficial) {
-          totalExodontias   += ofRow!.numB3;
-          totalAtendimentos += ofRow!.denB3;
+          mesNum = ofRow!.numB3;
+          mesDen = ofRow!.denB3;
         } else {
           // Preliminar: soma records do mês
           records.forEach((r) => {
@@ -106,17 +111,27 @@ export const Tab3QuadrimesterCards = ({
             const rMesIdx = MONTH_MAP[parts[0]?.toLowerCase().trim()];
             const rAno    = parseInt(parts[1]);
             if (rMesIdx === mesIdx && rAno === q.year) {
-              totalExodontias   += r.exodontias;
-              totalAtendimentos += r.totalAtendimentos;
+              mesNum += r.exodontias;
+              mesDen += r.totalAtendimentos;
             }
           });
           todosMesesOficiais = false;
         }
 
+        totalExodontias   += mesNum;
+        totalAtendimentos += mesDen;
+        if (mesDen > 0) {
+          somaPctMensal += (mesNum / mesDen) * 100;
+          mesesComPct++;
+        }
+
         monthsWithData++;
       });
 
-      const percentage           = totalAtendimentos > 0 ? (totalExodontias / totalAtendimentos) * 100 : 0;
+      // Percentual do período = média dos percentuais mensais
+      const percentage           = mesesComPct > 0
+        ? somaPctMensal / mesesComPct
+        : (totalAtendimentos > 0 ? (totalExodontias / totalAtendimentos) * 100 : 0);
       const avgMonthlyExodontias = monthsWithData > 0 ? totalExodontias / monthsWithData : 0;
       const fonte: FonteDado     = todosMesesOficiais && monthsWithData > 0 ? "oficial" : "preliminar";
 
