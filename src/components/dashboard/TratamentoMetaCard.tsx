@@ -146,6 +146,10 @@ export const TratamentoMetaCard = ({
       const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
       totalDen += resolved.den;
+      if (resolved.den > 0) {
+        somaPctMensal += (resolved.num / resolved.den) * 100;
+        mesesComPct++;
+      }
       if (resolved.fonte !== "oficial") todosMesesOficiais = false;
     }
 
@@ -167,7 +171,10 @@ export const TratamentoMetaCard = ({
       return p.comTratamentoConcluido !== "Concluído";
     }).length;
 
-    const currentPct  = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
+    // Percentual do período = média dos percentuais mensais
+    const currentPct  = mesesComPct > 0
+      ? somaPctMensal / mesesComPct
+      : (totalDen > 0 ? (totalNum / totalDen) * 100 : 0);
     const faltamBom   = Math.max(0, Math.ceil(totalDen * 0.501) - totalNum);
     const faltamOtimo = Math.max(0, Math.ceil(totalDen * 0.751) - totalNum);
 
