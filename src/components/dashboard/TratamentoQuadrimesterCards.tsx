@@ -144,6 +144,8 @@ export const TratamentoQuadrimesterCards = ({
       let totalNum           = 0;
       let totalDen           = 0;
       let todosMesesOficiais = true;
+      let somaPctMensal      = 0;
+      let mesesComPct        = 0;
 
       for (let m = startMonth; m <= actualEndMonth; m++) {
         const monthDate = new Date(targetYear, m, 1);
@@ -168,10 +170,17 @@ export const TratamentoQuadrimesterCards = ({
         const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
         totalNum += resolved.num;
         totalDen += resolved.den;
+        if (resolved.den > 0) {
+          somaPctMensal += (resolved.num / resolved.den) * 100;
+          mesesComPct++;
+        }
         if (resolved.fonte !== "oficial") todosMesesOficiais = false;
       }
 
-      const percentage = totalDen > 0 ? (totalNum / totalDen) * 100 : 0;
+      // Percentual do período = média dos percentuais mensais
+      const percentage = mesesComPct > 0
+        ? somaPctMensal / mesesComPct
+        : (totalDen > 0 ? (totalNum / totalDen) * 100 : 0);
       const average    = monthsCount > 0 ? totalNum / monthsCount    : 0;
       const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
 
