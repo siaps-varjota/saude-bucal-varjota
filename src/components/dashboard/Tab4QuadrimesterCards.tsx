@@ -96,6 +96,8 @@ export const Tab4QuadrimesterCards = ({
     let totalDen          = 0;
     let todosMesesOficiais = true;
     let monthsWithData    = 0;
+    let somaPctMensal     = 0;
+    let mesesComPct       = 0;
 
     q.months.forEach(m => {
       const inPast = q.year < currentYear || (q.year === currentYear && m <= currentMonth);
@@ -108,18 +110,27 @@ export const Tab4QuadrimesterCards = ({
       const ofRow     = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
       const isOficial = !!ofRow;
 
+      let mesNum = 0;
+      let mesDen = 0;
+
       if (isOficial) {
-        totalNum += ofRow!.numB4;
-        totalDen += ofRow!.denB4;
+        mesNum = ofRow!.numB4;
+        mesDen = ofRow!.denB4;
       } else {
         // Preliminar: conta pacientes com escovação neste mês
-        const prelNum = patients.filter(p => {
+        mesNum = patients.filter(p => {
           const d = parseConsultaDate(p.primeiraConsulta);
           return d && getYear(d) === q.year && getMonth(d) === m;
         }).length;
-        totalNum += prelNum;
-        totalDen += totalPatients;
+        mesDen = totalPatients;
         todosMesesOficiais = false;
+      }
+
+      totalNum += mesNum;
+      totalDen += mesDen;
+      if (mesDen > 0) {
+        somaPctMensal += (mesNum / mesDen) * 100;
+        mesesComPct++;
       }
     });
 
@@ -130,7 +141,10 @@ export const Tab4QuadrimesterCards = ({
     const average   = totalNum / monthsWithData;
     const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
 
-    return { ...q, total: totalNum, den: totalDen, denRep, average, monthsWithData, fonte };
+    // Percentual do período = média dos percentuais mensais
+    const percentage = mesesComPct > 0 ? somaPctMensal / mesesComPct : 0;
+
+    return { ...q, total: totalNum, den: totalDen, denRep, average, percentage, monthsWithData, fonte };
   });
 
   const visibleCards = quadrimestres.length > 0
@@ -202,8 +216,7 @@ export const Tab4QuadrimesterCards = ({
   return (
     <>
       {visibleCards.map(q => {
-        const denQuad    = q.den > 0 ? q.den : q.denRep * q.monthsWithData;
-        const percentage = denQuad > 0 ? (q.total / denQuad) * 100 : 0;
+        const percentage = q.percentage;
         const category   = getScoreCategory(percentage, q.total);
         const styles     = getScoreStyles(category);
         return (
