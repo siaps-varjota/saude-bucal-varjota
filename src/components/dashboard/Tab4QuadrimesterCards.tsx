@@ -228,7 +228,7 @@ export const Tab4QuadrimesterCards = ({
                 <FonteBadge fonte={q.fonte} />
               </div>
               <p className={`text-3xl font-bold ${styles.count}`}>{q.total}</p>
-              <p className="text-xs text-muted-foreground mt-1">de {denQuad}</p>
+              <p className="text-xs text-muted-foreground mt-1">de {q.den > 0 ? q.den : q.denRep * q.monthsWithData}</p>
               <p className="text-xs text-muted-foreground mt-1">Média/mês: {q.average.toFixed(1)}</p>
               <p className="text-xs text-muted-foreground">Média/semana: {(q.average / 4.33).toFixed(1)}</p>
               <p className={`text-xs mt-0.5 ${styles.label}`}>{percentage.toFixed(1)}%</p>
