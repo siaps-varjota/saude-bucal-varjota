@@ -117,6 +117,9 @@ export const TratamentoMetaCard = ({
     let totalNum           = 0;
     let totalDen           = 0;
     let todosMesesOficiais = true;
+    let somaPctMensal      = 0;
+    let mesesComPct        = 0;
+
 
     for (let m = range.startMonth; m <= range.actualEndMonth; m++) {
       const monthDate = new Date(range.year, m, 1);
