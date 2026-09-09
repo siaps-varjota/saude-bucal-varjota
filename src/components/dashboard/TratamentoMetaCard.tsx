@@ -6,6 +6,7 @@ import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } fr
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
+import { calcFaltamMediaMensal } from "@/lib/metaThresholds";
 
 interface TratamentoMetaCardProps {
   patients: TratamentoPatient[];
@@ -119,6 +120,7 @@ export const TratamentoMetaCard = ({
     let todosMesesOficiais = true;
     let somaPctMensal      = 0;
     let mesesComPct        = 0;
+    const mesesLista: { num: number; den: number }[] = [];
 
 
     for (let m = range.startMonth; m <= range.actualEndMonth; m++) {
@@ -149,6 +151,7 @@ export const TratamentoMetaCard = ({
       const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
       totalDen += resolved.den;
+      mesesLista.push({ num: resolved.num, den: resolved.den });
       if (resolved.den > 0) {
         somaPctMensal += (resolved.num / resolved.den) * 100;
         mesesComPct++;
@@ -178,8 +181,11 @@ export const TratamentoMetaCard = ({
     const currentPct  = mesesComPct > 0
       ? somaPctMensal / mesesComPct
       : (totalDen > 0 ? (totalNum / totalDen) * 100 : 0);
-    const faltamBom   = Math.max(0, Math.ceil(totalDen * 0.501) - totalNum);
-    const faltamOtimo = Math.max(0, Math.ceil(totalDen * 0.751) - totalNum);
+    // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+    const faltamBom   = calcFaltamMediaMensal(mesesLista, 0.501, 1, 0)
+      ?? Math.max(0, Math.ceil(totalDen * 0.501) - totalNum);
+    const faltamOtimo = calcFaltamMediaMensal(mesesLista, 0.751, 1, 0)
+      ?? Math.max(0, Math.ceil(totalDen * 0.751) - totalNum);
 
     // ── Simulações ────────────────────────────────────────────────────────
     const simulations = (() => {
