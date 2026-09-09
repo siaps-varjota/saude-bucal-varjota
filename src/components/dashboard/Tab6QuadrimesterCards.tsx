@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
+import { calcFaltamMediaMensal, META_THRESHOLDS } from "@/lib/metaThresholds";
 
 interface Tab6QuadrimesterCardsProps {
   records: Tab6Record[];
@@ -127,6 +128,7 @@ export const Tab6QuadrimesterCards = ({
 
         totalExodontias    += mesNum;
         totalProcedimentos += mesDen;
+        mesesLista.push({ num: mesNum, den: mesDen });
         if (mesDen > 0) {
           somaPctMensal += (mesNum / mesDen) * 100;
           mesesComPct++;
@@ -142,7 +144,7 @@ export const Tab6QuadrimesterCards = ({
       const avgMonthlyExodontias = totalExodontias / monthsWithData;
       const fonte: FonteDado     = todosMesesOficiais ? "oficial" : "preliminar";
 
-      return { ...q, totalExodontias, totalProcedimentos, percentage, avgMonthlyExodontias, monthsWithData, fonte };
+      return { ...q, totalExodontias, totalProcedimentos, percentage, avgMonthlyExodontias, monthsWithData, mesesLista, fonte };
     });
   }, [records, currentQuad, currentYear, equipe, oficialData]);
 
@@ -158,10 +160,14 @@ export const Tab6QuadrimesterCards = ({
   const mediaMensalBom   = metaBom   / 4;
   const mediaMensalOtimo = metaOtimo / 4;
   const totalAtual       = currentQuadData?.totalExodontias ?? 0;
-  const faltamBom        = Math.max(0, metaBom   - totalAtual);
-  const faltamOtimo      = Math.max(0, metaOtimo - totalAtual);
-  const atingiuBom       = totalAtual >= metaBom  && metaBom  > 0;
-  const atingiuOtimo     = totalAtual >= metaOtimo && metaOtimo > 0;
+  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+  const thB6             = META_THRESHOLDS["Trat. Restaurador Atraumático"]!;
+  const faltamBomM       = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], thB6.thresholdBom, thB6.deltaNum, thB6.deltaDenom);
+  const faltamOtimoM     = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], thB6.thresholdOtimo, thB6.deltaNum, thB6.deltaDenom);
+  const faltamBom        = faltamBomM   ?? Math.max(0, metaBom   - totalAtual);
+  const faltamOtimo      = faltamOtimoM ?? Math.max(0, metaOtimo - totalAtual);
+  const atingiuBom       = (faltamBomM   !== null ? faltamBomM   === 0 : totalAtual >= metaBom)   && metaBom   > 0;
+  const atingiuOtimo     = (faltamOtimoM !== null ? faltamOtimoM === 0 : totalAtual >= metaOtimo) && metaOtimo > 0;
   const fonteMeta        = currentQuadData?.fonte ?? "preliminar";
   const mesesComDados    = currentQuadData?.monthsWithData ?? 1;
   const semanasRestantes = Math.max(0, (4 - mesesComDados)) * 4.33;
