@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal } from "@/lib/metaThresholds";
 import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
@@ -130,6 +130,7 @@ const MetaQuadrimestreCard = ({
   deltaDenom,
   faltaUnit: faltaUnitProp,
   mesesDecorridos,
+  meses,
 }: {
   denominador: number;
   numerador: number;
@@ -138,14 +139,18 @@ const MetaQuadrimestreCard = ({
   deltaDenom?: number;
   faltaUnit?: string;
   mesesDecorridos?: number;
+  meses?: { numerador: number; denominador: number }[];
 }) => {
   const periodoMeses = useContext(PeriodoMesesContext);
   const metaBom   = strictMeta(denominador, thresholds.thresholdBom);
   const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
+  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+  const mesesLista = (meses ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
   const calcFaltam = (threshold: number): number =>
-    calcFaltamShared(numerador, denominador, threshold, deltaNum ?? 1, deltaDenom ?? 0);
+    calcFaltamMediaMensal(mesesLista, threshold, deltaNum ?? 1, deltaDenom ?? 0)
+      ?? calcFaltamShared(numerador, denominador, threshold, deltaNum ?? 1, deltaDenom ?? 0);
 
   const faltamBom   = calcFaltam(thresholds.thresholdBom);
   const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
@@ -1122,6 +1127,7 @@ const DetalheRow = ({
                       denominador={ind.denominador}
                       numerador={ind.numerador}
                       thresholds={metaThresholds}
+                      meses={ind.mesesDetalhe}
                       mesesDecorridos={ind.mesesDetalhe?.filter(m => (m.denominador ?? 0) > 0 || (m.numerador ?? 0) > 0).length ?? 0}
                       {...(ind.indicador === "Proced. Odont. Preventivos" && {
                         deltaNum: 2,
