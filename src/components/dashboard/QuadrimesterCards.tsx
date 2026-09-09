@@ -121,6 +121,7 @@ export const QuadrimesterCards = ({
     let monthsWithData    = 0;
     let somaPctMensal     = 0;
     let mesesComPct       = 0;
+    const mesesLista: { num: number; den: number }[] = [];
 
     q.months.forEach(m => {
       const inPast = q.year < currentYear || (q.year === currentYear && m <= currentMonth);
@@ -139,6 +140,7 @@ export const QuadrimesterCards = ({
       const resolved = resolveMonth(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
       totalDen += resolved.den; // acumula denominadores (podem variar por mês no oficial)
+      mesesLista.push({ num: resolved.num, den: resolved.den });
       if (resolved.den > 0) {
         somaPctMensal += (resolved.num / resolved.den) * 100;
         mesesComPct++;
@@ -163,6 +165,7 @@ export const QuadrimesterCards = ({
       average,
       percentage,
       monthsWithData,
+      mesesLista,
       fonte,
     };
   });
