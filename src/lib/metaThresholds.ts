@@ -86,3 +86,45 @@ export function calcFaltam(
   const x = (threshold * den - num) / d;
   return Math.max(0, Math.floor(x) + 1);
 }
+
+/**
+ * "Faltam" pela regra do PERCENTUAL MÉDIO MENSAL: o percentual do período é a
+ * média dos percentuais mensais (só meses com denominador > 0). Calcula quantas
+ * unidades (incremento típico do indicador) precisam ser somadas ao ÚLTIMO mês
+ * com dado para que essa média SUPERE ESTRITAMENTE o threshold.
+ *
+ * `meses` deve estar em ordem cronológica. Retorna null quando não há nenhum
+ * mês com denominador > 0 (o chamador decide o fallback).
+ */
+export function calcFaltamMediaMensal(
+  meses: { num: number; den: number }[],
+  threshold: number,
+  deltaNum = 1,
+  deltaDenom = 0,
+): number | null {
+  const valid = meses.filter((m) => m.den > 0);
+  if (valid.length === 0) return null;
+
+  const k    = valid.length;
+  const soma = valid.reduce((s, m) => s + m.num / m.den, 0);
+  const last = valid[valid.length - 1];
+  const pLast = last.num / last.den;
+
+  // Percentual que o último mês precisa atingir para a média bater o threshold
+  const alvoMes = threshold * k - (soma - pLast);
+
+  const dn = deltaNum || 1;
+  const dd = deltaDenom || 0;
+
+  let x: number;
+  if (dd === 0) {
+    x = (alvoMes * last.den - last.num) / dn;
+  } else {
+    const div = dn - dd * alvoMes;
+    if (div <= 0) return null; // inalcançável somando só neste mês
+    x = (alvoMes * last.den - last.num) / div;
+  }
+
+  if (!isFinite(x) || x <= 0) return 0;
+  return Math.floor(x) + 1; // superação estrita
+}

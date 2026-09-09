@@ -7,6 +7,7 @@ import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } fr
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
+import { calcFaltamMediaMensal, META_THRESHOLDS } from "@/lib/metaThresholds";
 
 interface Tab5MetaCardProps {
   records: Tab5Record[];
@@ -99,6 +100,7 @@ export const Tab5MetaCard = ({
     let todosMesesOficiais = true;
     let somaPctMensal      = 0;
     let mesesComPct        = 0;
+    const mesesLista: { num: number; den: number }[] = [];
 
     quadMonths.forEach(mesIdx => {
       const inPast = y < now.getFullYear() || (y === now.getFullYear() && mesIdx <= range.actualEndMonth);
@@ -130,6 +132,7 @@ export const Tab5MetaCard = ({
 
       preventivos      += mesNum;
       totalIndividuais += mesDen;
+      mesesLista.push({ num: mesNum, den: mesDen });
       if (mesDen > 0) {
         somaPctMensal += (mesNum / mesDen) * 100;
         mesesComPct++;
@@ -165,8 +168,12 @@ export const Tab5MetaCard = ({
       return Math.max(0, Math.ceil(numerator / denominator));
     };
 
-    const faltamBom   = calcNeeded(0.55);
-    const faltamOtimo = calcNeeded(0.65);
+    // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+    const thB5 = META_THRESHOLDS["Proced. Odont. Preventivos"]!;
+    const faltamBom   = calcFaltamMediaMensal(mesesLista, thB5.thresholdBom, thB5.deltaNum, thB5.deltaDenom)
+      ?? calcNeeded(0.55);
+    const faltamOtimo = calcFaltamMediaMensal(mesesLista, thB5.thresholdOtimo, thB5.deltaNum, thB5.deltaDenom)
+      ?? calcNeeded(0.65);
 
     // ── Simulações com B1 oficial ──────────────────────────────────────────
     const simulations = (() => {

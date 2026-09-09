@@ -5,6 +5,7 @@ import { parse, isValid, getMonth, getYear, format } from "date-fns";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
+import { calcFaltamMediaMensal } from "@/lib/metaThresholds";
 
 interface QuadrimesterCardsProps {
   patients: Patient[];
@@ -121,6 +122,7 @@ export const QuadrimesterCards = ({
     let monthsWithData    = 0;
     let somaPctMensal     = 0;
     let mesesComPct       = 0;
+    const mesesLista: { num: number; den: number }[] = [];
 
     q.months.forEach(m => {
       const inPast = q.year < currentYear || (q.year === currentYear && m <= currentMonth);
@@ -139,6 +141,7 @@ export const QuadrimesterCards = ({
       const resolved = resolveMonth(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
       totalDen += resolved.den; // acumula denominadores (podem variar por mês no oficial)
+      mesesLista.push({ num: resolved.num, den: resolved.den });
       if (resolved.den > 0) {
         somaPctMensal += (resolved.num / resolved.den) * 100;
         mesesComPct++;
@@ -163,6 +166,7 @@ export const QuadrimesterCards = ({
       average,
       percentage,
       monthsWithData,
+      mesesLista,
       fonte,
     };
   });
@@ -182,10 +186,13 @@ export const QuadrimesterCards = ({
   const metaOtimo       = metaOtimoMensal * 4;
 
   const totalAtual   = currentQuadData?.total ?? 0;
-  const faltamBom    = Math.max(0, metaBom - totalAtual);
-  const faltamOtimo  = Math.max(0, metaOtimo - totalAtual);
-  const atingiuBom   = totalAtual >= metaBom;
-  const atingiuOtimo = totalAtual >= metaOtimo;
+  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+  const faltamBomM   = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], 0.0075, 1, 0);
+  const faltamOtimoM = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], 0.0125, 1, 0);
+  const faltamBom    = faltamBomM   ?? Math.max(0, metaBom   - totalAtual);
+  const faltamOtimo  = faltamOtimoM ?? Math.max(0, metaOtimo - totalAtual);
+  const atingiuBom   = faltamBomM   !== null ? faltamBomM   === 0 : totalAtual >= metaBom;
+  const atingiuOtimo = faltamOtimoM !== null ? faltamOtimoM === 0 : totalAtual >= metaOtimo;
   const fonteMeta    = currentQuadData?.fonte ?? "preliminar";
   const semanasRestantes = Math.max(0, (4 - mesesComDados)) * 4.33;
   const fmtSemanal = (faltam: number) =>
