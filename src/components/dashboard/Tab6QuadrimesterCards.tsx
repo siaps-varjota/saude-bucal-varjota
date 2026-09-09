@@ -91,6 +91,7 @@ export const Tab6QuadrimesterCards = ({
       let monthsWithData     = 0;
       let somaPctMensal      = 0;
       let mesesComPct        = 0;
+      const mesesLista: { num: number; den: number }[] = [];
 
       quadMonths.forEach((m) => {
         const inPast = q.year < currentYear || (q.year === currentYear && m <= currentMonth);

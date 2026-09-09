@@ -185,10 +185,13 @@ export const QuadrimesterCards = ({
   const metaOtimo       = metaOtimoMensal * 4;
 
   const totalAtual   = currentQuadData?.total ?? 0;
-  const faltamBom    = Math.max(0, metaBom - totalAtual);
-  const faltamOtimo  = Math.max(0, metaOtimo - totalAtual);
-  const atingiuBom   = totalAtual >= metaBom;
-  const atingiuOtimo = totalAtual >= metaOtimo;
+  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+  const faltamBomM   = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], 0.0075, 1, 0);
+  const faltamOtimoM = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], 0.0125, 1, 0);
+  const faltamBom    = faltamBomM   ?? Math.max(0, metaBom   - totalAtual);
+  const faltamOtimo  = faltamOtimoM ?? Math.max(0, metaOtimo - totalAtual);
+  const atingiuBom   = faltamBomM   !== null ? faltamBomM   === 0 : totalAtual >= metaBom;
+  const atingiuOtimo = faltamOtimoM !== null ? faltamOtimoM === 0 : totalAtual >= metaOtimo;
   const fonteMeta    = currentQuadData?.fonte ?? "preliminar";
   const semanasRestantes = Math.max(0, (4 - mesesComDados)) * 4.33;
   const fmtSemanal = (faltam: number) =>
