@@ -128,3 +128,31 @@ export function calcFaltamMediaMensal(
   if (!isFinite(x) || x <= 0) return 0;
   return Math.floor(x) + 1; // superação estrita
 }
+
+/**
+ * Calcula o par (Bom, Ótimo) de forma COERENTE: usa a regra do percentual médio
+ * mensal apenas quando ela produz resultados válidos e monotônicos
+ * (faltamBom <= faltamOtimo). Caso contrário — mês inalcançável, ausência de
+ * meses válidos ou inversão — usa os valores de fallback agregados para AMBOS,
+ * evitando exibir "Bom" exigindo mais que "Ótimo".
+ */
+export function calcFaltamPar(
+  meses: { num: number; den: number }[],
+  thresholdBom: number,
+  thresholdOtimo: number,
+  deltaNum = 1,
+  deltaDenom = 0,
+  fallbackBom = 0,
+  fallbackOtimo = 0,
+): { bom: number; otimo: number; viaMedia: boolean } {
+  const mBom   = calcFaltamMediaMensal(meses, thresholdBom,   deltaNum, deltaDenom);
+  const mOtimo = calcFaltamMediaMensal(meses, thresholdOtimo, deltaNum, deltaDenom);
+  if (mBom !== null && mOtimo !== null && mBom <= mOtimo) {
+    return { bom: mBom, otimo: mOtimo, viaMedia: true };
+  }
+  return {
+    bom:   Math.max(0, fallbackBom),
+    otimo: Math.max(0, fallbackOtimo),
+    viaMedia: false,
+  };
+}
