@@ -6,7 +6,7 @@ import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } fr
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal } from "@/lib/metaThresholds";
+import { calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
 
 interface TratamentoMetaCardProps {
   patients: TratamentoPatient[];
