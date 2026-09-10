@@ -38,7 +38,7 @@ export const LoginGate = ({ children }: LoginGateProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-sky-100 p-4">
-      <Card className="w-full max-w-sm shadow-xl border-0">
+      <Card className="w-full max-w-sm shadow-xl border-0 transition-all hover:shadow-2xl hover:-translate-y-0.5">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
             <Lock className="h-7 w-7 text-blue-600" />

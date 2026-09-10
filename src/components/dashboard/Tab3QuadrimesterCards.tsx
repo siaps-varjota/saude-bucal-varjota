@@ -149,7 +149,7 @@ export const Tab3QuadrimesterCards = ({
         const category = getScoreCategory(quad.percentage);
         const styles   = getScoreStyles(category);
         return (
-          <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
+          <Card key={quad.label} className={`border-0 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 ${styles.bg}`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <CalendarDays className={`h-4 w-4 ${styles.icon}`} />
