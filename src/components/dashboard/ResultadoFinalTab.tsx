@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -1167,6 +1168,11 @@ const DetalheRow = ({
                           <span className="text-xs font-medium text-primary mt-0.5">
                             {mes.porcentagem.toFixed(1)}%
                           </span>
+                          {mes.fonte && (
+                            <div className="mt-1">
+                              <FonteBadge fonte={mes.fonte} />
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
