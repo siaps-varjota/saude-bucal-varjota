@@ -7,7 +7,7 @@ import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } fr
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal, META_THRESHOLDS } from "@/lib/metaThresholds";
+import { calcFaltamMediaMensal, calcFaltamPar, META_THRESHOLDS } from "@/lib/metaThresholds";
 
 interface Tab5MetaCardProps {
   records: Tab5Record[];
