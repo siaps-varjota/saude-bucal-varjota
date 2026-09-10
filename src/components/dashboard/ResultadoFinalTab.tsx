@@ -1167,6 +1167,11 @@ const DetalheRow = ({
                           <span className="text-xs font-medium text-primary mt-0.5">
                             {mes.porcentagem.toFixed(1)}%
                           </span>
+                          {mes.fonte && (
+                            <div className="mt-1">
+                              <FonteBadge fonte={mes.fonte} />
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
