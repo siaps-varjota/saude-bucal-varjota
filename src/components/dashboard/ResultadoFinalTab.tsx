@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
 import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
@@ -147,14 +147,21 @@ const MetaQuadrimestreCard = ({
   const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado),
+  // com fallback agregado coerente quando a regra mensal fica inconsistente.
   const mesesLista = (meses ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
-  const calcFaltam = (threshold: number): number =>
-    calcFaltamMediaMensal(mesesLista, threshold, deltaNum ?? 1, deltaDenom ?? 0)
-      ?? calcFaltamShared(numerador, denominador, threshold, deltaNum ?? 1, deltaDenom ?? 0);
+  const par = calcFaltamPar(
+    mesesLista,
+    thresholds.thresholdBom,
+    thresholds.thresholdOtimo,
+    deltaNum ?? 1,
+    deltaDenom ?? 0,
+    calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0),
+    calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0),
+  );
 
-  const faltamBom   = calcFaltam(thresholds.thresholdBom);
-  const faltamOtimo = calcFaltam(thresholds.thresholdOtimo);
+  const faltamBom   = par.bom;
+  const faltamOtimo = par.otimo;
   const exibeUnit   = faltaUnitProp ?? unit;
 
   const mesesUsados      = mesesDecorridos ?? 0;

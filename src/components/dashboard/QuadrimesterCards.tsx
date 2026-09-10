@@ -5,7 +5,7 @@ import { parse, isValid, getMonth, getYear, format } from "date-fns";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal } from "@/lib/metaThresholds";
+import { calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
 
 interface QuadrimesterCardsProps {
   patients: Patient[];
@@ -187,12 +187,14 @@ export const QuadrimesterCards = ({
 
   const totalAtual   = currentQuadData?.total ?? 0;
   // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
-  const faltamBomM   = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], 0.0075, 1, 0);
-  const faltamOtimoM = calcFaltamMediaMensal(currentQuadData?.mesesLista ?? [], 0.0125, 1, 0);
-  const faltamBom    = faltamBomM   ?? Math.max(0, metaBom   - totalAtual);
-  const faltamOtimo  = faltamOtimoM ?? Math.max(0, metaOtimo - totalAtual);
-  const atingiuBom   = faltamBomM   !== null ? faltamBomM   === 0 : totalAtual >= metaBom;
-  const atingiuOtimo = faltamOtimoM !== null ? faltamOtimoM === 0 : totalAtual >= metaOtimo;
+  const parB1 = calcFaltamPar(
+    currentQuadData?.mesesLista ?? [], 0.0075, 0.0125, 1, 0,
+    Math.max(0, metaBom - totalAtual), Math.max(0, metaOtimo - totalAtual),
+  );
+  const faltamBom    = parB1.bom;
+  const faltamOtimo  = parB1.otimo;
+  const atingiuBom   = faltamBom   === 0;
+  const atingiuOtimo = faltamOtimo === 0;
   const fonteMeta    = currentQuadData?.fonte ?? "preliminar";
   const semanasRestantes = Math.max(0, (4 - mesesComDados)) * 4.33;
   const fmtSemanal = (faltam: number) =>
