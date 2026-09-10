@@ -209,7 +209,7 @@ export const TratamentoQuadrimesterCards = ({
         const category = getScoreCategory(percentage, total);
         const styles   = getScoreStyles(category);
         return (
-          <Card key={label} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
+          <Card key={label} className={`border-0 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 ${styles.bg}`}>
             <CardContent className="p-4">
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 mb-2 flex-wrap">

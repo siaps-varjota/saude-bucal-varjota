@@ -276,7 +276,7 @@ export const TratamentoMetaCard = ({
   return (
     <>
       {/* ── Meta do Quadrimestre ─────────────────────────────────────────── */}
-      <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full">
+      <Card className="border-0 shadow-md bg-gradient-to-br from-violet-50 to-indigo-50 border-l-4 border-l-violet-500 col-span-2 lg:col-span-full transition-all hover:shadow-xl hover:-translate-y-0.5">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Target className="w-4 h-4 text-violet-600" />
@@ -337,7 +337,7 @@ export const TratamentoMetaCard = ({
 
       {/* ── Simulação ────────────────────────────────────────────────────── */}
       {simulations && (
-        <Card className="border-0 shadow-md bg-orange-50 border border-orange-200 col-span-2 lg:col-span-full">
+        <Card className="border-0 shadow-md bg-orange-50 border border-orange-200 col-span-2 lg:col-span-full transition-all hover:shadow-xl hover:-translate-y-0.5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-4">
               <FlaskConical className="w-4 h-4 text-orange-600" />

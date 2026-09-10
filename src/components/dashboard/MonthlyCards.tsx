@@ -129,7 +129,7 @@ export const MonthlyCards = ({
           const styles     = getScoreStyles(category);
 
           return (
-            <Card key={month.key} className={`border-0 shadow-md transition-all hover:shadow-lg ${styles.bg}`}>
+            <Card key={month.key} className={`border-0 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 ${styles.bg}`}>
               <CardContent className="p-3 text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Calendar className={`h-3 w-3 ${styles.icon}`} />

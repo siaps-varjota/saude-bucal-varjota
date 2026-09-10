@@ -75,7 +75,7 @@ export const Tab6Table = ({ records }: Tab6TableProps) => {
   const paginated = sorted.slice((page - 1) * perPage, page * perPage);
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5">
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg font-semibold">

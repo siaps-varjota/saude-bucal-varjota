@@ -201,7 +201,7 @@ export const QuadrimesterCards = ({
     semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
   const metaCard = (
-    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2">
+    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2 transition-all hover:shadow-xl hover:-translate-y-0.5">
       <CardContent className="p-4 flex flex-col justify-center h-full">
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Target className="h-4 w-4 text-purple-600" />
@@ -248,7 +248,7 @@ export const QuadrimesterCards = ({
         const category   = getScoreCategory(percentage);
         const styles     = getScoreStyles(category);
         return (
-          <Card key={q.label} className={`border-0 shadow-md transition-all hover:shadow-lg h-full ${styles.bg}`}>
+          <Card key={q.label} className={`border-0 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 h-full ${styles.bg}`}>
             <CardContent className="p-4 flex flex-col justify-center h-full">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <CalendarDays className={`h-4 w-4 ${styles.icon}`} />
