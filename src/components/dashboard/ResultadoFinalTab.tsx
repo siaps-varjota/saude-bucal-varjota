@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
 import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
