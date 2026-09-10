@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal, META_THRESHOLDS } from "@/lib/metaThresholds";
+import { calcFaltamMediaMensal, calcFaltamPar, META_THRESHOLDS } from "@/lib/metaThresholds";
 
 interface Tab6QuadrimesterCardsProps {
   records: Tab6Record[];

@@ -5,7 +5,7 @@ import { parse, isValid, getMonth, getYear, format } from "date-fns";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal } from "@/lib/metaThresholds";
+import { calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
 
 interface QuadrimesterCardsProps {
   patients: Patient[];
