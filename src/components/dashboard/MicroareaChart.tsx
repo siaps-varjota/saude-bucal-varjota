@@ -31,7 +31,7 @@ export const MicroareaChart = ({ patients }: MicroareaChartProps) => {
     .sort((a, b) => a.microarea.localeCompare(b.microarea));
 
   return (
-    <Card className="border-0 shadow-lg">
+    <Card className="border-0 shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-success/10 p-2">
