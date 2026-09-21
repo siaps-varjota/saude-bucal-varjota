@@ -20,6 +20,7 @@ import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/components/LoginPage";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
+import { AnalisesTab } from "@/components/dashboard/AnalisesTab";
 import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
@@ -373,6 +374,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
             <TabsTrigger value="tab5"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
             <TabsTrigger value="tab6"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
             <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
+            <TabsTrigger value="analises"   className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📈 Análises</TabsTrigger>
           </TabsList>
 
           {/* ── Tab 1 ─────────────────────────────────────────────────────── */}
@@ -805,6 +807,25 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 oficialData={oficialData}
                 onQuadrimestreChange={setQuadrimestre}
                 onEquipeChange={setEquipeResultado}
+              />
+            )}
+          </TabsContent>
+
+          {/* ── Tab 8: Análises ───────────────────────────────────────────── */}
+          <TabsContent value="analises" className="mt-6">
+            {!resultadoPronto ? (
+              <div className="space-y-4">{[...Array(2)].map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}</div>
+            ) : (
+              <AnalisesTab
+                patients={patients!}
+                tratamentoPatients={tratamentoPatients ?? []}
+                tab3Patients={tab3Patients ?? []}
+                tab4Patients={tab4Patients ?? []}
+                tab5Patients={tab5Patients ?? []}
+                tab6Patients={tab6Patients ?? []}
+                denominadorB1Data={denominadorB1Data!}
+                equipeOptions={equipeOptions}
+                oficialData={oficialData}
               />
             )}
           </TabsContent>
