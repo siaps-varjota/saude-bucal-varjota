@@ -255,14 +255,6 @@ function resolveOficialMes(
   return { num: ofRow[numKey] as number, den: ofRow[denKey] as number, isOficial: true };
 }
 
-// Equipes com dados incompletos que devem ficar ocultas em toda a aplicação
-// (filtros, cards de ranking, tabelas de resultado) até que os dados sejam
-// completados. Adicione aqui qualquer outra equipe que precise ser ocultada.
-const EQUIPES_OCULTAS = new Set<string>([
-  "ESB CENTRO SEDE 2",
-  "ESB CENTRO SEDE 3",
-]);
-
 function getAllEquipes(
   patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
   tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[]
@@ -274,9 +266,9 @@ function getAllEquipes(
   tab4.forEach((p) => p.equipe && set.add(normalizeEquipeLocal(p.equipe)));
   tab5.forEach((r) => set.add(normalizeEquipeLocal(r.equipe)));
   tab6.forEach((r) => set.add(normalizeEquipeLocal(r.equipe)));
-  return Array.from(set)
-    .filter((eq) => !EQUIPES_OCULTAS.has(eq.toUpperCase()))
-    .sort();
+  // Mantém todas as equipes encontradas nas fontes carregadas, inclusive
+  // equipes com dados incompletos ou zerados, para que apareçam no resultado.
+  return Array.from(set).sort();
 }
 
 const mesKey = (m: number, year: number) => `${String(m + 1).padStart(2, "0")}/${year}`;
