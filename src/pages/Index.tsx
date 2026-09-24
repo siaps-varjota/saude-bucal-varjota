@@ -1,849 +1,893 @@
-import { parse, isValid, getMonth, getYear, format } from "date-fns";
+import { useOficialData } from "@/hooks/useOficialData";
+import { OficialData } from "@/hooks/useOficialData";
+import { useState, useMemo, useEffect } from "react";
+import { parse, isValid } from "date-fns";
+import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
+import { usePatientData } from "@/hooks/usePatientData";
+import { useTratamentoData } from "@/hooks/useTratamentoData";
+import { useTab3Data } from "@/hooks/useTab3Data";
+import { useTab4Data } from "@/hooks/useTab4Data";
+import { useTab5Data } from "@/hooks/useTab5Data";
+import { useTab6Data } from "@/hooks/useTab6Data";
+import { useFilteredPatients, isConsultaPendente } from "@/hooks/useFilteredPatients";
+import { useFilteredTratamento, isTratamentoPendente } from "@/hooks/useFilteredTratamento";
+import { useFilteredTab3 } from "@/hooks/useFilteredTab3";
+import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
+import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
+import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
+import { useResultadoFinal } from "@/hooks/useResultadoFinal";
+import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
+import { useAuth } from "@/hooks/useAuth";
+import { LoginPage } from "@/components/LoginPage";
+import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
+import { AnalisesTab } from "@/components/dashboard/AnalisesTab";
+import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { PatientTable } from "@/components/dashboard/PatientTable";
+import { Tab5Table } from "@/components/dashboard/Tab5Table";
+import { Tab5MonthlyCards } from "@/components/dashboard/Tab5MonthlyCards";
+import { Tab5QuadrimesterCards } from "@/components/dashboard/Tab5QuadrimesterCards";
+import { TratamentoTable } from "@/components/dashboard/TratamentoTable";
+import { Tab4Table } from "@/components/dashboard/Tab4Table";
+import { Tab6Table } from "@/components/dashboard/Tab6Table";
+import { MonthlyCards } from "@/components/dashboard/MonthlyCards";
+import { TratamentoMonthlyCards } from "@/components/dashboard/TratamentoMonthlyCards";
+import { Tab3MonthlyCards } from "@/components/dashboard/Tab3MonthlyCards";
+import { Tab4MonthlyCards } from "@/components/dashboard/Tab4MonthlyCards";
+import { Tab6MonthlyCards } from "@/components/dashboard/Tab6MonthlyCards";
+import { QuadrimesterCards } from "@/components/dashboard/QuadrimesterCards";
+import { TratamentoQuadrimesterCards } from "@/components/dashboard/TratamentoQuadrimesterCards";
+import { TratamentoMetaCard } from "@/components/dashboard/TratamentoMetaCard";
+import { Tab5MetaCard } from "@/components/dashboard/Tab5MetaCard";
+import { Tab3QuadrimesterCards } from "@/components/dashboard/Tab3QuadrimesterCards";
+import { Tab4QuadrimesterCards } from "@/components/dashboard/Tab4QuadrimesterCards";
+import { Tab6QuadrimesterCards } from "@/components/dashboard/Tab6QuadrimesterCards";
+import { Tab3Table } from "@/components/dashboard/Tab3Table";
+import { PatientFilters, FilterState } from "@/components/dashboard/PatientFilters";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, UserCheck, RefreshCw, LogOut } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
-import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
-import { OficialData, makeOficialKey, normalizeMes, normalizeEquipe } from "@/hooks/useOficialData";
-import { pontosDesempateIndicador, normalizarIndicador, IndicadorKey } from "@/lib/desempateScore";
 
-const parseDate = (val: string): Date | null => {
-  if (!val || val === "-" || val.trim() === "") return null;
+// Derive single equipe for oficial data lookup; "all" when 0 or >1 selected
+const singleEquipe = (e: string[]): string => (e.length === 1 ? e[0] : "all");
+const singleQuad = (q: string[]): string => (q.length === 1 ? q[0] : "todos");
+
+// ── Ícone de dente SVG ────────────────────────────────────────────────────────
+const ToothIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M22 6C16 6 10 11 10 18C10 22 11.5 25.5 12 28C13 33 13 38 14 44C14.8 49 16 58 20 58C23 58 24 53 25 48C26 43 27 40 32 40C37 40 38 43 39 48C40 53 41 58 44 58C48 58 49.2 49 50 44C51 38 51 33 52 28C52.5 25.5 54 22 54 18C54 11 48 6 42 6C39 6 37 7.5 35 9C33.5 10.2 32 11 32 11C32 11 30.5 10.2 29 9C27 7.5 25 6 22 6Z"
+      fill="currentColor" fillOpacity="0.15"
+      stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round"
+    />
+    <path d="M22 6C25 6 28 9 32 9C36 9 39 6 42 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+// ── Wrapper ResultadoFinal ────────────────────────────────────────────────────
+const ResultadoFinalWrapper = ({
+  patients, tratamentoPatients, tab3Patients, tab4Patients,
+  tab5Patients, tab6Patients, quadrimestre, equipeResultado,
+  denominadorB1Data, equipeOptions, oficialData,
+  onQuadrimestreChange, onEquipeChange,
+}: {
+  patients: Patient[];
+  tratamentoPatients: TratamentoPatient[];
+  tab3Patients: Tab3Record[];
+  tab4Patients: Tab4Patient[];
+  tab5Patients: Tab5Record[];
+  tab6Patients: Tab6Record[];
+  quadrimestre: Quadrimestre;
+  equipeResultado: string;
+  denominadorB1Data: { porEquipe: Record<string, number>; total: number };
+  equipeOptions: string[];
+  oficialData?: OficialData;
+  onQuadrimestreChange: (q: Quadrimestre) => void;
+  onEquipeChange: (e: string) => void;
+}) => {
+  const [mesesFiltro, setMesesFiltro] = useState<string[]>([]);
+  // Reset months filter when quadrimestre changes
+  useEffect(() => { setMesesFiltro([]); }, [quadrimestre]);
+
+  const resultadoFinal = useResultadoFinal(
+    patients, tratamentoPatients, tab3Patients,
+    tab4Patients, tab5Patients, tab6Patients,
+    quadrimestre, equipeResultado, denominadorB1Data,
+    oficialData, mesesFiltro,
+  );
+
+  // Inclui todas as equipes encontradas nas fontes, inclusive as que ainda
+  // não têm dados suficientes para serem retornadas pela lógica de resultados.
+  const chaveEquipe = (nome: string) =>
+    nome.replace(/^ESF\b/i, "ESB").trim().toLocaleUpperCase("pt-BR");
+  const porEquipeCompleto = useMemo(() => {
+    const resultadosPorEquipe = new Map(
+      resultadoFinal.porEquipe.map((resultado) => [chaveEquipe(resultado.equipe), resultado]),
+    );
+    const equipesVisiveis = equipeResultado === "all"
+      ? equipeOptions
+      : equipeOptions.filter((equipe) => chaveEquipe(equipe) === chaveEquipe(equipeResultado));
+    const indicadoresSemDados = resultadoFinal.geral.indicadores.map((indicador) => ({
+      ...indicador,
+      numerador: 0,
+      denominador: 0,
+      porcentagem: 0,
+      conceito: "none" as const,
+      nota: 0,
+      notaFinal: 0,
+      desempateNormalizado: 0,
+      desempatePontos: 0,
+      mesesDetalhe: [],
+      fonte: "preliminar" as const,
+    }));
+
+    return equipesVisiveis
+      .map((equipe) => resultadosPorEquipe.get(chaveEquipe(equipe)) ?? ({
+        equipe,
+        indicadores: indicadoresSemDados,
+        notaFinal: 0,
+        desempate: 0,
+      }))
+      .sort((a, b) => a.equipe.localeCompare(b.equipe, "pt-BR"));
+  }, [resultadoFinal.porEquipe, resultadoFinal.geral.indicadores, equipeOptions, equipeResultado]);
+
+  return (
+    <ResultadoFinalTab
+      geral={resultadoFinal.geral}
+      porEquipe={porEquipeCompleto}
+      quadrimestre={quadrimestre}
+      onQuadrimestreChange={onQuadrimestreChange}
+      equipe={equipeResultado}
+      onEquipeChange={onEquipeChange}
+      equipeOptions={equipeOptions}
+      mesesFiltro={mesesFiltro}
+      onMesesFiltroChange={setMesesFiltro}
+    />
+  );
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const parseDateFlexible = (str: string): Date | null => {
+  if (!str || str === "-" || str.trim() === "") return null;
   const formats = ["dd/MM/yyyy", "d/MM/yyyy", "dd/M/yyyy", "d/M/yyyy", "MM/yyyy", "yyyy-MM-dd"];
   for (const fmt of formats) {
     try {
-      const parsed = parse(val.trim(), fmt, new Date());
+      const parsed = parse(str.trim(), fmt, new Date());
       if (isValid(parsed)) return parsed;
     } catch { continue; }
   }
   return null;
 };
 
-const QUAD_MONTHS: Record<string, number[]> = {
-  Q1: [0, 1, 2, 3],
-  Q2: [4, 5, 6, 7],
-  Q3: [8, 9, 10, 11],
-};
-
-const MONTH_NAME_TO_NUM: Record<string, number> = {
-  janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
-  julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
-};
-
-const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-export type Conceito = "regular" | "suficiente" | "bom" | "otimo" | "none";
-
-export interface MesDetalhe {
-  mes: string;
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-  fonte?: "oficial" | "preliminar";
-}
-
-export interface IndicadorResult {
-  indicador: string;
-  peso: number;
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-  conceito: Conceito;
-  nota: number;
-  notaFinal: number;
-  /** Escala contínua 0–100 usada no desempate */
-  desempateNormalizado: number;
-  /** Pontos de desempate deste indicador (0–100 × peso) */
-  desempatePontos: number;
-  mesesDetalhe: MesDetalhe[];
-  fonte?: "oficial" | "preliminar";
-  b1Numerador?: number;
-  b1Denominador?: number;
-  b2Numerador?: number;
-  b2Denominador?: number;
-}
-
-export interface EquipeResult {
-  equipe: string;
-  indicadores: IndicadorResult[];
-  notaFinal: number;
-  /** Pontuação total de desempate (0–1000) */
-  desempate: number;
-}
-
-const CONCEITO_SCORES: Record<Conceito, number> = {
-  regular: 0.25, suficiente: 0.50, bom: 0.75, otimo: 1.00, none: 0,
-};
-
-const getConceitoB1 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct <= 0.25) return "regular";
-  if (pct <= 0.75) return "suficiente";
-  if (pct <= 1.25) return "bom";
-  return "otimo";
-};
-
-const getConceitoB2 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct <= 25) return "regular";
-  if (pct <= 50) return "suficiente";
-  if (pct <= 75) return "bom";
-  return "otimo";
-};
-
-const getConceitoB3 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct >= 3 && pct < 10) return "otimo";
-  if (pct >= 10 && pct < 12) return "bom";
-  if (pct >= 12 && pct < 14) return "suficiente";
-  return "regular";
-};
-
-// B4 — Escovação Supervisionada (NM B4, maio/2026)
-// Parâmetro: Ótimo >1% | Bom >0,5% e ≤1% | Suficiente >0,25% e ≤0,5% | Regular ≤0,25%
-// Numerador:   crianças 6-12 anos participantes da escovação supervisionada (SIGTAP 01.01.02.003-1)
-// Denominador: crianças 6-12 anos vinculadas à eSF/eAP de referência da eSB
-const getConceitoB4 = (pct: number): Conceito => {
-  if (pct <= 0)   return "none";
-  if (pct > 1)    return "otimo";
-  if (pct > 0.5)  return "bom";
-  if (pct > 0.25) return "suficiente";
-  return "regular";
-};
-
-// B5 — Procedimentos Odontológicos Preventivos (NM B5, maio/2026)
-// Parâmetro: Ótimo ≥65% e ≤85% | Bom ≥55% e <65% | Suficiente ≥40% e <55% | Regular <40% ou >85%
-// Numerador:   procedimentos preventivos individuais (SIGTAP: 01.01.02.005-8, 006-6, 007-4,
-//              008-2, 010-4, 012-0, 03.07.03.004-0) — inclui Profilaxia e Orientação prótese
-//              conforme atualização maio/2026; exclui 01.01.02.009-0, 03.07.01.013-9, 03.07.01.009-0
-// Denominador: total de procedimentos odontológicos individuais realizados pela eSB
-const getConceitoB5 = (pct: number): Conceito => {
-  if (pct <= 0)            return "none";
-  if (pct >= 65 && pct <= 85) return "otimo";
-  if (pct >= 55 && pct < 65)  return "bom";
-  if (pct >= 40 && pct < 55)  return "suficiente";
-  return "regular";
-};
-
-// B6 — Tratamento Restaurador Atraumático (NM B6, maio/2026)
-// Parâmetro: Ótimo >8% | Bom >6% e ≤8% | Suficiente >3% e ≤6% | Regular ≤3%
-// Numerador:   procedimentos ART (SIGTAP 03.07.01.007-4)
-// Denominador: total de procedimentos restauradores (SIGTAP 03.07.01.007-4, 003-1, 008-2,
-//              010-4, 011-2, 012-0) — EXCLUÍDOS 03.07.01.009-0 e 03.07.01.013-9 (amálgama)
-//              conforme atualização maio/2026
-const getConceitoB6 = (pct: number): Conceito => {
-  if (pct <= 0) return "none";
-  if (pct > 8) return "otimo";
-  if (pct > 6) return "bom";
-  if (pct > 3) return "suficiente";
-  return "regular";
-};
-
-const INDICADORES = [
-  { key: "B1", label: "1ª Consulta Odontológica",     peso: 2, getConceito: getConceitoB1 },
-  { key: "B2", label: "Tratamento Concluído",          peso: 2, getConceito: getConceitoB2 },
-  { key: "B3", label: "Taxa de Exodontias",            peso: 2, getConceito: getConceitoB3 },
-  // B4 — Escovação Supervisionada (peso 1, parâmetros de proporção sobre população 6-12 anos)
-  { key: "B4", label: "Escovação Supervisionada",      peso: 1, getConceito: getConceitoB4 },
-  // B5 — Procedimentos Odontológicos Preventivos (peso 2, parâmetros de % sobre total de proced.)
-  { key: "B5", label: "Proced. Odont. Preventivos",    peso: 2, getConceito: getConceitoB5 },
-  { key: "B6", label: "Trat. Restaurador Atraumático", peso: 1, getConceito: getConceitoB6 },
-];
-
-interface RawCalc {
-  numerador: number;
-  denominador: number;
-  porcentagem: number;
-  mesesDetalhe: MesDetalhe[];
-  todosOficiais?: boolean;
-}
-
-/**
- * Percentual do período = MÉDIA dos percentuais mensais
- * (e não o somatório dos numeradores dividido pelo somatório dos denominadores).
- * Só entram na média os meses que possuem dado (denominador > 0).
- * Sem meses com dado, mantém o percentual agregado calculado no cálculo bruto.
- */
-export function mediaPercentualMensal(raw: RawCalc): number {
-  const meses = (raw.mesesDetalhe || []).filter((m) => m.denominador > 0);
-  if (meses.length === 0) return raw.porcentagem;
-  return meses.reduce((s, m) => s + m.porcentagem, 0) / meses.length;
-}
-
-function buildIndicador(
-  key: string,
-  raw: RawCalc,
-  extras?: {
-    b1Numerador?: number;
-    b1Denominador?: number;
-    b2Numerador?: number;
-    b2Denominador?: number;
-  }
-): IndicadorResult {
-  const config = INDICADORES.find((i) => i.key === key)!;
-  const porcentagem = mediaPercentualMensal(raw);
-  const conceito = config.getConceito(porcentagem);
-  const nota = CONCEITO_SCORES[conceito];
-  const fonte: "oficial" | "preliminar" = raw.todosOficiais ? "oficial" : "preliminar";
-  const dKey = key as IndicadorKey;
-
-  return {
-    indicador: config.label,
-    peso: config.peso,
-    numerador: Math.round(raw.numerador),
-    denominador: Math.round(raw.denominador),
-    porcentagem,
-    conceito,
-    nota,
-    notaFinal: nota * config.peso,
-    desempateNormalizado: normalizarIndicador(dKey, porcentagem),
-    desempatePontos: pontosDesempateIndicador(dKey, porcentagem, config.peso),
-
-    mesesDetalhe: raw.mesesDetalhe,
-    fonte,
-    ...extras,
-  };
-}
-
-const normalizeEquipeLocal = (name: string): string =>
-  name.replace(/^ESF\b/i, "ESB").trim();
-
-const equipeMatch = (recordEquipe: string, filterEquipe: string): boolean =>
-  normalizeEquipeLocal(recordEquipe) === normalizeEquipeLocal(filterEquipe);
-
-type BIndicador = "B1" | "B2" | "B3" | "B4" | "B5" | "B6";
-
-// Mapeamento de chave interna → campo no CSV de dados oficiais (SIAPS).
-// B4 = Escovação Supervisionada → coluna B4 no CSV
-// B5 = Procedimentos Preventivos → coluna B5 no CSV
-const INDICADOR_TO_CSV_FIELD: Record<BIndicador, "B1" | "B2" | "B3" | "B4" | "B5" | "B6"> = {
-  B1: "B1", B2: "B2", B3: "B3", B4: "B4", B5: "B5", B6: "B6",
-};
-
-function resolveOficialMes(
-  monthIdx: number,
-  year: number,
-  equipe: string,
-  indicador: BIndicador,
-  oficialIndex: OficialData["index"] | undefined,
-): { num: number; den: number; isOficial: boolean } | null {
-  if (!oficialIndex) return null;
-
-  const monthDate = new Date(year, monthIdx, 1);
-  const mesNorm = normalizeMes(format(monthDate, "MM/yyyy")) ?? format(monthDate, "MM/yyyy");
-
-  const equipeNorm = normalizeEquipe(equipe);
-  const keysToTry = [
-    makeOficialKey(mesNorm, equipeNorm),
-    makeOficialKey(mesNorm, equipeNorm.replace(/^ESB\b/i, "ESF")),
-    makeOficialKey(mesNorm, equipeNorm === "ESB CENTRO" ? "ESB SEDE 1" : equipeNorm),
-    makeOficialKey(mesNorm, equipeNorm === "ESB SEDE 1" ? "ESB CENTRO" : equipeNorm),
-  ];
-
-  let ofRow = undefined;
-  for (const k of keysToTry) {
-    ofRow = oficialIndex.get(k);
-    if (ofRow) break;
-  }
-  if (!ofRow) return null;
-
-  const csvField = INDICADOR_TO_CSV_FIELD[indicador];
-  const numKey = `num${csvField}` as keyof typeof ofRow;
-  const denKey = `den${csvField}` as keyof typeof ofRow;
-  return { num: ofRow[numKey] as number, den: ofRow[denKey] as number, isOficial: true };
-}
-
-function getAllEquipes(
-  patients: Patient[], tratamento: TratamentoPatient[], tab3: Tab3Record[],
-  tab4: Tab4Patient[], tab5: Tab5Record[], tab6: Tab6Record[]
-): string[] {
-  const set = new Set<string>();
-  patients.forEach((p) => p.equipe && set.add(normalizeEquipeLocal(p.equipe)));
-  tratamento.forEach((p) => p.equipe && set.add(normalizeEquipeLocal(p.equipe)));
-  tab3.forEach((r) => set.add(normalizeEquipeLocal(r.equipe)));
-  tab4.forEach((p) => p.equipe && set.add(normalizeEquipeLocal(p.equipe)));
-  tab5.forEach((r) => set.add(normalizeEquipeLocal(r.equipe)));
-  tab6.forEach((r) => set.add(normalizeEquipeLocal(r.equipe)));
-  // Mantém todas as equipes encontradas nas fontes carregadas, inclusive
-  // equipes com dados incompletos ou zerados, para que apareçam no resultado.
-  return Array.from(set).sort();
-}
-
-const mesKey = (m: number, year: number) => `${String(m + 1).padStart(2, "0")}/${year}`;
-const skipMes = (m: number, year: number, mf?: string[]) =>
-  !!mf && mf.length > 0 && !mf.includes(mesKey(m, year));
-
-// ── calcB1 ────────────────────────────────────────────────────────────────────
-function calcB1(
-  allPatients: Patient[],
-  quad: Quadrimestre,
-  denominadorExterno: number,
-  equipe?: string,
-  oficialData?: OficialData,
-  mesesFiltro?: string[],
-): RawCalc {
-  const source = equipe ? allPatients.filter((p) => equipeMatch(p.equipe, equipe)) : allPatients;
-  if (denominadorExterno === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
-
+const getCurrentQuadKey = (): string => {
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const m = now.getMonth();
+  const y = now.getFullYear();
+  if (m <= 3) return `Q1-${y}`;
+  if (m <= 7) return `Q2-${y}`;
+  return `Q3-${y}`;
+};
 
-  if (quad === "todos") {
-    const totalConsultas = source.filter(p => parseDate(p.primeiraConsulta)).length;
-    return {
-      numerador: totalConsultas,
-      denominador: denominadorExterno,
-      porcentagem: (totalConsultas / denominadorExterno) * 100,
-      mesesDetalhe: [],
-    };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let sumNum = 0, sumDen = 0;
-  let todosMesesOficiais = true;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
-    if (skipMes(m, year, mesesFiltro)) return;
-
-    const prelCount = source.filter((p) => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year;
-    }).length;
-
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B1", oficialData?.index) : null;
-    const isOficial = !!oficial;
-    const count = isOficial ? oficial!.num : prelCount;
-    const den   = isOficial ? oficial!.den  : denominadorExterno;
-
-    if (!isOficial) todosMesesOficiais = false;
-    sumNum += count;
-    sumDen += den;
-
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: count,
-      denominador: den,
-      porcentagem: den > 0 ? (count / den) * 100 : 0,
-      fonte: isOficial ? "oficial" : "preliminar",
-    });
-  });
-
-  const mesesComDados   = mesesDetalhe.length || 1;
-  const denominadorFinal = Math.round(sumDen / mesesComDados);
-  // Escala o denominador conforme o período selecionado:
-  // sem filtro de mês => quadrimestre (4x a média mensal);
-  // com filtro => nº de meses selecionados (1x mensal, 2x bimestral, etc.)
-  const fatorPeriodo = mesesFiltro && mesesFiltro.length > 0 ? mesesComDados : 4;
-  const denominadorTotal = denominadorFinal * fatorPeriodo;
-
-  return {
-    numerador: sumNum,
-    denominador: denominadorTotal,
-    porcentagem: denominadorTotal > 0 ? (sumNum / denominadorTotal) * 100 : 0,
-    mesesDetalhe,
-    todosOficiais: todosMesesOficiais,
-  };
-}
-
-// ── calcB2 ────────────────────────────────────────────────────────────────────
-function calcB2(
-  tratamento: TratamentoPatient[],
-  quad: Quadrimestre,
-  equipe?: string,
-  oficialData?: OficialData,
-  mesesFiltro?: string[],
-): RawCalc {
-  const source = equipe ? tratamento.filter((p) => equipeMatch(p.equipe, equipe)) : tratamento;
+// Resultado Final: no primeiro mês do quadrimestre (jan/mai/set), abre por
+// padrão com o resultado do quadrimestre anterior.
+const getDefaultQuadKeyResultado = (): string => {
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const m = now.getMonth();
+  const y = now.getFullYear();
+  if (m === 0) return `Q3-${y - 1}`;
+  if (m <= 3) return `Q1-${y}`;
+  if (m === 4) return `Q1-${y}`;
+  if (m <= 7) return `Q2-${y}`;
+  if (m === 8) return `Q2-${y}`;
+  return `Q3-${y}`;
+};
 
-  if (quad === "todos") {
-    // Denominador: todos com primeiraConsulta válida
-    const sumCons = source.filter(p => !!parseDate(p.primeiraConsulta)).length;
-    // Numerador: pacientes com status "Concluído" e data de conclusão válida
-    const sumTrat = source.filter(p =>
-      p.comTratamentoConcluido === "Concluído" && !!parseDate(p.tratamentoConcluido)
-    ).length;
-    return {
-      numerador: sumTrat,
-      denominador: sumCons,
-      porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0,
-      mesesDetalhe: [],
-    };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let sumTrat = 0, sumCons = 0;
-  let todosMesesOficiais = true;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
-    if (skipMes(m, year, mesesFiltro)) return;
-
-    // Denominador: pacientes com primeiraConsulta no mês
-    const mCons = source.filter(p => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year;
-    }).length;
-
-    // Numerador: pacientes com status "Concluído" cuja data de conclusão é deste mês
-    const mTrat = source.filter(p => {
-      if (p.comTratamentoConcluido !== "Concluído") return false;
-      const d = parseDate(p.tratamentoConcluido);
-      return d && getMonth(d) === m && getYear(d) === year;
-    }).length;
-
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B2", oficialData?.index) : null;
-    const isOficial = !!oficial;
-    const trat = isOficial ? oficial!.num : mTrat;
-    const cons = isOficial ? oficial!.den  : mCons;
-
-    if (!isOficial) todosMesesOficiais = false;
-    sumTrat += trat;
-    sumCons += cons;
-
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: trat,
-      denominador: cons,
-      porcentagem: cons > 0 ? (trat / cons) * 100 : 0,
-      fonte: isOficial ? "oficial" : "preliminar",
-    });
-  });
-
-  return {
-    numerador: sumTrat,
-    denominador: sumCons,
-    porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0,
-    mesesDetalhe,
-    todosOficiais: todosMesesOficiais,
-  };
-}
-
-// ── calcB3 — Taxa de Exodontias ───────────────────────────────────────────────
-// Recebe: Tab3Record[] — totais mensais de exodontias e procedimentos por equipe
-// Numerador:   exodontias de dentes permanentes (SIGTAP 04.14.02.013-8 e 04.14.02.014-6)
-// Denominador: total de procedimentos individuais preventivos + curativos + exodontias
-//   EXCLUÍDO do denominador (NM B3, maio/2026):
-//     03.07.01.013-9  Restauração dente permanente posterior com amálgama
-//   (inclui orientação higienização próteses 01.01.02.012-0 e fotobiomodulação 03.07.05.001-7)
-// Polaridade: Menor-Melhor
-function calcB3(
-  tab3: Tab3Record[],
-  quad: Quadrimestre,
-  equipe?: string,
-  oficialData?: OficialData,
-  mesesFiltro?: string[],
-): RawCalc {
-  const source = equipe ? tab3.filter((r) => equipeMatch(r.equipe, equipe)) : tab3;
-
-  if (quad === "todos") {
-    let sumExo = 0, sumTot = 0;
-    source.forEach(r => { sumExo += r.exodontias; sumTot += r.totalAtendimentos; });
-    return { numerador: sumExo, denominador: sumTot, porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-
-  const byMonth = new Map<number, { exodontias: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { exodontias: 0, total: 0 };
-    ex.exodontias += r.exodontias; ex.total += r.totalAtendimentos;
-    byMonth.set(mesIdx, ex);
-  });
-
-  let sumExo = 0, sumTot = 0;
-  let todosMesesOficiais = true;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    if (skipMes(m, year, mesesFiltro)) return;
-    const prelData = byMonth.get(m) || { exodontias: 0, total: 0 };
-
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B3", oficialData?.index) : null;
-    const isOficial = !!oficial;
-    const exo = isOficial ? oficial!.num : prelData.exodontias;
-    const tot = isOficial ? oficial!.den  : prelData.total;
-
-    if (!isOficial) todosMesesOficiais = false;
-    sumExo += exo;
-    sumTot += tot;
-
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: exo,
-      denominador: tot,
-      porcentagem: tot > 0 ? (exo / tot) * 100 : 0,
-      fonte: isOficial ? "oficial" : "preliminar",
-    });
-  });
-
-  return {
-    numerador: sumExo,
-    denominador: sumTot,
-    porcentagem: sumTot > 0 ? (sumExo / sumTot) * 100 : 0,
-    mesesDetalhe,
-    todosOficiais: todosMesesOficiais,
-  };
-}
-
-// ── calcB4 — Escovação Supervisionada ────────────────────────────────────────
-// Recebe: Tab4Patient[] — registros de escovação dental supervisionada (ação coletiva)
-// Numerador:   crianças 6-12 anos participantes (SIGTAP 01.01.02.003-1, MIAC código 4)
-// Denominador: crianças 6-12 anos vinculadas à eSF/eAP (NM B4, maio/2026)
-function calcB4(
-  allTab4: Tab4Patient[],
-  quad: Quadrimestre,
-  equipe?: string,
-  oficialData?: OficialData,
-  mesesFiltro?: string[],
-): RawCalc {
-  const source = equipe ? allTab4.filter((p) => equipeMatch(p.equipe, equipe)) : allTab4;
-  const totalPatients = source.length;
-  if (totalPatients === 0) return { numerador: 0, denominador: 0, porcentagem: 0, mesesDetalhe: [] };
-
+const getQuadRangeFromKey = (quadKey: string): { start: Date; end: Date } | null => {
+  const match = quadKey.match(/Q(\d)-(\d{4})/);
+  if (!match) return null;
+  const q = parseInt(match[1]);
+  const y = parseInt(match[2]);
+  const startMonth = q === 1 ? 0 : q === 2 ? 4 : 8;
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const isCurrentQuad = quadKey === getCurrentQuadKey();
+  const endMonth = isCurrentQuad ? now.getMonth() : startMonth + 3;
+  return {
+    start: new Date(y, startMonth, 1),
+    end: new Date(y, endMonth + 1, 0, 23, 59, 59),
+  };
+};
 
-  if (quad === "todos") {
-    const byMonth = new Map<string, number>();
-    source.forEach(p => {
-      const d = parseDate(p.primeiraConsulta);
-      if (d) { const k = `${getMonth(d)}-${getYear(d)}`; byMonth.set(k, (byMonth.get(k) || 0) + 1); }
-    });
-    if (byMonth.size === 0) return { numerador: 0, denominador: totalPatients, porcentagem: 0, mesesDetalhe: [] };
-    const totalConsultas = Array.from(byMonth.values()).reduce((a, b) => a + b, 0);
-    return { numerador: totalConsultas, denominador: totalPatients, porcentagem: (totalConsultas / totalPatients) * 100, mesesDetalhe: [] };
-  }
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => void }) => {
+  const [activeTab, setActiveTab] = useState("consulta");
+  const [quadrimestre, setQuadrimestre] = useState<Quadrimestre>(getDefaultQuadKeyResultado() as Quadrimestre);
+  const [equipeResultado, setEquipeResultado] = useState<string>("all");
 
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-  let sumNum = 0, sumDen = 0;
-  let todosMesesOficiais = true;
-  const mesesDetalhe: MesDetalhe[] = [];
+  const { data: patients,           isLoading: isLoadingPatients,   error: errorPatients,   refetch: refetchPatients,   isFetching: isFetchingPatients   } = usePatientData();
+  const { data: tratamentoPatients, isLoading: isLoadingTratamento, error: errorTratamento, refetch: refetchTratamento, isFetching: isFetchingTratamento } = useTratamentoData();
+  const { data: tab3Patients,       isLoading: isLoadingTab3,       error: errorTab3,       refetch: refetchTab3,       isFetching: isFetchingTab3       } = useTab3Data();
+  const { data: tab4Patients,       isLoading: isLoadingTab4,       error: errorTab4,       refetch: refetchTab4,       isFetching: isFetchingTab4       } = useTab4Data();
+  const { data: tab5Patients,       isLoading: isLoadingTab5,       error: errorTab5,       refetch: refetchTab5,       isFetching: isFetchingTab5       } = useTab5Data();
+  const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
+  const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
+  const { data: oficialData, refetch: refetchOficial } = useOficialData();
 
-  months.forEach((m) => {
-    const isCurrentOrPast = year < currentYear || (year === currentYear && m <= currentMonth);
-    if (!isCurrentOrPast) return;
-    if (skipMes(m, year, mesesFiltro)) return;
+  const initialFilter: FilterState = { equipes: [], microareas: [], status: "all", quadrimestres: [], mesReferencia: [] };
+  const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>(initialFilter);
+  const [filtersTratamento, setFiltersTratamento] = useState<FilterState>(initialFilter);
+  const [filtersTab3,       setFiltersTab3]       = useState<FilterState>(initialFilter);
+  const [filtersTab4,       setFiltersTab4]       = useState<FilterState>(initialFilter);
+  const [filtersTab5,       setFiltersTab5]       = useState<FilterState>(initialFilter);
+  const [filtersTab6,       setFiltersTab6]       = useState<FilterState>(initialFilter);
 
-    const prelCount = source.filter((p) => {
-      const d = parseDate(p.primeiraConsulta);
-      return d && getMonth(d) === m && getYear(d) === year;
+  const mesRefOptionsConsulta   = useMemo(() => !patients           ? [] : extractMesesFromDates(patients.map(p => p.primeiraConsulta)),           [patients]);
+  const mesRefOptionsTratamento = useMemo(() => !tratamentoPatients  ? [] : extractMesesFromDates(tratamentoPatients.map(p => p.primeiraConsulta)),  [tratamentoPatients]);
+  const mesRefOptionsTab3       = useMemo(() => !tab3Patients        ? [] : extractMesesFromMesAno(tab3Patients.map(r => r.mesAno)),                [tab3Patients]);
+  const mesRefOptionsTab4       = useMemo(() => !tab4Patients        ? [] : extractMesesFromDates(tab4Patients.map(p => p.primeiraConsulta)),       [tab4Patients]);
+  const mesRefOptionsTab5       = useMemo(() => !tab5Patients        ? [] : extractMesesFromMesAno(tab5Patients.map(r => r.mesAno)),                [tab5Patients]);
+  const mesRefOptionsTab6       = useMemo(() => !tab6Patients        ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),                [tab6Patients]);
+
+  const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
+  const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestres: [] });
+  const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
+  const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestres: [] });
+  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestres: [], mesReferencia: [] });
+  const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
+  const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
+  const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestres: [] });
+  const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
+  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], { equipes: filtersTab5.equipes, microareas: [], status: "all", quadrimestres: [], mesReferencia: [] });
+  const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
+
+  const patientsByEquipe = useMemo(() =>
+    (patients || []).filter(p => filtersConsulta.equipes.length === 0 || filtersConsulta.equipes.includes(p.equipe)),
+    [patients, filtersConsulta.equipes]
+  );
+
+  const equipeOptions = useMemo(() => {
+    const norm = (name: string) => name.replace(/^ESF\b/i, "ESB").trim();
+    const set = new Set<string>();
+    (patients || []).forEach(p => p.equipe && set.add(norm(p.equipe)));
+    (tratamentoPatients || []).forEach(p => p.equipe && set.add(norm(p.equipe)));
+    (tab4Patients || []).forEach(p => p.equipe && set.add(norm(p.equipe)));
+    (tab3Patients || []).forEach(r => r.equipe && set.add(norm(r.equipe)));
+    (tab5Patients || []).forEach(r => r.equipe && set.add(norm(r.equipe)));
+    (tab6Patients || []).forEach(r => r.equipe && set.add(norm(r.equipe)));
+    return Array.from(set).sort();
+  }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients]);
+
+  const resolverDenominadorPorEquipe = (equipes: string[]): number => {
+    if (!denominadorB1Data) return 0;
+    if (equipes.length === 0) return denominadorB1Data.total;
+    return equipes.reduce((sum, equipe) => {
+      const v = denominadorB1Data.porEquipe[equipe]
+        ?? denominadorB1Data.porEquipe[equipe.replace("ESB CENTRO", "ESB SEDE 1")]
+        ?? denominadorB1Data.porEquipe[equipe.replace(/^ESB\b/i, "ESF")]
+        ?? 0;
+      return sum + v;
+    }, 0);
+  };
+
+  // For Tratamento meta - use first quadrimestre selected, else current
+  const consultasAba1Quad = useMemo(() => {
+    const quadKey = filtersTratamento.quadrimestres[0] || getCurrentQuadKey();
+    const range = getQuadRangeFromKey(quadKey);
+    if (!range) return 0;
+    return (patients || []).filter(p => {
+      if (filtersTratamento.equipes.length > 0 && !filtersTratamento.equipes.includes(p.equipe)) return false;
+      const d = parseDateFlexible(p.primeiraConsulta);
+      return d ? d >= range.start && d <= range.end : false;
     }).length;
+  }, [patients, filtersTratamento.quadrimestres, filtersTratamento.equipes]);
 
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B4", oficialData?.index) : null;
-    const isOficial = !!oficial;
-    const count = isOficial ? oficial!.num : prelCount;
-    const den   = isOficial ? oficial!.den  : totalPatients;
+  const consultasAba1QuadTab5 = useMemo(() => {
+    const quadKey = filtersTab5.quadrimestres[0] || getCurrentQuadKey();
+    const range = getQuadRangeFromKey(quadKey);
+    if (!range) return 0;
+    return (patients || []).filter(p => {
+      if (filtersTab5.equipes.length > 0 && !filtersTab5.equipes.includes(p.equipe)) return false;
+      const d = parseDateFlexible(p.primeiraConsulta);
+      return d ? d >= range.start && d <= range.end : false;
+    }).length;
+  }, [patients, filtersTab5.quadrimestres, filtersTab5.equipes]);
 
-    if (!isOficial) todosMesesOficiais = false;
-    sumNum += count;
-    sumDen += den;
-
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: count,
-      denominador: den,
-      porcentagem: den > 0 ? (count / den) * 100 : 0,
-      fonte: isOficial ? "oficial" : "preliminar",
-    });
-  });
-
-  const mesesComDados    = mesesDetalhe.length || 1;
-  const denominadorFinal = mesesComDados > 0 ? Math.round(sumDen / mesesComDados) : totalPatients;
-  const fatorPeriodo = mesesFiltro && mesesFiltro.length > 0 ? mesesComDados : 4;
-  const denominadorTotal = denominadorFinal * fatorPeriodo;
-
-  return {
-    numerador: sumNum,
-    denominador: denominadorTotal,
-    porcentagem: denominadorTotal > 0 ? (sumNum / denominadorTotal) * 100 : 0,
-    mesesDetalhe,
-    todosOficiais: todosMesesOficiais,
+  const refetchAll = () => {
+    refetchPatients();
+    refetchTratamento();
+    refetchTab3();
+    refetchTab4();
+    refetchTab5();
+    refetchTab6();
+    refetchOficial();
   };
-}
 
-// ── calcB5 — Procedimentos Odontológicos Preventivos ─────────────────────────
-// Recebe: Tab5Record[] — totais mensais de procedimentos individuais por equipe
-// Numerador:   total de procedimentos individuais PREVENTIVOS realizados pela eSB
-//   SIGTAP numerador (NM B5, maio/2026):
-//     01.01.02.005-8  Aplicação de cariostático (por dente)
-//     01.01.02.006-6  Aplicação de selante (por dente)
-//     01.01.02.007-4  Aplicação tópica de flúor (individual por sessão)
-//     01.01.02.008-2  Evidenciação de placa bacteriana
-//     01.01.02.010-4  Orientação de higiene bucal
-//     01.01.02.012-0  Orientação de higienização de próteses dentárias ← incluído maio/2026
-//     03.07.03.004-0  Profilaxia / Remoção da placa bacteriana ← incluído maio/2026
-//   EXCLUÍDOS do numerador: 01.01.02.009-0 (selamento provisório), 03.07.01.013-9 e 03.07.01.009-0 (amálgama)
-// Denominador: total de procedimentos odontológicos individuais (lista completa na NM B5 seção 24d)
-function calcB5(
-  tab5: Tab5Record[],
-  quad: Quadrimestre,
-  equipe?: string,
-  oficialData?: OficialData,
-  mesesFiltro?: string[],
-): RawCalc {
-  const source = equipe ? tab5.filter((r) => equipeMatch(r.equipe, equipe)) : tab5;
-
-  if (quad === "todos") {
-    let sumPrev = 0, sumTot = 0;
-    source.forEach(r => { sumPrev += r.preventivos; sumTot += r.totalIndividuais; });
-    return { numerador: sumPrev, denominador: sumTot, porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-
-  const byMonth = new Map<number, { preventivos: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const ex = byMonth.get(mesIdx) || { preventivos: 0, total: 0 };
-    ex.preventivos += r.preventivos; ex.total += r.totalIndividuais;
-    byMonth.set(mesIdx, ex);
-  });
-
-  let sumPrev = 0, sumTot = 0;
-  let todosMesesOficiais = true;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    if (skipMes(m, year, mesesFiltro)) return;
-    const prelData = byMonth.get(m) || { preventivos: 0, total: 0 };
-
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B5", oficialData?.index) : null;
-    const isOficial = !!oficial;
-    const prev = isOficial ? oficial!.num : prelData.preventivos;
-    const tot  = isOficial ? oficial!.den  : prelData.total;
-
-    if (!isOficial) todosMesesOficiais = false;
-    sumPrev += prev;
-    sumTot  += tot;
-
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: prev,
-      denominador: tot,
-      porcentagem: tot > 0 ? (prev / tot) * 100 : 0,
-      fonte: isOficial ? "oficial" : "preliminar",
-    });
-  });
-
-  return {
-    numerador: sumPrev,
-    denominador: sumTot,
-    porcentagem: sumTot > 0 ? (sumPrev / sumTot) * 100 : 0,
-    mesesDetalhe,
-    todosOficiais: todosMesesOficiais,
-  };
-}
-
-// ── calcB6 — Tratamento Restaurador Atraumático ───────────────────────────────
-// Recebe: Tab6Record[] — totais mensais de ART e procedimentos restauradores por equipe
-// Numerador:   procedimentos ART (SIGTAP 03.07.01.007-4)
-// Denominador: total de procedimentos restauradores:
-//     03.07.01.007-4  ART (TRA/ART)
-//     03.07.01.003-1  Restauração dente permanente anterior com resina composta
-//     03.07.01.008-2  Restauração dente decíduo posterior com resina composta
-//     03.07.01.010-4  Restauração dente decíduo posterior com ionômero de vidro
-//     03.07.01.011-2  Restauração dente decíduo anterior com resina composta
-//     03.07.01.012-0  Restauração dente permanente posterior com resina composta
-//   EXCLUÍDOS do denominador (NM B6, maio/2026):
-//     03.07.01.009-0  Restauração dente decíduo posterior com amálgama
-//     03.07.01.013-9  Restauração dente permanente posterior com amálgama
-//
-// ⚠️ ATENÇÃO — verificar a origem do dado: o campo lido abaixo é `r.exodontias`
-// (nome herdado de Tab3Record/Tab6Record). Não tenho acesso ao arquivo
-// useTab6Data.ts nesta conversa para confirmar se esse campo, na planilha/CSV
-// de origem do Tab6, realmente representa a contagem de ART (007-4) — ou se é,
-// de fato, uma contagem de exodontias copiada por engano do parser de Tab3.
-// Mantive a leitura do campo como estava (não alterei dados/contrato), mas
-// renomeei as variáveis locais de "exodontias"→"art" para deixar a INTENÇÃO
-// explícita e facilitar a auditoria. Se ao abrir useTab6Data.ts o campo
-// `exodontias` realmente vier de uma coluna de exodontias (e não de ART), o
-// numerador de B6 está incorreto e precisa apontar para o campo certo do Tab6Record.
-function calcB6(
-  tab6: Tab6Record[],
-  quad: Quadrimestre,
-  equipe?: string,
-  oficialData?: OficialData,
-  mesesFiltro?: string[],
-): RawCalc {
-  const source = equipe ? tab6.filter((r) => equipeMatch(r.equipe, equipe)) : tab6;
-
-  if (quad === "todos") {
-    let sumArt = 0, sumTot = 0;
-    source.forEach(r => { sumArt += r.exodontias; sumTot += r.totalProcedimentos; });
-    return { numerador: sumArt, denominador: sumTot, porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0, mesesDetalhe: [] };
-  }
-
-  const [q, yearStr] = quad.split("-");
-  const year = parseInt(yearStr, 10);
-  const months = QUAD_MONTHS[q] || [];
-
-  const byMonth = new Map<number, { art: number; total: number }>();
-  source.forEach(r => {
-    const parts = r.mesAno.split("/");
-    const mesIdx = MONTH_NAME_TO_NUM[parts[0]?.toLowerCase().trim()];
-    const ano = parseInt(parts[1]);
-    if (mesIdx === undefined || ano !== year || !months.includes(mesIdx)) return;
-    const acc = byMonth.get(mesIdx) || { art: 0, total: 0 };
-    acc.art += r.exodontias; acc.total += r.totalProcedimentos;
-    byMonth.set(mesIdx, acc);
-  });
-
-  let sumArt = 0, sumTot = 0;
-  let todosMesesOficiais = true;
-  const mesesDetalhe: MesDetalhe[] = [];
-
-  months.forEach((m) => {
-    if (skipMes(m, year, mesesFiltro)) return;
-    const prelData = byMonth.get(m) || { art: 0, total: 0 };
-
-    const oficial = equipe ? resolveOficialMes(m, year, equipe, "B6", oficialData?.index) : null;
-    const isOficial = !!oficial;
-    const art = isOficial ? oficial!.num : prelData.art;
-    const tot = isOficial ? oficial!.den  : prelData.total;
-
-    if (!isOficial) todosMesesOficiais = false;
-    sumArt += art;
-    sumTot += tot;
-
-    mesesDetalhe.push({
-      mes: `${MONTH_ABBR[m]}/${year}`,
-      numerador: art,
-      denominador: tot,
-      porcentagem: tot > 0 ? (art / tot) * 100 : 0,
-      fonte: isOficial ? "oficial" : "preliminar",
-    });
-  });
-
-  return {
-    numerador: sumArt,
-    denominador: sumTot,
-    porcentagem: sumTot > 0 ? (sumArt / sumTot) * 100 : 0,
-    mesesDetalhe,
-    todosOficiais: todosMesesOficiais,
-  };
-}
-
-// ── hook principal ────────────────────────────────────────────────────────────
-export function useResultadoFinal(
-  patients: Patient[],
-  tratamento: TratamentoPatient[],
-  tab3: Tab3Record[],
-  tab4: Tab4Patient[],
-  tab5: Tab5Record[],
-  tab6: Tab6Record[],
-  quad: Quadrimestre = "todos",
-  equipeFilter: string = "all",
-  denominadorB1: { porEquipe: Record<string, number>; total: number },
-  oficialData?: OficialData,
-  mesesFiltro: string[] = [],
-) {
-  const findDenomB1 = (eq: string): number => {
-    const normalized = normalizeEquipeLocal(eq);
-    const aliases = [
-      normalized,
-      normalized.replace(/^ESB\b/i, "ESF"),
-      normalized.replace(/^ESB CENTRO$/i, "ESB SEDE 1"),
-      normalized.replace(/^ESF CENTRO$/i, "ESB SEDE 1"),
-      normalized.replace(/^ESB SEDE 1$/i, "ESB CENTRO"),
-      normalized.replace(/^ESB SEDE 1$/i, "ESF CENTRO"),
-    ];
-    for (const alias of aliases) {
-      if (denominadorB1.porEquipe[alias] !== undefined) return denominadorB1.porEquipe[alias];
+  const getTabState = () => {
+    switch (activeTab) {
+      case "consulta":   return { error: errorPatients,   isFetching: isFetchingPatients,   refetch: refetchPatients   };
+      case "tratamento": return { error: errorTratamento, isFetching: isFetchingTratamento, refetch: refetchTratamento };
+      case "tab3":       return { error: errorTab3,       isFetching: isFetchingTab3,       refetch: refetchTab3       };
+      case "tab4":       return { error: errorTab4,       isFetching: isFetchingTab4,       refetch: refetchTab4       };
+      case "tab5":       return { error: errorTab5,       isFetching: isFetchingTab5,       refetch: refetchTab5       };
+      case "tab6":       return { error: errorTab6,       isFetching: isFetchingTab6,       refetch: refetchTab6       };
+      case "resultado":  return {
+        error: errorPatients || errorTratamento || errorTab3 || errorTab4 || errorTab5 || errorTab6,
+        isFetching: isFetchingPatients || isFetchingTratamento || isFetchingTab3 || isFetchingTab4 || isFetchingTab5 || isFetchingTab6,
+        refetch: refetchAll,
+      };
+      default: return { error: null, isFetching: false, refetch: () => {} };
     }
-    return 0;
   };
 
-  const allEquipes = getAllEquipes(patients, tratamento, tab3, tab4, tab5, tab6);
-  const equipes = equipeFilter === "all" ? allEquipes : allEquipes.filter(e => e === equipeFilter);
-  const mf = mesesFiltro;
+  const { error, isFetching, refetch } = getTabState();
 
-  const porEquipe: EquipeResult[] = equipes.map((equipe) => {
-    const denomB1 = findDenomB1(equipe);
-    const rawB1 = calcB1(patients, quad, denomB1, equipe, oficialData, mf);
-    const rawB2 = calcB2(tratamento, quad, equipe, oficialData, mf);
-    const indicadores = [
-      buildIndicador("B1", rawB1),
-      buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, equipe, oficialData, mf)),
-      // B4 — Escovação Supervisionada: usa tab4 (ação coletiva de escovação)
-      buildIndicador("B4", calcB4(tab4, quad, equipe, oficialData, mf)),
-      // B5 — Procedimentos Preventivos: usa tab5 (procedimentos individuais preventivos/curativos)
-      buildIndicador("B5", calcB5(tab5, quad, equipe, oficialData, mf), {
-        b1Numerador:   Math.round(rawB1.numerador),
-        b1Denominador: Math.round(rawB1.denominador),
-        b2Numerador:   Math.round(rawB2.numerador),
-        b2Denominador: Math.round(rawB2.denominador),
-      }),
-      buildIndicador("B6", calcB6(tab6, quad, equipe, oficialData, mf)),
-    ];
-    return {
-      equipe,
-      indicadores,
-      notaFinal: indicadores.reduce((s, i) => s + i.notaFinal, 0),
-      desempate: indicadores.reduce((s, i) => s + i.desempatePontos, 0),
-    };
-  });
+  const totalPatients          = resolverDenominadorPorEquipe(filtersConsulta.equipes) || patientsByEquipe.length;
+  const withConsultation       = filteredPatients.filter(p => !isConsultaPendente(p.primeiraConsulta)).length;
+  const totalTratamento        = filteredTratamento.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length;
+  const withTratamento         = filteredTratamento.filter(p => !isTratamentoPendente(p.tratamentoConcluido)).length;
+  const totalExodontiasTab3    = filteredTab3.reduce((s, r) => s + r.exodontias, 0);
+  const totalAtendimentosTab3  = filteredTab3.reduce((s, r) => s + r.totalAtendimentos, 0);
+  const totalTab4              = filteredTab4NoQuad.length;
+  const withConsultaTab4       = filteredTab4NoQuad.filter(p => !isConsultaPendenteTab4(p.primeiraConsulta)).length;
+  const totalPreventivosTab5   = filteredTab5.reduce((s, r) => s + r.preventivos, 0);
+  const totalIndividuaisTab5   = filteredTab5.reduce((s, r) => s + r.totalIndividuais, 0);
+  const totalExodontiasTab6    = filteredTab6.reduce((s, r) => s + r.exodontias, 0);
+  const totalProcedimentosTab6 = filteredTab6.reduce((s, r) => s + r.totalProcedimentos, 0);
 
-  const buildGeral = (eq?: string) => {
-    const denomB1 = eq ? findDenomB1(eq) : denominadorB1.total;
-    const rawB1 = calcB1(patients, quad, denomB1, eq, oficialData, mf);
-    const rawB2 = calcB2(tratamento, quad, eq, oficialData, mf);
-    return [
-      buildIndicador("B1", rawB1),
-      buildIndicador("B2", rawB2),
-      buildIndicador("B3", calcB3(tab3, quad, eq, oficialData, mf)),
-      // B4 — Escovação Supervisionada: usa tab4
-      buildIndicador("B4", calcB4(tab4, quad, eq, oficialData, mf)),
-      // B5 — Procedimentos Preventivos: usa tab5
-      buildIndicador("B5", calcB5(tab5, quad, eq, oficialData, mf), {
-        b1Numerador:   Math.round(rawB1.numerador),
-        b1Denominador: Math.round(rawB1.denominador),
-        b2Numerador:   Math.round(rawB2.numerador),
-        b2Denominador: Math.round(rawB2.denominador),
-      }),
-      buildIndicador("B6", calcB6(tab6, quad, eq, oficialData, mf)),
-    ];
-  };
+  const pendentesTab1ForTab5 = useMemo(() =>
+    (patients || []).filter(p => {
+      if (filtersTab5.equipes.length > 0 && !filtersTab5.equipes.includes(p.equipe)) return false;
+      return isConsultaPendente(p.primeiraConsulta);
+    }).length,
+    [patients, filtersTab5.equipes]
+  );
 
-  // O "Geral" deve sempre refletir o consolidado de TODAS as equipes,
-  // independente da equipe selecionada no filtro — esse filtro só deve
-  // restringir o bloco "Por Equipe" (porEquipe), nunca o Geral.
-  const geralIndicadores = buildGeral();
-  const geral: EquipeResult = {
-    equipe: "Geral",
-    indicadores: geralIndicadores,
-    notaFinal: geralIndicadores.reduce((s, i) => s + i.notaFinal, 0),
-    desempate: geralIndicadores.reduce((s, i) => s + i.desempatePontos, 0),
-  };
+  const resultadoPronto =
+    !isLoadingPatients && !isLoadingTratamento && !isLoadingTab3 &&
+    !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
+    !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
 
-  return { geral, porEquipe };
-}
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="mb-4 text-2xl font-bold text-destructive">Erro ao carregar dados</h1>
+          <p className="text-muted-foreground">Não foi possível carregar os dados da planilha.</p>
+          <Button onClick={() => refetch()} className="mt-4">Tentar novamente</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 bg-card shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-[14px] py-[14px]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <ToothIcon className="h-9 w-9 text-primary shrink-0" />
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  Indicadores de Saúde Bucal de Varjota
+                </h1>
+                <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {userName && (
+                <span className="hidden sm:inline text-sm text-muted-foreground">
+                  Olá, <strong>{userName}</strong>
+                </span>
+              )}
+              <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                Atualizar dados
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onLogout} title="Sair">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 rounded-none py-[18px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="flex w-full flex-wrap gap-1 h-auto p-1 mx-auto justify-center">
+            <TabsTrigger value="consulta"   className="text-xs px-2 py-1.5 flex-1 min-w-fit">1ª Consulta Odontológica</TabsTrigger>
+            <TabsTrigger value="tratamento" className="text-xs px-2 py-1.5 flex-1 min-w-fit">Tratamento Concluído</TabsTrigger>
+            <TabsTrigger value="tab3"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Taxa Exodontias</TabsTrigger>
+            <TabsTrigger value="tab4"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Escovação Supervisionada</TabsTrigger>
+            <TabsTrigger value="tab5"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Proced. Odont. Preventivos</TabsTrigger>
+            <TabsTrigger value="tab6"       className="text-xs px-2 py-1.5 flex-1 min-w-fit">Trat. Restaurador Atraumático</TabsTrigger>
+            <TabsTrigger value="resultado"  className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📊 Resultado Final</TabsTrigger>
+            <TabsTrigger value="analises"   className="text-xs px-2 py-1.5 flex-1 min-w-fit font-semibold">📈 Análises</TabsTrigger>
+          </TabsList>
+
+          {/* ── Tab 1 ─────────────────────────────────────────────────────── */}
+          <TabsContent value="consulta" className="mt-6">
+            {!isLoadingPatients && patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={patients}
+                  filters={filtersConsulta}
+                  onFiltersChange={setFiltersConsulta}
+                  contentId="dashboard-content-consulta"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsConsulta}
+                  pdfTitle="1ª Consulta Odontológica"
+                  pdfFileName="1a-consulta-odontologica"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalPatients.toLocaleString("pt-BR") },
+                    { label: "Com 1ª Consulta", value: withConsultation.toLocaleString("pt-BR"), percentage: `${totalPatients > 0 ? ((withConsultation / totalPatients) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" }, { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredPatientsNoQuad.map((p, i) => ({
+                    num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
+                    cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendente(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-consulta">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-6">
+                {isLoadingPatients ? (
+                  <>{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Pacientes" value={totalPatients.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Com 1ª Consulta" value={withConsultation.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <QuadrimesterCards
+                      patients={filteredPatients}
+                      totalPatients={totalPatients}
+                      quadrimestres={filtersConsulta.quadrimestres}
+                      equipe={singleEquipe(filtersConsulta.equipes)}
+                      oficialData={oficialData}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
+                {isLoadingPatients
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <MonthlyCards
+                      patients={filteredPatients}
+                      totalPatients={totalPatients}
+                      quadrimestre={singleQuad(filtersConsulta.quadrimestres)}
+                      mesReferencia={filtersConsulta.mesReferencia}
+                      equipe={singleEquipe(filtersConsulta.equipes)}
+                      oficialData={oficialData}
+                    />}
+              </div>
+              {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
+            </div>
+          </TabsContent>
+
+          {/* ── Tab 2 ─────────────────────────────────────────────────────── */}
+          <TabsContent value="tratamento" className="mt-6">
+            {!isLoadingTratamento && tratamentoPatients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tratamentoPatients as any}
+                  filters={filtersTratamento}
+                  onFiltersChange={setFiltersTratamento}
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTratamento}
+                  statusOptions={[
+                    { value: "PENDENTE",        label: "PENDENTE" },
+                    { value: "SEM 1ª CONSULTA", label: "SEM 1ª CONSULTA" },
+                    { value: "CONCLUÍDO",       label: "CONCLUÍDO" },
+                  ]}
+                  contentId="dashboard-content-tratamento"
+                  pdfTitle="Tratamento Concluído"
+                  pdfFileName="tratamento-concluido"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTratamento.toLocaleString("pt-BR") },
+                    { label: "Com Tratamento", value: withTratamento.toLocaleString("pt-BR"), percentage: `${totalTratamento > 0 ? ((withTratamento / totalTratamento) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "1ª Consulta" },
+                    { key: "tratamentoConcluido", header: "Tratamento Concluído" }, { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTratamentoNoQuad.map((p, i) => ({
+                    num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
+                    cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Masculino" ? "M" : "F",
+                    primeiraConsulta: p.primeiraConsulta, tratamentoConcluido: p.tratamentoConcluido,
+                    status: p.comTratamentoConcluido || "-",
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tratamento">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTratamento ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Pacientes com 1ª Consulta" value={totalTratamento.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Com Tratamento" value={withTratamento.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <TratamentoQuadrimesterCards
+                      patients={filteredTratamentoSemMes}
+                      allPatients={filteredTratamentoSemMes}
+                      totalComConsulta={filteredTratamentoSemMes.filter(p => !isTratamentoPendente(p.primeiraConsulta)).length}
+                      quadrimestres={filtersTratamento.quadrimestres}
+                      mesReferencia={filtersTratamento.mesReferencia}
+                      equipe={singleEquipe(filtersTratamento.equipes)}
+                      oficialData={oficialData}
+                    />
+                    <TratamentoMetaCard
+                      patients={filteredTratamentoSemMes}
+                      allPatients={filteredTratamentoSemMes}
+                      quadrimestre={singleQuad(filtersTratamento.quadrimestres)}
+                      denominadorB1={resolverDenominadorPorEquipe(filtersTratamento.equipes)}
+                      consultasAba1Quad={consultasAba1Quad}
+                      mesReferencia={filtersTratamento.mesReferencia}
+                      equipe={singleEquipe(filtersTratamento.equipes)}
+                      oficialData={oficialData}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Tratamentos Odontológicos Concluídos por Mês (Últimos 12 meses)</h2>
+                {isLoadingTratamento
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <TratamentoMonthlyCards
+                      patients={filteredTratamentoSemMes}
+                      allPatients={filteredTratamentoSemMes}
+                      quadrimestre={singleQuad(filtersTratamento.quadrimestres)}
+                      mesReferencia={filtersTratamento.mesReferencia}
+                      equipe={singleEquipe(filtersTratamento.equipes)}
+                      oficialData={oficialData}
+                    />}
+              </div>
+              {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamento} />}
+            </div>
+          </TabsContent>
+
+          {/* ── Tab 3 ─────────────────────────────────────────────────────── */}
+          <TabsContent value="tab3" className="mt-6">
+            {!isLoadingTab3 && tab3Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab3Patients as any}
+                  filters={filtersTab3}
+                  onFiltersChange={setFiltersTab3}
+                  contentId="dashboard-content-tab3"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab3}
+                  pdfTitle="Taxa de Exodontias"
+                  pdfFileName="taxa-exodontias"
+                  pdfSummaryCards={[
+                    { label: "Total de Registros", value: totalAtendimentosTab3.toLocaleString("pt-BR") },
+                    { label: "Exodontias", value: totalExodontiasTab3.toLocaleString("pt-BR"), percentage: `${totalAtendimentosTab3 > 0 ? ((totalExodontiasTab3 / totalAtendimentosTab3) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
+                    { key: "exodontias", header: "Exodontias" }, { key: "totalAtendimentos", header: "Total Atendimentos" }, { key: "porcentagem", header: "Pontuação" },
+                  ]}
+                  pdfData={filteredTab3.map((r, i) => ({
+                    num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
+                    exodontias: r.exodontias, totalAtendimentos: r.totalAtendimentos, porcentagem: `${r.porcentagem.toFixed(2)}%`,
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab3">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTab3 ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Registros" value={totalAtendimentosTab3.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Exodontias" value={totalExodontiasTab3.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab3QuadrimesterCards
+                      records={filteredTab3}
+                      quadrimestres={filtersTab3.quadrimestres}
+                      equipe={singleEquipe(filtersTab3.equipes)}
+                      oficialData={oficialData}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
+                {isLoadingTab3
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab3MonthlyCards
+                      records={filteredTab3}
+                      quadrimestre={singleQuad(filtersTab3.quadrimestres)}
+                      mesReferencia={filtersTab3.mesReferencia}
+                      equipe={singleEquipe(filtersTab3.equipes)}
+                      oficialData={oficialData}
+                    />}
+              </div>
+              {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
+            </div>
+          </TabsContent>
+
+          {/* ── Tab 4 ─────────────────────────────────────────────────────── */}
+          <TabsContent value="tab4" className="mt-6">
+            {!isLoadingTab4 && tab4Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab4Patients as any}
+                  filters={filtersTab4}
+                  onFiltersChange={setFiltersTab4}
+                  contentId="dashboard-content-tab4"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab4}
+                  pdfTitle="Escovação Supervisionada"
+                  pdfFileName="escovacao-supervisionada"
+                  pdfSummaryCards={[
+                    { label: "Total de Pacientes", value: totalTab4.toLocaleString("pt-BR") },
+                    { label: "Com Escovação", value: withConsultaTab4.toLocaleString("pt-BR"), percentage: `${totalTab4 > 0 ? ((withConsultaTab4 / totalTab4) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "equipe", header: "Equipe" }, { key: "microarea", header: "Microárea" },
+                    { key: "nome", header: "Nome" }, { key: "cpfCns", header: "CPF/CNS" }, { key: "idade", header: "Idade" },
+                    { key: "sexo", header: "Sexo" }, { key: "primeiraConsulta", header: "Escovação Supervisionada" }, { key: "status", header: "Status" },
+                  ]}
+                  pdfData={filteredTab4.map((p, i) => ({
+                    num: i + 1, equipe: p.equipe || "-", microarea: p.microarea, nome: p.nome,
+                    cpfCns: p.cpfCns || "-", idade: `${p.idade} anos`, sexo: p.sexo === "Feminino" ? "F" : "M",
+                    primeiraConsulta: p.primeiraConsulta === "-" ? "Sem registro" : p.primeiraConsulta,
+                    status: isConsultaPendenteTab4(p.primeiraConsulta) ? "Pendente" : "Concluído",
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab4">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-6">
+                {isLoadingTab4 ? (
+                  <>{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Pacientes" value={totalTab4.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Crianças de 6 a 12 anos participante" value={withConsultaTab4.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab4QuadrimesterCards
+                      patients={filteredTab4}
+                      totalPatients={filteredTab4NoQuad.length}
+                      quadrimestres={filtersTab4.quadrimestres}
+                      equipe={singleEquipe(filtersTab4.equipes)}
+                      oficialData={oficialData}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Consultas por Mês (Últimos 12 meses)</h2>
+                {isLoadingTab4
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab4MonthlyCards
+                      patients={filteredTab4}
+                      totalPatients={filteredTab4NoQuad.length}
+                      quadrimestre={singleQuad(filtersTab4.quadrimestres)}
+                      mesReferencia={filtersTab4.mesReferencia}
+                      equipe={singleEquipe(filtersTab4.equipes)}
+                      oficialData={oficialData}
+                    />}
+              </div>
+              {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
+            </div>
+          </TabsContent>
+
+          {/* ── Tab 5 ─────────────────────────────────────────────────────── */}
+          <TabsContent value="tab5" className="mt-6">
+            {!isLoadingTab5 && tab5Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab5Patients as any}
+                  filters={filtersTab5}
+                  onFiltersChange={setFiltersTab5}
+                  contentId="dashboard-content-tab5"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab5}
+                  pdfTitle="Procedimentos Odontológicos Preventivos"
+                  pdfFileName="procedimentos-preventivos"
+                  pdfSummaryCards={[
+                    { label: "Total de Registros", value: filteredTab5.length.toLocaleString("pt-BR") },
+                    { label: "Preventivos", value: totalPreventivosTab5.toLocaleString("pt-BR"), percentage: `${totalIndividuaisTab5 > 0 ? ((totalPreventivosTab5 / totalIndividuaisTab5) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
+                    { key: "preventivos", header: "Preventivos" }, { key: "totalIndividuais", header: "Total Individuais" }, { key: "porcentagem", header: "Pontuação" },
+                  ]}
+                  pdfData={filteredTab5.map((r, i) => ({
+                    num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
+                    preventivos: r.preventivos, totalIndividuais: r.totalIndividuais, porcentagem: `${r.porcentagem.toFixed(2)}%`,
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab5">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTab5 ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total de Registros" value={totalIndividuaisTab5.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="Preventivos" value={totalPreventivosTab5.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab5QuadrimesterCards
+                      records={filteredTab5}
+                      quadrimestres={filtersTab5.quadrimestres}
+                      equipe={singleEquipe(filtersTab5.equipes)}
+                      oficialData={oficialData}
+                    />
+                    {!isLoadingPatients && !isLoadingTratamento && (
+                      <Tab5MetaCard
+                        records={filteredTab5}
+                        allTratamentoPatients={filteredTratamentoByTab5}
+                        quadrimestre={singleQuad(filtersTab5.quadrimestres)}
+                        pendentesTab1={pendentesTab1ForTab5}
+                        denominadorB1={resolverDenominadorPorEquipe(filtersTab5.equipes)}
+                        consultasAba1Quad={consultasAba1QuadTab5}
+                        equipe={singleEquipe(filtersTab5.equipes)}
+                        oficialData={oficialData}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Procedimentos Preventivos por Mês</h2>
+                {isLoadingTab5
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab5MonthlyCards
+                      records={filteredTab5}
+                      quadrimestre={singleQuad(filtersTab5.quadrimestres)}
+                      mesReferencia={filtersTab5.mesReferencia}
+                      equipe={singleEquipe(filtersTab5.equipes)}
+                      oficialData={oficialData}
+                    />}
+              </div>
+              {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
+            </div>
+          </TabsContent>
+
+          {/* ── Tab 6 ─────────────────────────────────────────────────────── */}
+          <TabsContent value="tab6" className="mt-6">
+            {!isLoadingTab6 && tab6Patients && (
+              <div className="mb-6">
+                <PatientFilters
+                  patients={tab6Patients as any}
+                  filters={filtersTab6}
+                  onFiltersChange={setFiltersTab6}
+                  contentId="dashboard-content-tab6"
+                  showMesReferencia={true}
+                  mesReferenciaOptions={mesRefOptionsTab6}
+                  pdfTitle="Tratamento Restaurador Atraumático"
+                  pdfFileName="tratamento-restaurador"
+                  pdfSummaryCards={[
+                    { label: "Total de Registros", value: totalProcedimentosTab6.toLocaleString("pt-BR") },
+                    { label: "Exodontias", value: totalExodontiasTab6.toLocaleString("pt-BR"), percentage: `${totalProcedimentosTab6 > 0 ? ((totalExodontiasTab6 / totalProcedimentosTab6) * 100).toFixed(1) : 0}%` },
+                  ]}
+                  pdfColumns={[
+                    { key: "num", header: "Nº" }, { key: "mesAno", header: "Mês/Ano" }, { key: "equipe", header: "Equipe" },
+                    { key: "exodontias", header: "Exodontias" }, { key: "totalProcedimentos", header: "Total Procedimentos" }, { key: "porcentagem", header: "Pontuação" },
+                  ]}
+                  pdfData={filteredTab6.map((r, i) => ({
+                    num: i + 1, mesAno: r.mesAno, equipe: r.equipe,
+                    exodontias: r.exodontias, totalProcedimentos: r.totalProcedimentos, porcentagem: `${r.porcentagem.toFixed(2)}%`,
+                  }))}
+                />
+              </div>
+            )}
+            <div id="dashboard-content-tab6">
+              <div className="mb-8 grid gap-4 grid-cols-2 lg:grid-cols-5">
+                {isLoadingTab6 ? (
+                  <>{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}</>
+                ) : (
+                  <>
+                    <StatsCard title="Total Procedimentos" value={totalProcedimentosTab6.toLocaleString("pt-BR")} icon={Users} variant="primary" />
+                    <StatsCard title="TRA" value={totalExodontiasTab6.toLocaleString("pt-BR")} icon={UserCheck} variant="success" />
+                    <Tab6QuadrimesterCards
+                      records={filteredTab6}
+                      quadrimestres={filtersTab6.quadrimestres}
+                      equipe={singleEquipe(filtersTab6.equipes)}
+                      oficialData={oficialData}
+                    />
+                  </>
+                )}
+              </div>
+              <div className="mb-8">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Exodontias por Mês</h2>
+                {isLoadingTab6
+                  ? <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">{[...Array(12)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+                  : <Tab6MonthlyCards
+                      records={filteredTab6}
+                      quadrimestre={singleQuad(filtersTab6.quadrimestres)}
+                      mesReferencia={filtersTab6.mesReferencia}
+                      equipe={singleEquipe(filtersTab6.equipes)}
+                      oficialData={oficialData}
+                    />}
+              </div>
+              {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
+            </div>
+          </TabsContent>
+
+          {/* ── Tab 7 ─────────────────────────────────────────────────────── */}
+          <TabsContent value="resultado" className="mt-6">
+            {!resultadoPronto ? (
+              <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
+            ) : (
+              <ResultadoFinalWrapper
+                patients={patients!}
+                tratamentoPatients={tratamentoPatients ?? []}
+                tab3Patients={tab3Patients ?? []}
+                tab4Patients={tab4Patients ?? []}
+                tab5Patients={tab5Patients ?? []}
+                tab6Patients={tab6Patients ?? []}
+                quadrimestre={quadrimestre}
+                equipeResultado={equipeResultado}
+                denominadorB1Data={denominadorB1Data!}
+                equipeOptions={equipeOptions}
+                oficialData={oficialData}
+                onQuadrimestreChange={setQuadrimestre}
+                onEquipeChange={setEquipeResultado}
+              />
+            )}
+          </TabsContent>
+
+          {/* ── Tab 8: Análises ───────────────────────────────────────────── */}
+          <TabsContent value="analises" className="mt-6">
+            {!resultadoPronto ? (
+              <div className="space-y-4">{[...Array(2)].map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}</div>
+            ) : (
+              <AnalisesTab
+                patients={patients!}
+                tratamentoPatients={tratamentoPatients ?? []}
+                tab3Patients={tab3Patients ?? []}
+                tab4Patients={tab4Patients ?? []}
+                tab5Patients={tab5Patients ?? []}
+                tab6Patients={tab6Patients ?? []}
+                denominadorB1Data={denominadorB1Data!}
+                equipeOptions={equipeOptions}
+                oficialData={oficialData}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      <footer className="border-t border-border/50 bg-card py-6">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>Secretaria Municipal de Saúde de Varjota - 2026 • Desenvolvido por Alidemberg Araújo - Coordenador do e-SUS Municipal</p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+const Index = () => {
+  const { user, loading: authLoading, logout } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
+
+  return <Dashboard userName={user.nome ?? ""} onLogout={logout} />;
+};
+
+export default Index;
