@@ -8,14 +8,6 @@ import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrim
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { MultiSelect } from "./MultiSelect";
 
-// Equipes com dados incompletos que devem ficar ocultas nos filtros até
-// serem completadas. Mantenha em sincronia com EQUIPES_OCULTAS em
-// useResultadoFinal.ts.
-const EQUIPES_OCULTAS = new Set<string>([
-  "ESB CENTRO SEDE 2",
-  "ESB CENTRO SEDE 3",
-]);
-
 export interface FilterState {
   equipes: string[];          // [] = todas
   microareas: string[];       // [] = todas
