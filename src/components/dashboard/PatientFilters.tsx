@@ -22,6 +22,10 @@ interface StatusOption { value: string; label: string; }
 
 interface PatientFiltersProps {
   patients: Patient[];
+  // Lista completa (não filtrada) de pacientes, usada apenas para montar as
+  // opções de equipe/microárea no dropdown. Se não for passada, cai no
+  // comportamento antigo de usar `patients` (que pode já vir filtrado).
+  allPatients?: Patient[];
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
   contentId?: string;
@@ -39,6 +43,7 @@ interface PatientFiltersProps {
 
 export const PatientFilters = ({
   patients,
+  allPatients,
   filters,
   onFiltersChange,
   contentId = "dashboard-content",
@@ -53,17 +58,20 @@ export const PatientFilters = ({
   pdfData = [],
   pdfFileName = "relatorio"
 }: PatientFiltersProps) => {
+  // Usa a base completa (allPatients) para montar as opções, se disponível.
+  // Assim as abas que recebem `patients` já filtrado continuam mostrando
+  // todas as equipes/microáreas existentes, não só as que sobraram no filtro.
+  const optionsSource = allPatients ?? patients;
+
   const uniqueEquipes = useMemo(() => {
-    const equipes = [...new Set(patients.map(p => p.equipe).filter(e => e && e.trim() !== ""))];
-    return equipes
-      .filter(e => !EQUIPES_OCULTAS.has(e.toUpperCase()))
-      .sort();
-  }, [patients]);
+    const equipes = [...new Set(optionsSource.map(p => p.equipe).filter(e => e && e.trim() !== ""))];
+    return equipes.sort();
+  }, [optionsSource]);
 
   const uniqueMicroareas = useMemo(() => {
-    const microareas = [...new Set(patients.map(p => p.microarea).filter(m => m && m.trim() !== ""))];
+    const microareas = [...new Set(optionsSource.map(p => p.microarea).filter(m => m && m.trim() !== ""))];
     return microareas.sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
-  }, [patients]);
+  }, [optionsSource]);
 
   const defaultStatusOptions: StatusOption[] = [
     { value: "pendente", label: "Pendente" },
