@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Trophy, Award, Filter, ChevronDown, ChevronRight,
   BarChart2, Target, FileDown, FlaskConical, HelpCircle, X, GitBranch,
@@ -80,6 +81,13 @@ function getNotaFinalBg(nota: number): string {
   if (nota >= 5)   return "bg-gradient-to-br from-emerald-100 to-emerald-50 border-emerald-200";
   if (nota >= 2.6) return "bg-gradient-to-br from-amber-100 to-amber-50 border-amber-200";
   return "bg-gradient-to-br from-red-100 to-red-50 border-red-200";
+}
+
+function getConceitoFinal(nota: number): Conceito {
+  if (nota > 7.5) return "otimo";
+  if (nota >= 5) return "bom";
+  if (nota >= 2.6) return "suficiente";
+  return "regular";
 }
 
 function fmtNum(n: number): string {
@@ -1525,6 +1533,14 @@ export const ResultadoFinalTab = ({
     [porEquipe]
   );
 
+  const podiumEquipes = useMemo(
+    () => [3, 1, 0, 2, 4].flatMap((index) => {
+      const equipe = sortedEquipes[index];
+      return equipe ? [{ equipe, rank: index + 1 }] : [];
+    }),
+    [sortedEquipes]
+  );
+
   const showMeses = quadrimestre !== "todos";
 
   // ── Geração de PDF ──────────────────────────────────────────────────────────
@@ -1830,71 +1846,92 @@ export const ResultadoFinalTab = ({
         </div>
       </div>
 
-      {/* Ranking Cards */}
-      <div className="relative">
-        <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted">
-          <div className={`
-            flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
-            px-5 py-3 rounded-xl border-2 shadow-md
-            bg-gradient-to-b from-white to-primary/5 border-primary/30
-          `}>
-            <div className="flex items-center gap-1 mb-0.5">
-              <Trophy className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Geral</span>
+      {/* Ranking das Equipes */}
+      <section className="overflow-hidden rounded-lg border bg-card shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-primary/5 px-4 py-2.5">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <Trophy className="h-4 w-4 text-warning" />
+            Ranking das Equipes
+          </h2>
+          <p className="text-[10px] text-muted-foreground">Ordenado pela Nota Final · desempate por pontuação</p>
+        </div>
+
+        <div className="border-b px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-md border border-primary/25 bg-primary/5 px-4 py-2.5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+            <div>
+              <p className="text-[10px] font-bold uppercase text-primary">Resultado Geral</p>
+              <p className="text-xs text-muted-foreground">Consolidado das equipes</p>
             </div>
-            <p className={`text-2xl font-bold leading-tight ${getNotaFinalColor(geral.notaFinal)}`}>
-              {geral.notaFinal.toFixed(2).replace(".", ",")}
-            </p>
-            <p className="text-[10px] text-muted-foreground">Nota Final</p>
-            <p className="text-[9px] text-muted-foreground" title="Pontuação de desempate (0–1000)">
-              {formatDesempate(geral.desempate)} pts
-            </p>
+            <div className="text-right">
+              <p className={`text-2xl font-bold leading-none ${getNotaFinalColor(geral.notaFinal)}`}>
+                {geral.notaFinal.toFixed(2).replace(".", ",")}
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">{formatDesempate(geral.desempate)} / 1000</p>
+            </div>
           </div>
+        </div>
 
-          <div className="self-stretch w-px bg-border mx-1" />
+        {podiumEquipes.length > 0 && (
+          <div className="overflow-x-auto px-4 pt-5">
+            <div className="mx-auto flex min-w-[980px] items-end gap-1.5">
+              {podiumEquipes.map(({ equipe: eq, rank }) => {
+                const conceito = getConceitoFinal(eq.notaFinal);
+                const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                const cardClass = rank === 1
+                  ? "border-warning/70 shadow-md"
+                  : rank === 2
+                    ? "border-muted shadow-sm"
+                    : rank === 3
+                      ? "border-orange-300 shadow-sm"
+                      : "border-border";
+                const podiumHeight = rank === 1 ? "h-28" : rank === 2 ? "h-24" : rank === 3 ? "h-20" : "h-16";
 
+                return (
+                  <div key={eq.equipe} className="flex min-w-0 flex-1 flex-col">
+                    <div className={`min-h-[138px] rounded-md border bg-card px-3 py-3 text-center transition-all hover:-translate-y-1 hover:shadow-xl ${cardClass}`}>
+                      <div className="mb-1 flex h-7 items-center justify-center">
+                        {medal ? <span className="text-xl leading-none">{medal}</span> : <span className="h-6 w-6 rounded-full bg-muted/30" />}
+                      </div>
+                      <p className="line-clamp-2 min-h-8 text-[10px] font-bold leading-4 text-foreground" title={eq.equipe}>{eq.equipe}</p>
+                      <p className={`mt-1 text-xl font-bold leading-none ${getNotaFinalColor(eq.notaFinal)}`}>{eq.notaFinal.toFixed(2).replace(".", ",")}</p>
+                      <p className="mt-1 text-[9px] text-muted-foreground">de 10,00</p>
+                      <p className="mt-1 text-[10px] font-semibold text-primary">{formatDesempate(eq.desempate)} <span className="font-normal text-muted-foreground">/ 1000</span></p>
+                      <Badge variant="outline" className={`mt-1 h-5 px-1.5 text-[9px] ${CONCEITO_COLORS[conceito]}`}>{CONCEITO_LABELS[conceito]}</Badge>
+                    </div>
+                    <div className={`mt-1 flex ${podiumHeight} items-center justify-center rounded-t-md bg-primary/80 text-2xl font-bold text-primary-foreground`}>
+                      {rank}º
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-2 border-t p-4 sm:grid-cols-2 xl:grid-cols-5">
           {sortedEquipes.map((eq, idx) => {
-            const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
-            const ringClass =
-              idx === 0 ? "border-yellow-300 shadow-yellow-100" :
-              idx === 1 ? "border-slate-300 shadow-slate-100" :
-              idx === 2 ? "border-orange-300 shadow-orange-100" :
-                          "border-border shadow-sm";
-            const bgClass =
-              idx === 0 ? "from-yellow-50 to-white" :
-              idx === 1 ? "from-slate-50 to-white" :
-              idx === 2 ? "from-orange-50 to-white" :
-                          "from-white to-white";
-
+            const rank = idx + 1;
+            const conceito = getConceitoFinal(eq.notaFinal);
+            const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
             return (
-              <div
-                key={eq.equipe}
-                className={`
-                  flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
-                  px-4 py-3 rounded-xl border-2 shadow-md
-                  bg-gradient-to-b ${bgClass} ${ringClass}
-                `}
-              >
-                <div className="flex items-center gap-1 mb-0.5">
-                  {medal
-                    ? <span className="text-sm leading-none">{medal}</span>
-                    : <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
-                  }
+              <div key={eq.equipe} className="rounded-md border bg-card p-3 transition-all hover:-translate-y-0.5 hover:shadow-xl">
+                <div className="flex min-h-8 items-start gap-2">
+                  <span className="shrink-0 text-xs font-bold text-muted-foreground">{medal ?? `${rank}º`}</span>
+                  <p className="line-clamp-2 text-[10px] font-bold leading-4 text-foreground" title={eq.equipe}>{eq.equipe}</p>
                 </div>
-                <p className="text-[10px] font-semibold text-center leading-tight text-foreground truncate w-full text-center px-1" title={eq.equipe}>
-                  {eq.equipe}
-                </p>
-                <p className={`text-2xl font-bold leading-tight ${getNotaFinalColor(eq.notaFinal)}`}>
-                  {eq.notaFinal.toFixed(2).replace(".", ",")}
-                </p>
-                <p className="text-[9px] text-muted-foreground" title="Pontuação de desempate (0–1000)">
-                  {formatDesempate(eq.desempate)} pts
-                </p>
+                <Badge variant="outline" className={`mt-1 h-5 px-1.5 text-[9px] ${CONCEITO_COLORS[conceito]}`}>{CONCEITO_LABELS[conceito]}</Badge>
+                <div className="mt-2 text-center">
+                  <p className={`text-2xl font-bold leading-none ${getNotaFinalColor(eq.notaFinal)}`}>{eq.notaFinal.toFixed(2).replace(".", ",")}</p>
+                  <p className="mt-1 text-[9px] text-muted-foreground">de 10,00</p>
+                </div>
+                <Progress value={Math.min(100, Math.max(0, eq.notaFinal * 10))} className="mt-2 h-1 bg-muted/30" />
+                <p className="mt-2 text-center text-[10px] font-semibold text-primary">{formatDesempate(eq.desempate)} <span className="font-normal text-muted-foreground">/ 1000</span></p>
+                <p className="text-center text-[9px] text-muted-foreground">Pontuação de desempate</p>
               </div>
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* Conteúdo principal */}
       {indicadorFiltro !== "todos" ? (
