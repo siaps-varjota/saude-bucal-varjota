@@ -141,7 +141,7 @@ export const AnalisesTab = ({
       <Card className="shadow-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl">
         <CardHeader>
           <CardTitle className="text-lg">
-            Gráfico de Pareto — Pontos perdidos por indicador
+            Gráfico de Pareto — Pontos ainda possíveis por indicador
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Barras: pontuação perdida (peso − nota obtida). Linha: percentual acumulado.
