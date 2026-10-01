@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Trophy, Award, Filter, ChevronDown, ChevronRight,
   BarChart2, Target, FileDown, FlaskConical, HelpCircle, X, GitBranch,
@@ -1533,7 +1534,10 @@ export const ResultadoFinalTab = ({
   );
 
   const podiumEquipes = useMemo(
-    () => [3, 1, 0, 2, 4].map((index) => ({ equipe: sortedEquipes[index], rank: index + 1 })).filter((item) => item.equipe),
+    () => [3, 1, 0, 2, 4].flatMap((index) => {
+      const equipe = sortedEquipes[index];
+      return equipe ? [{ equipe, rank: index + 1 }] : [];
+    }),
     [sortedEquipes]
   );
 
@@ -1920,9 +1924,7 @@ export const ResultadoFinalTab = ({
                   <p className={`text-2xl font-bold leading-none ${getNotaFinalColor(eq.notaFinal)}`}>{eq.notaFinal.toFixed(2).replace(".", ",")}</p>
                   <p className="mt-1 text-[9px] text-muted-foreground">de 10,00</p>
                 </div>
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted/30">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, eq.notaFinal * 10))}%` }} />
-                </div>
+                <Progress value={Math.min(100, Math.max(0, eq.notaFinal * 10))} className="mt-2 h-1 bg-muted/30" />
                 <p className="mt-2 text-center text-[10px] font-semibold text-primary">{formatDesempate(eq.desempate)} <span className="font-normal text-muted-foreground">/ 1000</span></p>
                 <p className="text-center text-[9px] text-muted-foreground">Pontuação de desempate</p>
               </div>

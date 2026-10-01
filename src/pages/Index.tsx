@@ -175,17 +175,18 @@ const getCurrentQuadKey = (): string => {
   return `Q3-${y}`;
 };
 
-// Resultado Final: no primeiro mês do quadrimestre (jan/mai/set), abre por
-// padrão com o resultado do quadrimestre anterior.
+// Resultado Final: nos primeiros 15 dias do novo quadrimestre (jan/mai/set),
+// abre por padrão com o resultado do quadrimestre anterior.
 const getDefaultQuadKeyResultado = (): string => {
   const now = new Date();
   const m = now.getMonth();
   const y = now.getFullYear();
-  if (m === 0) return `Q3-${y - 1}`;
+  const primeirosQuinzeDias = now.getDate() <= 15;
+  if (m === 0 && primeirosQuinzeDias) return `Q3-${y - 1}`;
   if (m <= 3) return `Q1-${y}`;
-  if (m === 4) return `Q1-${y}`;
+  if (m === 4 && primeirosQuinzeDias) return `Q1-${y}`;
   if (m <= 7) return `Q2-${y}`;
-  if (m === 8) return `Q2-${y}`;
+  if (m === 8 && primeirosQuinzeDias) return `Q2-${y}`;
   return `Q3-${y}`;
 };
 

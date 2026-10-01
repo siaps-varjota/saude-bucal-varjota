@@ -56,7 +56,7 @@ export function getQuadrimestreAnterior(
     return `Q3-${ano - 1}`;
   }
 
-  return `Q${quadrimestreNumero - 1}-${ano}`;
+  return `Q${quadrimestreNumero - 1}-${ano}` as Quadrimestre;
 }
 
 /**
