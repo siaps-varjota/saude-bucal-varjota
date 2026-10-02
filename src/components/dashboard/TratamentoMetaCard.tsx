@@ -181,14 +181,10 @@ export const TratamentoMetaCard = ({
     const currentPct  = mesesComPct > 0
       ? somaPctMensal / mesesComPct
       : (totalDen > 0 ? (totalNum / totalDen) * 100 : 0);
-    // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
-    const parB2 = calcFaltamPar(
-      mesesLista, 0.501, 0.751, 1, 0,
-      Math.max(0, Math.ceil(totalDen * 0.501) - totalNum),
-      Math.max(0, Math.ceil(totalDen * 0.751) - totalNum),
-    );
-    const faltamBom   = parB2.bom;
-    const faltamOtimo = parB2.otimo;
+    // "Faltam" pelo total do quadrimestre: menor numerador estritamente > 50% / > 75%
+    void calcFaltamPar; void mesesLista;
+    const faltamBom   = totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.5) + 1 - totalNum) : 0;
+    const faltamOtimo = totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.75) + 1 - totalNum) : 0;
 
     // ── Simulações ────────────────────────────────────────────────────────
     const simulations = (() => {
