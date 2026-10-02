@@ -216,8 +216,8 @@ export const TratamentoMetaCard = ({
 
       const denB1Rep = meses > 0 ? Math.round(denB1Quad / meses) : denominadorB1;
 
-      const consultasBom   = (Math.floor(denB1Rep * 0.03) + 1) * meses;
-      const consultasOtimo = (Math.floor(denB1Rep * 0.05) + 1) * meses;
+      const consultasBom   = (Math.floor(denB1Rep * 0.0075) + 1) * meses;
+      const consultasOtimo = (Math.floor(denB1Rep * 0.0125) + 1) * meses;
 
       const aba1Real = numB1Quad > 0 ? numB1Quad : consultasAba1Quad;
 
@@ -350,7 +350,7 @@ export const TratamentoMetaCard = ({
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-emerald-700">
-                    Se 1ª Consulta atingir Bom (&gt;3%) → {simulations.consultasBom} consultas
+                    Se 1ª Consulta atingir Bom (&gt;0,75%) → {simulations.consultasBom} consultas
                   </p>
                   {simulations.aba1JaAtingiuBom
                     ? <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
@@ -379,7 +379,7 @@ export const TratamentoMetaCard = ({
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-blue-700">
-                    Se 1ª Consulta atingir Ótimo (&gt;5%) → {simulations.consultasOtimo} consultas
+                    Se 1ª Consulta atingir Ótimo (&gt;1,25%) → {simulations.consultasOtimo} consultas
                   </p>
                   {simulations.aba1JaAtingiuOtimo
                     ? <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
