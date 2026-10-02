@@ -387,7 +387,17 @@ const SimulacaoCard = ({
   const b5PctAtual  = pctBase(b5Ind, b5Numerador, b5Denominador);
   const b5AggAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5AggNova   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
-  const b5NovaPct   = b5PctAtual + (b5AggNova - b5AggAtual);
+  // Mesma regra do card de meta: soma no último mês com dado e refaz a média mensal
+  const b5MesesValidos = (b5Ind?.mesesDetalhe ?? []).filter((m) => m.denominador > 0);
+  const b5Extra = (extraConsultas + extraConclusoes) * 2;
+  const b5NovaPct   = b5MesesValidos.length > 0
+    ? b5MesesValidos.reduce((s, m, i) => {
+        const isLast = i === b5MesesValidos.length - 1;
+        const n = m.numerador + (isLast ? b5Extra : 0);
+        const d = m.denominador + (isLast ? b5Extra : 0);
+        return s + (n / d) * 100;
+      }, 0) / b5MesesValidos.length
+    : b5PctAtual + (b5AggNova - b5AggAtual);
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
   const notaFinalAtual = todosIndicadores?.reduce((s, i) => s + i.notaFinal, 0) ?? 0;
