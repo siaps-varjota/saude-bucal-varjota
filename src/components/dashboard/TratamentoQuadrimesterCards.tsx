@@ -1,3 +1,4 @@
+import { percentualB2 } from "@/lib/b2Percentage";
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
@@ -171,7 +172,7 @@ export const TratamentoQuadrimesterCards = ({
         totalNum += resolved.num;
         totalDen += resolved.den;
         if (resolved.den > 0) {
-          somaPctMensal += (resolved.num / resolved.den) * 100;
+          somaPctMensal += percentualB2(resolved.num, resolved.den);
           mesesComPct++;
         }
         if (resolved.fonte !== "oficial") todosMesesOficiais = false;
@@ -180,7 +181,7 @@ export const TratamentoQuadrimesterCards = ({
       // Percentual do período = média dos percentuais mensais
       const percentage = mesesComPct > 0
         ? somaPctMensal / mesesComPct
-        : (totalDen > 0 ? (totalNum / totalDen) * 100 : 0);
+        : percentualB2(totalNum, totalDen);
       const average    = monthsCount > 0 ? totalNum / monthsCount    : 0;
       const fonte: FonteDado = todosMesesOficiais ? "oficial" : "preliminar";
 

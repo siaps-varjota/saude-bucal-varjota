@@ -1,3 +1,4 @@
+import { percentualB2 } from "@/lib/b2Percentage";
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { isTratamentoPendente } from "@/hooks/useFilteredTratamento";
@@ -153,7 +154,7 @@ export const TratamentoMonthlyCards = ({
           const fonte     = isOficial ? "oficial" as const : "preliminar" as const;
           // ─────────────────────────────────────────────────────────────────
 
-          const percentage = finalDen > 0 ? (finalNum / finalDen) * 100 : 0;
+          const percentage = percentualB2(finalNum, finalDen);
           const category   = getScoreCategory(percentage, finalNum);
           const styles     = getScoreStyles(category);
 
