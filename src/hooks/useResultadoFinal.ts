@@ -1,3 +1,4 @@
+import { percentualB2 } from "@/lib/b2Percentage";
 import { parse, isValid, getMonth, getYear, format } from "date-fns";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
@@ -376,7 +377,7 @@ function calcB2(
     return {
       numerador: sumTrat,
       denominador: sumCons,
-      porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0,
+      porcentagem: percentualB2(sumTrat, sumCons),
       mesesDetalhe: [],
     };
   }
@@ -419,7 +420,7 @@ function calcB2(
       mes: `${MONTH_ABBR[m]}/${year}`,
       numerador: trat,
       denominador: cons,
-      porcentagem: cons > 0 ? (trat / cons) * 100 : 0,
+      porcentagem: percentualB2(trat, cons),
       fonte: isOficial ? "oficial" : "preliminar",
     });
   });
@@ -427,7 +428,7 @@ function calcB2(
   return {
     numerador: sumTrat,
     denominador: sumCons,
-    porcentagem: sumCons > 0 ? (sumTrat / sumCons) * 100 : 0,
+    porcentagem: percentualB2(sumTrat, sumCons),
     mesesDetalhe,
     todosOficiais: todosMesesOficiais,
   };

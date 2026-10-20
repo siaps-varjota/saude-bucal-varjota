@@ -1,3 +1,4 @@
+import { percentualB2 } from "@/lib/b2Percentage";
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Card, CardContent } from "@/components/ui/card";
@@ -153,7 +154,7 @@ export const TratamentoMetaCard = ({
       totalDen += resolved.den;
       mesesLista.push({ num: resolved.num, den: resolved.den });
       if (resolved.den > 0) {
-        somaPctMensal += (resolved.num / resolved.den) * 100;
+        somaPctMensal += percentualB2(resolved.num, resolved.den);
         mesesComPct++;
       }
       if (resolved.fonte !== "oficial") todosMesesOficiais = false;
@@ -180,7 +181,7 @@ export const TratamentoMetaCard = ({
     // Percentual do período = média dos percentuais mensais
     const currentPct  = mesesComPct > 0
       ? somaPctMensal / mesesComPct
-      : (totalDen > 0 ? (totalNum / totalDen) * 100 : 0);
+      : percentualB2(totalNum, totalDen);
     // "Faltam" pelo total do quadrimestre: menor numerador estritamente > 50% / > 75%
     void calcFaltamPar; void mesesLista;
     const faltamBom   = totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.5) + 1 - totalNum) : 0;

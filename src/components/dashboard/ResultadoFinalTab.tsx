@@ -1,3 +1,4 @@
+import { limitarPercentualB2 } from "@/lib/b2Percentage";
 import { createContext, useContext, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -365,10 +366,10 @@ const SimulacaoCard = ({
 
   const b2NovoNum   = b2Numerador + extraConsultas * 0.5 + extraConclusoes;
   const b2NovaDenom = b2Denominador + extraConsultas;
-  const b2PctAtual  = pctBase(b2Ind, b2Numerador, b2Denominador);
+  const b2PctAtual  = limitarPercentualB2(pctBase(b2Ind, b2Numerador, b2Denominador));
   const b2AggAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
   const b2AggNova   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
-  const b2NovaPct   = b2PctAtual + (b2AggNova - b2AggAtual);
+  const b2NovaPct   = limitarPercentualB2(b2PctAtual + (b2AggNova - b2AggAtual));
   const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
   // B3: consulta ou trat. concluído → +2 den (entram no total de proced.
