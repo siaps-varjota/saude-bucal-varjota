@@ -155,9 +155,10 @@ export function calcFaltamPar(
   deltaDenom = 0,
   fallbackBom = 0,
   fallbackOtimo = 0,
+  capMensal?: number,
 ): { bom: number; otimo: number; viaMedia: boolean } {
-  const mBom   = calcFaltamMediaMensal(meses, thresholdBom,   deltaNum, deltaDenom);
-  const mOtimo = calcFaltamMediaMensal(meses, thresholdOtimo, deltaNum, deltaDenom);
+  const mBom   = calcFaltamMediaMensal(meses, thresholdBom,   deltaNum, deltaDenom, capMensal);
+  const mOtimo = calcFaltamMediaMensal(meses, thresholdOtimo, deltaNum, deltaDenom, capMensal);
   if (mBom !== null && mOtimo !== null && mBom <= mOtimo) {
     return { bom: mBom, otimo: mOtimo, viaMedia: true };
   }
