@@ -54,8 +54,8 @@ describe("Faltam da meta com teto de 100% (B2)", () => {
   it("com teto de 100%, a média é 68,75% e faltam tratamentos para Bom e Ótimo", () => {
     // Média limitada: (100% + 37,5%) / 2 = 68,75% → Bom (>50%) já atingido.
     expect(calcFaltamMediaMensal(meses, 0.501, 1, 0, 1)).toBe(0);
-    // Ótimo exigiria último mês acima de 100% → inalcançável → null (fallback).
-    expect(calcFaltamMediaMensal(meses, 0.751, 1, 0, 1)).toBeNull();
+    // Ótimo: último mês precisa de 50,2% → 5/8; faltam 2 tratamentos.
+    expect(calcFaltamMediaMensal(meses, 0.751, 1, 0, 1)).toBe(2);
   });
 
   it("calcFaltamPar com teto nunca marca Ótimo atingido quando a média limitada é Bom", () => {
