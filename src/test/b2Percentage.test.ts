@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { limitarPercentualB2, percentualB2 } from "@/lib/b2Percentage";
+import { calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
 import { makeOficialKey, type OficialData, type OficialRow } from "@/hooks/useOficialData";
 import type { TratamentoPatient } from "@/hooks/useTratamentoData";
