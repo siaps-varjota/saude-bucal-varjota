@@ -170,6 +170,7 @@ const MetaQuadrimestreCard = ({
     deltaDenom ?? 0,
     calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0),
     calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0),
+    capMensal,
   );
 
   const faltamBom   = par.bom;
@@ -1164,6 +1165,7 @@ const DetalheRow = ({
                         deltaDenom: 2,
                         faltaUnit: "consultas",
                       })}
+                      {...(ind.indicador === "Tratamento Concluído" && { capMensal: 1 })}
                     />
                     {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
                       const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);

@@ -43,8 +43,9 @@ function buildSimRow(ind: IndicadorResult) {
   const proximoLabel = isOtimo ? null : isBom ? `Ótimo (${cfg.labelOtimo})` : `Bom (${cfg.labelBom})`;
   const proximoThresh = isOtimo ? null : isBom ? cfg.thresholdOtimo : cfg.thresholdBom;
   const mesesLista = (ind.mesesDetalhe ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
+  const capMensal = cfg.code === "B2" ? 1 : undefined;
   const faltam = proximoThresh != null
-    ? (calcFaltamMediaMensal(mesesLista, proximoThresh, cfg.deltaNum, cfg.deltaDenom)
+    ? (calcFaltamMediaMensal(mesesLista, proximoThresh, cfg.deltaNum, cfg.deltaDenom, capMensal)
        ?? calcFaltam(ind.numerador, ind.denominador, proximoThresh, cfg.deltaNum, cfg.deltaDenom))
     : 0;
   const notaProjBase = isOtimo ? 1.0 : isBom ? 1.0 : 0.75;
