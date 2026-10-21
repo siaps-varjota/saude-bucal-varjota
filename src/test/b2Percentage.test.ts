@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { limitarPercentualB2, percentualB2 } from "@/lib/b2Percentage";
+import { calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
 import { makeOficialKey, type OficialData, type OficialRow } from "@/hooks/useOficialData";
 import type { TratamentoPatient } from "@/hooks/useTratamentoData";
@@ -38,5 +39,28 @@ describe("B2 ceiling", () => {
     expect(b2?.numerador).toBe(179);
     expect(b2?.denominador).toBe(239);
     expect(b2?.conceito).toBe("bom");
+  });
+});
+
+describe("Faltam da meta com teto de 100% (B2)", () => {
+  // Caso reportado: mês acima de 100% inflava a média sem teto e marcava
+  // "Ótimo atingido" mesmo com a média limitada em 73,91% (Bom).
+  const meses = [{ num: 50, den: 32 }, { num: 3, den: 8 }]; // 156,25% e 37,5%
+
+  it("sem teto, a média crua passa de 75% e diria 'Ótimo atingido'", () => {
+    expect(calcFaltamMediaMensal(meses, 0.751)).toBe(0);
+  });
+
+  it("com teto de 100%, a média é 68,75% e faltam tratamentos para Bom e Ótimo", () => {
+    // Média limitada: (100% + 37,5%) / 2 = 68,75% → Bom (>50%) já atingido.
+    expect(calcFaltamMediaMensal(meses, 0.501, 1, 0, 1)).toBe(0);
+    // Ótimo: último mês precisa de 50,2% → 5/8; faltam 2 tratamentos.
+    expect(calcFaltamMediaMensal(meses, 0.751, 1, 0, 1)).toBe(2);
+  });
+
+  it("calcFaltamPar com teto nunca marca Ótimo atingido quando a média limitada é Bom", () => {
+    const par = calcFaltamPar(meses, 0.501, 0.751, 1, 0, 5, 9, 1);
+    expect(par.otimo).toBeGreaterThan(0);
+    expect(par.bom).toBeLessThanOrEqual(par.otimo);
   });
 });

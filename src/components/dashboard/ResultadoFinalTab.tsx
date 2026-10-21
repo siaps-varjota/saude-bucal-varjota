@@ -141,6 +141,7 @@ const MetaQuadrimestreCard = ({
   faltaUnit: faltaUnitProp,
   mesesDecorridos,
   meses,
+  capMensal,
 }: {
   denominador: number;
   numerador: number;
@@ -150,6 +151,8 @@ const MetaQuadrimestreCard = ({
   faltaUnit?: string;
   mesesDecorridos?: number;
   meses?: { numerador: number; denominador: number }[];
+  /** Teto da razão mensal na média (ex.: 1 para B2, que nunca passa de 100%). */
+  capMensal?: number;
 }) => {
   const periodoMeses = useContext(PeriodoMesesContext);
   const metaBom   = strictMeta(denominador, thresholds.thresholdBom);
@@ -167,6 +170,7 @@ const MetaQuadrimestreCard = ({
     deltaDenom ?? 0,
     calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0),
     calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0),
+    capMensal,
   );
 
   const faltamBom   = par.bom;
@@ -1161,6 +1165,7 @@ const DetalheRow = ({
                         deltaDenom: 2,
                         faltaUnit: "consultas",
                       })}
+                      {...(ind.indicador === "Tratamento Concluído" && { capMensal: 1 })}
                     />
                     {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
                       const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);
