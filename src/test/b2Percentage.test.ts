@@ -41,3 +41,26 @@ describe("B2 ceiling", () => {
     expect(b2?.conceito).toBe("bom");
   });
 });
+
+describe("Faltam da meta com teto de 100% (B2)", () => {
+  // Caso reportado: mês acima de 100% inflava a média sem teto e marcava
+  // "Ótimo atingido" mesmo com a média limitada em 73,91% (Bom).
+  const meses = [{ num: 50, den: 32 }, { num: 3, den: 8 }]; // 156,25% e 37,5%
+
+  it("sem teto, a média crua passa de 75% e diria 'Ótimo atingido'", () => {
+    expect(calcFaltamMediaMensal(meses, 0.751)).toBe(0);
+  });
+
+  it("com teto de 100%, a média é 68,75% e faltam tratamentos para Bom e Ótimo", () => {
+    // Média limitada: (100% + 37,5%) / 2 = 68,75% → Bom (>50%) ainda não atingido.
+    expect(calcFaltamMediaMensal(meses, 0.501, 1, 0, 1)).toBeGreaterThan(0);
+    // Ótimo exigiria último mês acima de 100% → inalcançável → null (fallback).
+    expect(calcFaltamMediaMensal(meses, 0.751, 1, 0, 1)).toBeNull();
+  });
+
+  it("calcFaltamPar com teto nunca marca Ótimo atingido quando a média limitada é Bom", () => {
+    const par = calcFaltamPar(meses, 0.501, 0.751, 1, 0, 5, 9, 1);
+    expect(par.otimo).toBeGreaterThan(0);
+    expect(par.bom).toBeLessThanOrEqual(par.otimo);
+  });
+});
