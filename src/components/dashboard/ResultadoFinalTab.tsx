@@ -141,6 +141,7 @@ const MetaQuadrimestreCard = ({
   faltaUnit: faltaUnitProp,
   mesesDecorridos,
   meses,
+  capMensal,
 }: {
   denominador: number;
   numerador: number;
@@ -150,6 +151,8 @@ const MetaQuadrimestreCard = ({
   faltaUnit?: string;
   mesesDecorridos?: number;
   meses?: { numerador: number; denominador: number }[];
+  /** Teto da razão mensal na média (ex.: 1 para B2, que nunca passa de 100%). */
+  capMensal?: number;
 }) => {
   const periodoMeses = useContext(PeriodoMesesContext);
   const metaBom   = strictMeta(denominador, thresholds.thresholdBom);
