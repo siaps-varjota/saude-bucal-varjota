@@ -120,6 +120,10 @@ export function calcFaltamMediaMensal(
   // Percentual que o último mês precisa atingir para a média bater o threshold
   const alvoMes = threshold * k - (soma - pLast);
 
+  // Com teto mensal, o último mês não pode passar do teto: se o alvo exige mais,
+  // a meta é inalcançável somando só neste mês → o chamador usa o fallback.
+  if (capMensal != null && alvoMes > capMensal) return null;
+
   const dn = deltaNum || 1;
   const dd = deltaDenom || 0;
 
