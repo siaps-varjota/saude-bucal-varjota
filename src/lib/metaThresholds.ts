@@ -101,14 +101,21 @@ export function calcFaltamMediaMensal(
   threshold: number,
   deltaNum = 1,
   deltaDenom = 0,
+  capMensal?: number,
 ): number | null {
   const valid = meses.filter((m) => m.den > 0);
   if (valid.length === 0) return null;
 
+  // Razão mensal usada na média; `capMensal` limita meses acima de 100% (ex.: B2).
+  const ratio = (m: { num: number; den: number }) => {
+    const r = m.num / m.den;
+    return capMensal != null ? Math.min(capMensal, r) : r;
+  };
+
   const k    = valid.length;
-  const soma = valid.reduce((s, m) => s + m.num / m.den, 0);
+  const soma = valid.reduce((s, m) => s + ratio(m), 0);
   const last = valid[valid.length - 1];
-  const pLast = last.num / last.den;
+  const pLast = ratio(last);
 
   // Percentual que o último mês precisa atingir para a média bater o threshold
   const alvoMes = threshold * k - (soma - pLast);
