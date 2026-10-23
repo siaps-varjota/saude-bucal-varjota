@@ -155,8 +155,8 @@ const MetaQuadrimestreCard = ({
   capMensal?: number;
 }) => {
   const periodoMeses = useContext(PeriodoMesesContext);
-  const metaBom   = strictMeta(denominador, thresholds.thresholdBom);
-  const metaOtimo = strictMeta(denominador, thresholds.thresholdOtimo);
+  const metaBomAgg   = strictMeta(denominador, thresholds.thresholdBom);
+  const metaOtimoAgg = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
   // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado),
@@ -175,6 +175,10 @@ const MetaQuadrimestreCard = ({
 
   const faltamBom   = par.bom;
   const faltamOtimo = par.otimo;
+  // Meta exibida coerente com "Faltam": quando ainda falta, meta = atual + faltam.
+  const dnMeta = deltaNum ?? 1;
+  const metaBom   = faltamBom   > 0 ? numerador + faltamBom   * dnMeta : metaBomAgg;
+  const metaOtimo = faltamOtimo > 0 ? numerador + faltamOtimo * dnMeta : metaOtimoAgg;
   const exibeUnit   = faltaUnitProp ?? unit;
 
   const mesesUsados      = mesesDecorridos ?? 0;
