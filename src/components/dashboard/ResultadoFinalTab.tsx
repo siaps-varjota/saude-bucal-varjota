@@ -159,10 +159,16 @@ const MetaQuadrimestreCard = ({
   const metaOtimoAgg = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  // "Faltam" pelo SOMATÓRIO do período (numerador total / denominador total).
-  void meses; void capMensal; void calcFaltamPar;
+  // "Faltam" no quadrimestre: SOMATÓRIO do período (numerador total / denominador total).
   const faltamBom   = calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0);
   const faltamOtimo = calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0);
+  // "Faltam" no mês: média dos percentuais mensais (soma no último mês com dado).
+  const mesesLista = (meses ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
+  const par = calcFaltamPar(
+    mesesLista, thresholds.thresholdBom, thresholds.thresholdOtimo,
+    deltaNum ?? 1, deltaDenom ?? 0, faltamBom, faltamOtimo, capMensal,
+  );
+  const mostraMes = par.viaMedia && mesesLista.filter(m => m.den > 0).length > 1;
   const metaBom   = metaBomAgg;
   const metaOtimo = metaOtimoAgg;
   const exibeUnit   = faltaUnitProp ?? unit;
@@ -171,6 +177,21 @@ const MetaQuadrimestreCard = ({
   const semanasRestantes = Math.max(0, periodoMeses - mesesUsados) * 4.33;
   const fmtSemanal = (faltam: number) =>
     semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
+
+  const renderFaltam = (faltamQ: number, faltamM: number, okClass: string) =>
+    faltamQ > 0 || (mostraMes && faltamM > 0)
+      ? <>
+          {mostraMes && (
+            <p className="text-xs font-medium text-orange-600">
+              Faltam no mês: {faltamM > 0 ? `${faltamM.toLocaleString("pt-BR")} ${exibeUnit}` : "✓ atingida"}
+            </p>
+          )}
+          <p className="text-xs font-medium text-red-600">
+            Faltam{mostraMes ? " no quadrim." : ""}: {faltamQ > 0 ? `${faltamQ.toLocaleString("pt-BR")} ${exibeUnit}` : "✓ atingida"}
+          </p>
+          {faltamQ > 0 && <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamQ)}</p>}
+        </>
+      : <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>;
 
   return (
     <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm">
@@ -193,12 +214,7 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / periodoMeses).toFixed(1)}</p>
           <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (periodoMeses * 4.33)).toFixed(1)}</p>
-          {faltamBom > 0
-            ? <>
-                <p className="text-xs font-medium text-red-600">Faltam: {faltamBom.toLocaleString("pt-BR")} {exibeUnit}</p>
-                <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamBom)}</p>
-              </>
-            : <p className="text-xs font-medium text-emerald-600">✓ Meta atingida!</p>}
+          {renderFaltam(faltamBom, par.bom, "text-emerald-600")}
         </div>
         <div>
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
@@ -208,12 +224,7 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / periodoMeses).toFixed(1)}</p>
           <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (periodoMeses * 4.33)).toFixed(1)}</p>
-          {faltamOtimo > 0
-            ? <>
-                <p className="text-xs font-medium text-red-600">Faltam: {faltamOtimo.toLocaleString("pt-BR")} {exibeUnit}</p>
-                <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamOtimo)}</p>
-              </>
-            : <p className="text-xs font-medium text-blue-600">✓ Meta atingida!</p>}
+          {renderFaltam(faltamOtimo, par.otimo, "text-blue-600")}
         </div>
       </div>
     </div>
