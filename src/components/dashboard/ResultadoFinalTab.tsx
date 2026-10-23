@@ -168,7 +168,7 @@ const MetaQuadrimestreCard = ({
     mesesLista, thresholds.thresholdBom, thresholds.thresholdOtimo,
     deltaNum ?? 1, deltaDenom ?? 0, faltamBom, faltamOtimo, capMensal,
   );
-  const mostraMes = par.viaMedia && mesesLista.filter(m => m.den > 0).length > 1;
+  const usaMes = par.viaMedia;
   const metaBom   = metaBomAgg;
   const metaOtimo = metaOtimoAgg;
   const exibeUnit   = faltaUnitProp ?? unit;
@@ -178,20 +178,16 @@ const MetaQuadrimestreCard = ({
   const fmtSemanal = (faltam: number) =>
     semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
-  const renderFaltam = (faltamQ: number, faltamM: number, okClass: string) =>
-    faltamQ > 0 || (mostraMes && faltamM > 0)
+  // Prevalece o MAIOR "Faltam" entre a regra mensal (média) e a do quadrimestre (somatório).
+  const renderFaltam = (faltamQ: number, faltamM: number, okClass: string) => {
+    const faltam = Math.max(faltamQ, usaMes ? faltamM : 0);
+    return faltam > 0
       ? <>
-          {mostraMes && (
-            <p className="text-xs font-medium text-orange-600">
-              Faltam no mês: {faltamM > 0 ? `${faltamM.toLocaleString("pt-BR")} ${exibeUnit}` : "✓ atingida"}
-            </p>
-          )}
-          <p className="text-xs font-medium text-red-600">
-            Faltam{mostraMes ? " no quadrim." : ""}: {faltamQ > 0 ? `${faltamQ.toLocaleString("pt-BR")} ${exibeUnit}` : "✓ atingida"}
-          </p>
-          {faltamQ > 0 && <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamQ)}</p>}
+          <p className="text-xs font-medium text-red-600">Faltam: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
+          <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltam)}</p>
         </>
       : <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>;
+  };
 
   return (
     <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm">
