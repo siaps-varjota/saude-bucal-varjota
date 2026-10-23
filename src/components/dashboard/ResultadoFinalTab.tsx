@@ -159,26 +159,12 @@ const MetaQuadrimestreCard = ({
   const metaOtimoAgg = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado),
-  // com fallback agregado coerente quando a regra mensal fica inconsistente.
-  const mesesLista = (meses ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
-  const par = calcFaltamPar(
-    mesesLista,
-    thresholds.thresholdBom,
-    thresholds.thresholdOtimo,
-    deltaNum ?? 1,
-    deltaDenom ?? 0,
-    calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0),
-    calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0),
-    capMensal,
-  );
-
-  const faltamBom   = par.bom;
-  const faltamOtimo = par.otimo;
-  // Meta exibida coerente com "Faltam": quando ainda falta, meta = atual + faltam.
-  const dnMeta = deltaNum ?? 1;
-  const metaBom   = faltamBom   > 0 ? numerador + faltamBom   * dnMeta : metaBomAgg;
-  const metaOtimo = faltamOtimo > 0 ? numerador + faltamOtimo * dnMeta : metaOtimoAgg;
+  // "Faltam" pelo SOMATÓRIO do período (numerador total / denominador total).
+  void meses; void capMensal; void calcFaltamPar;
+  const faltamBom   = calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0);
+  const faltamOtimo = calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0);
+  const metaBom   = metaBomAgg;
+  const metaOtimo = metaOtimoAgg;
   const exibeUnit   = faltaUnitProp ?? unit;
 
   const mesesUsados      = mesesDecorridos ?? 0;
