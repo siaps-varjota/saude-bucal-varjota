@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal } from "@/lib/metaThresholds";
 import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
@@ -164,13 +164,17 @@ const MetaQuadrimestreCard = ({
   const faltamOtimo = calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0);
   // "Faltam" no mês: média dos percentuais mensais (soma no último mês com dado).
   const mesesLista = (meses ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
-  const par = calcFaltamPar(
-    mesesLista, thresholds.thresholdBom, thresholds.thresholdOtimo,
-    deltaNum ?? 1, deltaDenom ?? 0, faltamBom, faltamOtimo, capMensal,
-  );
-  const usaMes = par.viaMedia;
-  const metaBom   = metaBomAgg;
-  const metaOtimo = metaOtimoAgg;
+  // Cada conceito é calculado de forma independente pela média mensal; quando o
+  // último mês não alcança o alvo (null), vale só o somatório do quadrimestre.
+  const mBom   = calcFaltamMediaMensal(mesesLista, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0, capMensal) ?? 0;
+  const mOtimo = calcFaltamMediaMensal(mesesLista, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0, capMensal) ?? 0;
+  // Prevalece o MAIOR "Faltam" entre a regra mensal (média) e a do quadrimestre (somatório).
+  const faltamFinalBom   = Math.max(faltamBom, mBom);
+  const faltamFinalOtimo = Math.max(faltamOtimo, mOtimo, faltamFinalBom);
+  const dnMeta = deltaNum ?? 1;
+  // Meta exibida = resultado atual + o que falta, para meta e "Faltam" sempre baterem.
+  const metaBom   = faltamFinalBom   > 0 ? numerador + faltamFinalBom   * dnMeta : metaBomAgg;
+  const metaOtimo = faltamFinalOtimo > 0 ? numerador + faltamFinalOtimo * dnMeta : metaOtimoAgg;
   const exibeUnit   = faltaUnitProp ?? unit;
 
   const mesesUsados      = mesesDecorridos ?? 0;
@@ -178,9 +182,7 @@ const MetaQuadrimestreCard = ({
   const fmtSemanal = (faltam: number) =>
     semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
-  // Prevalece o MAIOR "Faltam" entre a regra mensal (média) e a do quadrimestre (somatório).
-  const renderFaltam = (faltamQ: number, faltamM: number, okClass: string) => {
-    const faltam = Math.max(faltamQ, usaMes ? faltamM : 0);
+  const renderFaltam = (faltam: number, okClass: string) => {
     return faltam > 0
       ? <>
           <p className="text-xs font-medium text-red-600">Faltam: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
@@ -210,7 +212,7 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / periodoMeses).toFixed(1)}</p>
           <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (periodoMeses * 4.33)).toFixed(1)}</p>
-          {renderFaltam(faltamBom, par.bom, "text-emerald-600")}
+          {renderFaltam(faltamFinalBom, "text-emerald-600")}
         </div>
         <div>
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
@@ -220,7 +222,7 @@ const MetaQuadrimestreCard = ({
           </p>
           <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / periodoMeses).toFixed(1)}</p>
           <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (periodoMeses * 4.33)).toFixed(1)}</p>
-          {renderFaltam(faltamOtimo, par.otimo, "text-blue-600")}
+          {renderFaltam(faltamFinalOtimo, "text-blue-600")}
         </div>
       </div>
     </div>

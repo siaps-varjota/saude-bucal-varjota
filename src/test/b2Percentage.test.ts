@@ -64,3 +64,10 @@ describe("Faltam da meta com teto de 100% (B2)", () => {
     expect(par.bom).toBeLessThanOrEqual(par.otimo);
   });
 });
+describe("B2 meta do quadrimestre pela média mensal", () => {
+  it("12/27, 37/53, 2/8: falta 1 tratamento para Bom (>50%)", async () => {
+    const { calcFaltamMediaMensal } = await import("@/lib/metaThresholds");
+    const meses = [{ num: 12, den: 27 }, { num: 37, den: 53 }, { num: 2, den: 8 }];
+    expect(calcFaltamMediaMensal(meses, 0.5, 1, 0, 1)).toBe(1);
+  });
+});
