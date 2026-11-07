@@ -14,6 +14,7 @@ import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 import { OficialData } from "@/hooks/useOficialData";
+import { PrioridadesIA } from "@/components/dashboard/PrioridadesIA";
 
 interface AnalisesTabProps {
   patients: Patient[];
@@ -54,6 +55,14 @@ export const AnalisesTab = ({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData, quads]);
+
+  // Todos os meses disponíveis, para a análise por IA
+  const resultadosTodos = useMemo(() => computeResultadoFinal(
+    patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients,
+    "todos", "all", denominadorB1Data, oficialData, [],
+  ).porEquipe,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData]);
 
   const equipeList = useMemo(
     () => (equipeOptions.length > 0 ? equipeOptions : [...new Set(resultados.map(r => r.equipe))].sort()),
@@ -106,6 +115,7 @@ export const AnalisesTab = ({
 
   return (
     <div className="space-y-6">
+      <PrioridadesIA resultados={resultadosTodos} />
       {/* Filtros */}
       <div className="w-full p-4 bg-card border-2 my-0 shadow-xl rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl">
         <div className="flex items-center gap-3 w-full flex-wrap">
