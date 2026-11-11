@@ -103,17 +103,6 @@ const ResultadoFinalWrapper = ({
     quadrimestre, equipeResultado, denominadorB1Data,
     oficialData, mesesFiltro,
   );
-  const resultadoTodos = useResultadoFinal(
-    patients, tratamentoPatients, tab3Patients,
-    tab4Patients, tab5Patients, tab6Patients,
-    "todos", "all", denominadorB1Data, oficialData, [],
-  );
-
-  const resultadoTodos = useResultadoFinal(
-    patients, tratamentoPatients, tab3Patients,
-    tab4Patients, tab5Patients, tab6Patients,
-    "todos", "all", denominadorB1Data, oficialData, [],
-  );
 
   // Inclui todas as equipes encontradas nas fontes, inclusive as que ainda
   // não têm dados suficientes para serem retornadas pela lógica de resultados.
@@ -378,7 +367,11 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     );
   }
 
-  return (
+  const resultadoTodos = useResultadoFinal(
+  patients ?? [], tratamentoPatients ?? [], tab3Patients ?? [],
+  tab4Patients ?? [], tab5Patients ?? [], tab6Patients ?? [],
+  "todos", "all", denominadorB1Data ?? { porEquipe: {}, total: 0 }, oficialData, [],
+);  return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-card shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-[14px] py-[14px]">
