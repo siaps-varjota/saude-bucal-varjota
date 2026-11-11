@@ -16,6 +16,7 @@ import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4
 import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal } from "@/hooks/useResultadoFinal";
+import { PrioridadesIA } from "@/components/dashboard/PrioridadesIA";
 import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/components/LoginPage";
@@ -101,6 +102,17 @@ const ResultadoFinalWrapper = ({
     tab4Patients, tab5Patients, tab6Patients,
     quadrimestre, equipeResultado, denominadorB1Data,
     oficialData, mesesFiltro,
+  );
+  const resultadoTodos = useResultadoFinal(
+    patients, tratamentoPatients, tab3Patients,
+    tab4Patients, tab5Patients, tab6Patients,
+    "todos", "all", denominadorB1Data, oficialData, [],
+  );
+
+  const resultadoTodos = useResultadoFinal(
+    patients, tratamentoPatients, tab3Patients,
+    tab4Patients, tab5Patients, tab6Patients,
+    "todos", "all", denominadorB1Data, oficialData, [],
   );
 
   // Inclui todas as equipes encontradas nas fontes, inclusive as que ainda
@@ -475,6 +487,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               </div>
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
             </div>
+            {resultadoTodos.porEquipe.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadoTodos.porEquipe} indicador="1ª Consulta Odontológica" /></div>}
           </TabsContent>
 
           {/* ── Tab 2 ─────────────────────────────────────────────────────── */}
@@ -620,6 +633,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               </div>
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
+            {resultadoTodos.porEquipe.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadoTodos.porEquipe} indicador="Taxa de Exodontias" /></div>}
           </TabsContent>
 
           {/* ── Tab 4 ─────────────────────────────────────────────────────── */}
@@ -759,6 +773,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               </div>
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
+            {resultadoTodos.porEquipe.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadoTodos.porEquipe} indicador="Proced. Odont. Preventivos" /></div>}
           </TabsContent>
 
           {/* ── Tab 6 ─────────────────────────────────────────────────────── */}

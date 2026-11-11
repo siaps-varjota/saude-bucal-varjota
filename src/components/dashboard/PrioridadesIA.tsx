@@ -24,7 +24,7 @@ const NIVEL: Record<Prioridade["nivel"], { label: string; cls: string }> = {
 
 const CONCEITO: Record<string, string> = { regular: "Regular", suficiente: "Suficiente", bom: "Bom", otimo: "Ótimo", none: "Sem dado" };
 
-export const PrioridadesIA = ({ resultados }: { resultados: EquipeResult[] }) => {
+export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeResult[]; indicador?: string }) => {
   const equipes = useMemo(() => [...new Set(resultados.map(r => r.equipe))].sort(), [resultados]);
   const meses = useMemo(() => {
     const s = new Set<string>();
@@ -59,7 +59,7 @@ export const PrioridadesIA = ({ resultados }: { resultados: EquipeResult[] }) =>
       .map(r => ({
         equipe: r.equipe,
         notaFinal: Number(r.notaFinal.toFixed(2)),
-        indicadores: r.indicadores.map(i => ({
+        indicadores: r.indicadores.filter(i => !indicador || i.indicador === indicador).map(i => ({
           indicador: i.indicador,
           peso: i.peso,
           conceitoPeriodo: CONCEITO[i.conceito] ?? i.conceito,
@@ -72,7 +72,7 @@ export const PrioridadesIA = ({ resultados }: { resultados: EquipeResult[] }) =>
             .map(m => ({ mes: m.mes, numerador: m.numerador, denominador: m.denominador, percentual: Number(m.porcentagem.toFixed(1)), fonte: m.fonte })),
         })),
       }));
-  }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes]);
+  }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes, indicador]);
 
   const analisar = async () => {
     setLoading(true); setErro(null); setRes(null);
@@ -93,7 +93,7 @@ export const PrioridadesIA = ({ resultados }: { resultados: EquipeResult[] }) =>
     <Card className="border-border/50 shadow-md">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" /> Prioridades e ações sugeridas (IA)
+          <Sparkles className="h-4 w-4 text-primary" /> Prioridades e ações sugeridas (IA){indicador ? ` — ${indicador}` : ""}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           Escolha as equipes, o quadrimestre e os meses; a IA aponta onde acompanhar primeiro e o que fazer para chegar mais perto das metas.
