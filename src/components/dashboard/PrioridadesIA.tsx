@@ -6,7 +6,7 @@ import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
-import type { EquipeResult } from "@/hooks/useResultadoFinal";
+import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
 
 interface Prioridade {
   equipe: string;
@@ -58,19 +58,23 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
       .filter(r => eqs.includes(r.equipe) && !vistos.has(r.equipe) && vistos.add(r.equipe))
       .map(r => ({
         equipe: r.equipe,
-        notaFinal: Number(r.notaFinal.toFixed(2)),
-        indicadores: r.indicadores.filter(i => !indicador || i.indicador === indicador).map(i => ({
-          indicador: i.indicador,
-          peso: i.peso,
-          conceitoPeriodo: CONCEITO[i.conceito] ?? i.conceito,
-          percentualPeriodo: Number(i.porcentagem.toFixed(1)),
-          meses: i.mesesDetalhe
-            .filter(m =>
-              (selMeses.length === 0 || selMeses.includes(m.mes)) &&
-              (mesesDosQuads === null || mesesDosQuads.has(m.mes))
-            )
-            .map(m => ({ mes: m.mes, numerador: m.numerador, denominador: m.denominador, percentual: Number(m.porcentagem.toFixed(1)), fonte: m.fonte })),
-        })),
+        indicadores: r.indicadores.filter(i => !indicador || i.indicador === indicador).map(i => {
+          const mesesSel = i.mesesDetalhe.filter(m =>
+            (selMeses.length === 0 || selMeses.includes(m.mes)) &&
+            (mesesDosQuads === null || mesesDosQuads.has(m.mes))
+          );
+          const comDado = mesesSel.filter(m => m.denominador > 0);
+          const pct = comDado.length ? comDado.reduce((s, m) => s + m.porcentagem, 0) / comDado.length : 0;
+          return {
+            indicador: i.indicador,
+            peso: i.peso,
+            conceitoPeriodo: comDado.length ? (CONCEITO[conceitoPorIndicador(i.indicador, pct)] ?? "Sem dado") : "Sem dado",
+            percentualPeriodo: Number(pct.toFixed(1)),
+            numeradorPeriodo: mesesSel.reduce((s, m) => s + m.numerador, 0),
+            denominadorPeriodo: mesesSel.reduce((s, m) => s + m.denominador, 0),
+            meses: mesesSel.map(m => ({ mes: m.mes, numerador: m.numerador, denominador: m.denominador, percentual: Number(m.porcentagem.toFixed(1)), fonte: m.fonte })),
+          };
+        }).filter(i => i.meses.length > 0),
       }));
   }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes, indicador]);
 

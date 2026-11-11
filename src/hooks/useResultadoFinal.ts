@@ -848,3 +848,7 @@ export function useResultadoFinal(
 
   return { geral, porEquipe };
 }
+
+/** Conceito de um indicador (pelo rótulo) para um percentual já calculado. */
+export const conceitoPorIndicador = (label: string, pct: number): Conceito =>
+  INDICADORES.find((i) => i.label === label)?.getConceito(pct) ?? "none";
