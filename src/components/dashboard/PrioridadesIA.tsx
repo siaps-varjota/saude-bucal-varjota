@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import type { EquipeResult } from "@/hooks/useResultadoFinal";
 
 interface Prioridade {
@@ -34,6 +35,18 @@ export const PrioridadesIA = ({ resultados }: { resultados: EquipeResult[] }) =>
 
   const [selEquipes, setSelEquipes] = useState<string[]>([]);
   const [selMeses, setSelMeses] = useState<string[]>([]);
+  const [selQuads, setSelQuads] = useState<string[]>([]);
+
+  const mesesDosQuads = useMemo(() => {
+    if (selQuads.length === 0) return null;
+    const set = new Set<string>();
+    selQuads.forEach(q => {
+      const [qn, ano] = q.split("-");
+      const nums = qn === "Q1" ? [1, 2, 3, 4] : qn === "Q2" ? [5, 6, 7, 8] : [9, 10, 11, 12];
+      nums.forEach(n => set.add(`${String(n).padStart(2, "0")}/${ano}`));
+    });
+    return set;
+  }, [selQuads]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [res, setRes] = useState<{ resumo: string; prioridades: Prioridade[] } | null>(null);
@@ -52,11 +65,14 @@ export const PrioridadesIA = ({ resultados }: { resultados: EquipeResult[] }) =>
           conceitoPeriodo: CONCEITO[i.conceito] ?? i.conceito,
           percentualPeriodo: Number(i.porcentagem.toFixed(1)),
           meses: i.mesesDetalhe
-            .filter(m => selMeses.length === 0 || selMeses.includes(m.mes))
+            .filter(m =>
+              (selMeses.length === 0 || selMeses.includes(m.mes)) &&
+              (mesesDosQuads === null || mesesDosQuads.has(m.mes))
+            )
             .map(m => ({ mes: m.mes, numerador: m.numerador, denominador: m.denominador, percentual: Number(m.porcentagem.toFixed(1)), fonte: m.fonte })),
         })),
       }));
-  }, [resultados, selEquipes, selMeses, equipes]);
+  }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes]);
 
   const analisar = async () => {
     setLoading(true); setErro(null); setRes(null);
@@ -80,12 +96,13 @@ export const PrioridadesIA = ({ resultados }: { resultados: EquipeResult[] }) =>
           <Sparkles className="h-4 w-4 text-primary" /> Prioridades e ações sugeridas (IA)
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Escolha as equipes e os meses; a IA aponta onde acompanhar primeiro e o que fazer para chegar mais perto das metas.
+          Escolha as equipes, o quadrimestre e os meses; a IA aponta onde acompanhar primeiro e o que fazer para chegar mais perto das metas.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] items-end">
           <MultiSelect options={equipes.map(e => ({ value: e, label: e }))} value={selEquipes} onChange={setSelEquipes} placeholderAll="Todas as equipes" width="w-full" />
+          <MultiSelect options={QUADRIMESTRE_OPTIONS_SEM_TODOS.map(q => ({ value: q.value, label: q.label }))} value={selQuads} onChange={setSelQuads} placeholderAll="Todos os quadrimestres" width="w-full" />
           <MultiSelect options={meses.map(m => ({ value: m, label: m }))} value={selMeses} onChange={setSelMeses} placeholderAll="Todos os meses" width="w-full" />
           <Button onClick={analisar} disabled={loading || dados.length === 0}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
