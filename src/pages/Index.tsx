@@ -1,7 +1,8 @@
 import { useOficialData } from "@/hooks/useOficialData";
 import { OficialData } from "@/hooks/useOficialData";
 import { useState, useMemo, useEffect } from "react";
-import { parse, isValid } from "date-fns";
+import { isValid } from "date-fns";
+import { parse } from "@/lib/fastParse";
 import { extractMesesFromDates, extractMesesFromMesAno } from "@/lib/mesReferenciaUtils";
 import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
@@ -236,17 +237,31 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const mesRefOptionsTab5       = useMemo(() => !tab5Patients        ? [] : extractMesesFromMesAno(tab5Patients.map(r => r.mesAno)),                [tab5Patients]);
   const mesRefOptionsTab6       = useMemo(() => !tab6Patients        ? [] : extractMesesFromMesAno(tab6Patients.map(r => r.mesAno)),                [tab6Patients]);
 
-  const filteredPatients         = useFilteredPatients(patients || [], filtersConsulta);
-  const filteredPatientsNoQuad   = useFilteredPatients(patients || [], { ...filtersConsulta, quadrimestres: [] });
-  const filteredTratamento       = useFilteredTratamento(tratamentoPatients || [], filtersTratamento);
-  const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestres: [] });
-  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoPatients || [], { ...filtersTratamento, quadrimestres: [], mesReferencia: [] });
-  const filteredTab3             = useFilteredTab3(tab3Patients || [], filtersTab3);
-  const filteredTab4             = useFilteredTab4(tab4Patients || [], filtersTab4);
-  const filteredTab4NoQuad       = useFilteredTab4(tab4Patients || [], { ...filtersTab4, quadrimestres: [] });
-  const filteredTab5             = useFilteredTab5(tab5Patients || [], filtersTab5);
-  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoPatients || [], { equipes: filtersTab5.equipes, microareas: [], status: "all", quadrimestres: [], mesReferencia: [] });
-  const filteredTab6             = useFilteredTab6(tab6Patients || [], filtersTab6);
+  // Arrays/objetos estáveis: evita recalcular filtros a cada render.
+  const patientsSafe   = useMemo(() => patients || [], [patients]);
+  const tratamentoSafe = useMemo(() => tratamentoPatients || [], [tratamentoPatients]);
+  const tab3Safe       = useMemo(() => tab3Patients || [], [tab3Patients]);
+  const tab4Safe       = useMemo(() => tab4Patients || [], [tab4Patients]);
+  const tab5Safe       = useMemo(() => tab5Patients || [], [tab5Patients]);
+  const tab6Safe       = useMemo(() => tab6Patients || [], [tab6Patients]);
+
+  const filtersConsultaNoQuad     = useMemo<FilterState>(() => ({ ...filtersConsulta, quadrimestres: [] }), [filtersConsulta]);
+  const filtersTratamentoNoQuad   = useMemo<FilterState>(() => ({ ...filtersTratamento, quadrimestres: [] }), [filtersTratamento]);
+  const filtersTratamentoSemMes   = useMemo<FilterState>(() => ({ ...filtersTratamento, quadrimestres: [], mesReferencia: [] }), [filtersTratamento]);
+  const filtersTab4NoQuad         = useMemo<FilterState>(() => ({ ...filtersTab4, quadrimestres: [] }), [filtersTab4]);
+  const filtersTratamentoByTab5   = useMemo<FilterState>(() => ({ equipes: filtersTab5.equipes, microareas: [], status: "all", quadrimestres: [], mesReferencia: [] }), [filtersTab5.equipes]);
+
+  const filteredPatients         = useFilteredPatients(patientsSafe, filtersConsulta);
+  const filteredPatientsNoQuad   = useFilteredPatients(patientsSafe, filtersConsultaNoQuad);
+  const filteredTratamento       = useFilteredTratamento(tratamentoSafe, filtersTratamento);
+  const filteredTratamentoNoQuad = useFilteredTratamento(tratamentoSafe, filtersTratamentoNoQuad);
+  const filteredTratamentoSemMes = useFilteredTratamento(tratamentoSafe, filtersTratamentoSemMes);
+  const filteredTab3             = useFilteredTab3(tab3Safe, filtersTab3);
+  const filteredTab4             = useFilteredTab4(tab4Safe, filtersTab4);
+  const filteredTab4NoQuad       = useFilteredTab4(tab4Safe, filtersTab4NoQuad);
+  const filteredTab5             = useFilteredTab5(tab5Safe, filtersTab5);
+  const filteredTratamentoByTab5 = useFilteredTratamento(tratamentoSafe, filtersTratamentoByTab5);
+  const filteredTab6             = useFilteredTab6(tab6Safe, filtersTab6);
 
   const patientsByEquipe = useMemo(() =>
     (patients || []).filter(p => filtersConsulta.equipes.length === 0 || filtersConsulta.equipes.includes(p.equipe)),
@@ -355,6 +370,17 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
     !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
 
+  // Prioridades (IA) só são usadas nas abas 1, 3 e 5: não calcula nas demais.
+  const precisaResultadosIA = ["consulta", "tab3", "tab5"].includes(activeTab);
+  const resultadosIA = useMemo(
+    () => !precisaResultadosIA || !denominadorB1Data ? [] : resultadoComTodosOsMeses(
+      patients ?? [], tratamentoPatients ?? [], tab3Patients ?? [],
+      tab4Patients ?? [], tab5Patients ?? [], tab6Patients ?? [],
+      "todos", "all", denominadorB1Data, oficialData, [],
+    ),
+    [precisaResultadosIA, patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData],
+  );
+
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -367,16 +393,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     );
   }
 
-  const resultadoTodos = useResultadoFinal(
-  patients ?? [], tratamentoPatients ?? [], tab3Patients ?? [],
-  tab4Patients ?? [], tab5Patients ?? [], tab6Patients ?? [],
-  "todos", "all", denominadorB1Data ?? { porEquipe: {}, total: 0 }, oficialData, [],
-);
-  const resultadosIA = resultadoComTodosOsMeses(
-  patients ?? [], tratamentoPatients ?? [], tab3Patients ?? [],
-  tab4Patients ?? [], tab5Patients ?? [], tab6Patients ?? [],
-  "todos", "all", denominadorB1Data ?? { porEquipe: {}, total: 0 }, oficialData, [],
-);  return (
+  return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-card shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-[14px] py-[14px]">
@@ -423,6 +440,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
 
           {/* ── Tab 1 ─────────────────────────────────────────────────────── */}
           <TabsContent value="consulta" className="mt-6">
+            {activeTab === "consulta" && (<>
             {!isLoadingPatients && patients && (
               <div className="mb-6">
                 <PatientFilters
@@ -486,10 +504,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
             </div>
             {resultadosIA.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadosIA} indicador="1ª Consulta Odontológica" /></div>}
+          </>)}
           </TabsContent>
 
           {/* ── Tab 2 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tratamento" className="mt-6">
+            {activeTab === "tratamento" && (<>
             {!isLoadingTratamento && tratamentoPatients && (
               <div className="mb-6">
                 <PatientFilters
@@ -570,10 +590,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               </div>
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamento} />}
             </div>
+          </>)}
           </TabsContent>
 
           {/* ── Tab 3 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab3" className="mt-6">
+            {activeTab === "tab3" && (<>
             {!isLoadingTab3 && tab3Patients && (
               <div className="mb-6">
                 <PatientFilters
@@ -632,10 +654,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
             {resultadosIA.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadosIA} indicador="Taxa de Exodontias" /></div>}
+          </>)}
           </TabsContent>
 
           {/* ── Tab 4 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab4" className="mt-6">
+            {activeTab === "tab4" && (<>
             {!isLoadingTab4 && tab4Patients && (
               <div className="mb-6">
                 <PatientFilters
@@ -698,10 +722,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               </div>
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
+          </>)}
           </TabsContent>
 
           {/* ── Tab 5 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab5" className="mt-6">
+            {activeTab === "tab5" && (<>
             {!isLoadingTab5 && tab5Patients && (
               <div className="mb-6">
                 <PatientFilters
@@ -772,10 +798,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
             {resultadosIA.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadosIA} indicador="Proced. Odont. Preventivos" /></div>}
+          </>)}
           </TabsContent>
 
           {/* ── Tab 6 ─────────────────────────────────────────────────────── */}
           <TabsContent value="tab6" className="mt-6">
+            {activeTab === "tab6" && (<>
             {!isLoadingTab6 && tab6Patients && (
               <div className="mb-6">
                 <PatientFilters
@@ -833,10 +861,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
               </div>
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
+          </>)}
           </TabsContent>
 
           {/* ── Tab 7 ─────────────────────────────────────────────────────── */}
           <TabsContent value="resultado" className="mt-6">
+            {activeTab === "resultado" && (<>
             {!resultadoPronto ? (
               <div className="space-y-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
             ) : (
@@ -856,10 +886,12 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 onEquipeChange={setEquipeResultado}
               />
             )}
+          </>)}
           </TabsContent>
 
           {/* ── Tab 8: Análises ───────────────────────────────────────────── */}
           <TabsContent value="analises" className="mt-6">
+            {activeTab === "analises" && (<>
             {!resultadoPronto ? (
               <div className="space-y-4">{[...Array(2)].map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}</div>
             ) : (
@@ -875,6 +907,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 oficialData={oficialData}
               />
             )}
+          </>)}
           </TabsContent>
         </Tabs>
       </main>
