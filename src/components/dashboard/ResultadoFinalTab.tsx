@@ -155,20 +155,31 @@ const MetaQuadrimestreCard = ({
   capMensal?: number;
 }) => {
   const periodoMeses = useContext(PeriodoMesesContext);
-  const metaBomAgg   = strictMeta(denominador, thresholds.thresholdBom);
-  const metaOtimoAgg = strictMeta(denominador, thresholds.thresholdOtimo);
   const unit      = thresholds.unit || "atend.";
 
-  // "Faltam" no quadrimestre: SOMATÓRIO do período (numerador total / denominador total).
-  const faltamBom   = calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0);
-  const faltamOtimo = calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0);
-  // "Faltam" no mês: média dos percentuais mensais (soma no último mês com dado).
+  // Mesma metodologia do Tratamento Concluído: o denominador do período é a SOMA
+  // dos meses já decorridos (e não a projeção do quadrimestre inteiro, como B1/B4
+  // trazem em `denominador`). Assim, quem já está Ótimo pela média mensal não
+  // aparece como "faltando" por causa de um denominador de 4 meses.
   const mesesLista = (meses ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
+  const mesesComDado = mesesLista.filter(m => m.den > 0);
+  const denEfetivo = mesesComDado.length > 0
+    ? mesesComDado.reduce((s, m) => s + m.den, 0)
+    : denominador;
+  const mesesBase = mesesComDado.length > 0 ? mesesComDado.length : periodoMeses;
+
+  const metaBomAgg   = strictMeta(denEfetivo, thresholds.thresholdBom);
+  const metaOtimoAgg = strictMeta(denEfetivo, thresholds.thresholdOtimo);
+
+  // "Faltam" no período: SOMATÓRIO dos meses decorridos (numerador total / denominador total).
+  const faltamBom   = calcFaltamShared(numerador, denEfetivo, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0);
+  const faltamOtimo = calcFaltamShared(numerador, denEfetivo, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0);
+  // "Faltam" no mês: média dos percentuais mensais (soma no último mês com dado).
   // Cada conceito é calculado de forma independente pela média mensal; quando o
-  // último mês não alcança o alvo (null), vale só o somatório do quadrimestre.
+  // último mês não alcança o alvo (null), vale só o somatório do período.
   const mBom   = calcFaltamMediaMensal(mesesLista, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0, capMensal) ?? 0;
   const mOtimo = calcFaltamMediaMensal(mesesLista, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0, capMensal) ?? 0;
-  // Prevalece o MAIOR "Faltam" entre a regra mensal (média) e a do quadrimestre (somatório).
+  // Prevalece o MAIOR "Faltam" entre a regra mensal (média) e a do período (somatório).
   const faltamFinalBom   = Math.max(faltamBom, mBom);
   const faltamFinalOtimo = Math.max(faltamOtimo, mOtimo, faltamFinalBom);
   const dnMeta = deltaNum ?? 1;
@@ -199,7 +210,7 @@ const MetaQuadrimestreCard = ({
           {periodoMeses === 1 ? "Meta do Mês" : periodoMeses === 4 ? "Meta do Quadrimestre" : `Meta do Período (${periodoMeses} meses)`}
         </span>
         <span className="text-xs text-muted-foreground ml-0.5">
-          de {denominador.toLocaleString("pt-BR")}
+          de {denEfetivo.toLocaleString("pt-BR")}
         </span>
       </div>
 
@@ -210,8 +221,8 @@ const MetaQuadrimestreCard = ({
             {metaBom.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
           </p>
-          <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / periodoMeses).toFixed(1)}</p>
-          <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (periodoMeses * 4.33)).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / mesesBase).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (mesesBase * 4.33)).toFixed(1)}</p>
           {renderFaltam(faltamFinalBom, "text-emerald-600")}
         </div>
         <div>
@@ -220,8 +231,8 @@ const MetaQuadrimestreCard = ({
             {metaOtimo.toLocaleString("pt-BR")}{" "}
             <span className="text-sm font-normal">{unit}</span>
           </p>
-          <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / periodoMeses).toFixed(1)}</p>
-          <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (periodoMeses * 4.33)).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / mesesBase).toFixed(1)}</p>
+          <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (mesesBase * 4.33)).toFixed(1)}</p>
           {renderFaltam(faltamFinalOtimo, "text-blue-600")}
         </div>
       </div>
