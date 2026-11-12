@@ -174,14 +174,23 @@ const MetaQuadrimestreCard = ({
   // "Faltam" no período: SOMATÓRIO dos meses decorridos (numerador total / denominador total).
   const faltamBom   = calcFaltamShared(numerador, denEfetivo, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0);
   const faltamOtimo = calcFaltamShared(numerador, denEfetivo, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0);
-  // "Faltam" no mês: média dos percentuais mensais (soma no último mês com dado).
-  // Cada conceito é calculado de forma independente pela média mensal; quando o
-  // último mês não alcança o alvo (null), vale só o somatório do período.
-  const mBom   = calcFaltamMediaMensal(mesesLista, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0, capMensal) ?? 0;
-  const mOtimo = calcFaltamMediaMensal(mesesLista, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0, capMensal) ?? 0;
-  // Prevalece o MAIOR "Faltam" entre a regra mensal (média) e a do período (somatório).
-  const faltamFinalBom   = Math.max(faltamBom, mBom);
-  const faltamFinalOtimo = Math.max(faltamOtimo, mOtimo, faltamFinalBom);
+  // Percentual do período = média dos percentuais mensais (é ele que define o conceito).
+  const mediaMensal = mesesComDado.length > 0
+    ? mesesComDado.reduce((s, m) => s + (capMensal != null ? Math.min(capMensal, m.num / m.den) : m.num / m.den), 0) / mesesComDado.length
+    : (denEfetivo > 0 ? numerador / denEfetivo : 0);
+
+  // Mesma metodologia do Tratamento Concluído: o "Faltam" vem do SOMATÓRIO do
+  // período. A regra da média mensal (tudo somado no último mês) só entra quando o
+  // somatório já bateu a meta mas a média ainda não, e é descartada se exigir um
+  // valor inviável (ex.: B5 pedindo dezenas de milhares de procedimentos).
+  const faltamPeriodo = (threshold: number, agg: number): number => {
+    if (mediaMensal > threshold) return 0;                 // conceito já atingido pela média
+    if (agg > 0) return agg;                               // somatório ainda não atingiu
+    const m = calcFaltamMediaMensal(mesesLista, threshold, deltaNum ?? 1, deltaDenom ?? 0, capMensal);
+    return m !== null && m > 0 ? m : 1;
+  };
+  const faltamFinalBom   = faltamPeriodo(thresholds.thresholdBom, faltamBom);
+  const faltamFinalOtimo = Math.max(faltamPeriodo(thresholds.thresholdOtimo, faltamOtimo), faltamFinalBom);
   const dnMeta = deltaNum ?? 1;
   // Meta exibida = resultado atual + o que falta, para meta e "Faltam" sempre baterem.
   const metaBom   = faltamFinalBom   > 0 ? numerador + faltamFinalBom   * dnMeta : metaBomAgg;
