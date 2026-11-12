@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Filter } from "lucide-react";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
-import { useResultadoFinal as computeResultadoFinal, EquipeResult } from "@/hooks/useResultadoFinal";
+import { useResultadoFinal as computeResultadoFinal, resultadoComTodosOsMeses, EquipeResult } from "@/hooks/useResultadoFinal";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Tab3Record } from "@/hooks/useTab3Data";
@@ -57,10 +57,10 @@ export const AnalisesTab = ({
   }, [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData, quads]);
 
   // Todos os meses disponíveis, para a análise por IA
-  const resultadosTodos = useMemo(() => computeResultadoFinal(
+  const resultadosTodos = useMemo(() => resultadoComTodosOsMeses(
     patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients,
     "todos", "all", denominadorB1Data, oficialData, [],
-  ).porEquipe,
+  ),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData]);
 

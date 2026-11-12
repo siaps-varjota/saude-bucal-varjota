@@ -6,7 +6,7 @@ import { Tab3Record } from "@/hooks/useTab3Data";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
-import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import { OficialData, makeOficialKey, normalizeMes, normalizeEquipe } from "@/hooks/useOficialData";
 import { pontosDesempateIndicador, normalizarIndicador, IndicadorKey } from "@/lib/desempateScore";
 
@@ -852,3 +852,29 @@ export function useResultadoFinal(
 /** Conceito de um indicador (pelo rótulo) para um percentual já calculado. */
 export const conceitoPorIndicador = (label: string, pct: number): Conceito =>
   INDICADORES.find((i) => i.label === label)?.getConceito(pct) ?? "none";
+
+
+/**
+ * Resultado "todos" com o detalhamento mensal preenchido: o período "todos"
+ * não gera meses, então juntamos os meses calculados em cada quadrimestre.
+ */
+export function resultadoComTodosOsMeses(
+  ...args: Parameters<typeof useResultadoFinal>
+): EquipeResult[] {
+  const [p, t, t3, t4, t5, t6, , eq, den, of] = args;
+  const base = useResultadoFinal(p, t, t3, t4, t5, t6, "todos", eq, den, of, []).porEquipe;
+  const quads = QUADRIMESTRE_OPTIONS_SEM_TODOS.map(q =>
+    useResultadoFinal(p, t, t3, t4, t5, t6, q.value as Quadrimestre, eq, den, of, []).porEquipe);
+  return base.map(r => ({
+    ...r,
+    indicadores: r.indicadores.map(i => {
+      const vistos = new Set<string>();
+      const meses: MesDetalhe[] = [];
+      quads.forEach(qr => qr.find(x => x.equipe === r.equipe)?.indicadores
+        .find(x => x.indicador === i.indicador)?.mesesDetalhe.forEach(m => {
+          if (!vistos.has(m.mes)) { vistos.add(m.mes); meses.push(m); }
+        }));
+      return { ...i, mesesDetalhe: meses };
+    }),
+  }));
+}

@@ -22,6 +22,9 @@ const NIVEL: Record<Prioridade["nivel"], { label: string; cls: string }> = {
   baixa: { label: "Baixa", cls: "bg-muted text-muted-foreground border-border" },
 };
 
+const MESES_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const mesNumero = (m: string) => { const i = MESES_ABBR.indexOf(m); return i >= 0 ? i + 1 : Number(m); };
+
 const CONCEITO: Record<string, string> = { regular: "Regular", suficiente: "Suficiente", bom: "Bom", otimo: "Ótimo", none: "Sem dado" };
 
 export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeResult[]; indicador?: string }) => {
@@ -29,7 +32,7 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
   const meses = useMemo(() => {
     const s = new Set<string>();
     resultados.forEach(r => r.indicadores.forEach(i => i.mesesDetalhe.forEach(m => s.add(m.mes))));
-    const key = (m: string) => { const [mm, yy] = m.split("/"); return Number(yy) * 100 + Number(mm); };
+    const key = (m: string) => { const [mm, yy] = m.split("/"); return Number(yy) * 100 + mesNumero(mm); };
     return [...s].sort((a, b) => key(a) - key(b));
   }, [resultados]);
 
@@ -43,7 +46,7 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
     selQuads.forEach(q => {
       const [qn, ano] = q.split("-");
       const nums = qn === "Q1" ? [1, 2, 3, 4] : qn === "Q2" ? [5, 6, 7, 8] : [9, 10, 11, 12];
-      nums.forEach(n => set.add(`${String(n).padStart(2, "0")}/${ano}`));
+      nums.forEach(n => { set.add(`${String(n).padStart(2, "0")}/${ano}`); set.add(`${MESES_ABBR[n - 1]}/${ano}`); });
     });
     return set;
   }, [selQuads]);
