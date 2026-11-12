@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { parse, isValid, differenceInYears } from "date-fns";
+import { isValid, differenceInYears } from "date-fns";
+import { parse } from "@/lib/fastParse";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { FilterState } from "@/components/dashboard/PatientFilters";
 import { filterTratamentoByQuadrimestre } from "./useQuadrimesterFilter";

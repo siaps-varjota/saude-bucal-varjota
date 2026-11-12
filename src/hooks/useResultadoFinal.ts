@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { percentualB2 } from "@/lib/b2Percentage";
-import { parse, isValid, getMonth, getYear, format } from "date-fns";
+import { isValid, getMonth, getYear, format } from "date-fns";
+import { parse } from "@/lib/fastParse";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Tab3Record } from "@/hooks/useTab3Data";
@@ -754,7 +756,7 @@ function calcB6(
 }
 
 // ── hook principal ────────────────────────────────────────────────────────────
-export function useResultadoFinal(
+export function calcularResultadoFinal(
   patients: Patient[],
   tratamento: TratamentoPatient[],
   tab3: Tab3Record[],
@@ -849,6 +851,28 @@ export function useResultadoFinal(
   return { geral, porEquipe };
 }
 
+/** Versão memoizada: só recalcula quando os dados ou filtros realmente mudam. */
+export function useResultadoFinal(
+  patients: Patient[],
+  tratamento: TratamentoPatient[],
+  tab3: Tab3Record[],
+  tab4: Tab4Patient[],
+  tab5: Tab5Record[],
+  tab6: Tab6Record[],
+  quad: Quadrimestre = "todos",
+  equipeFilter: string = "all",
+  denominadorB1: { porEquipe: Record<string, number>; total: number },
+  oficialData?: OficialData,
+  mesesFiltro: string[] = [],
+) {
+  const mesesKey = mesesFiltro.join("|");
+  return useMemo(
+    () => calcularResultadoFinal(patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1, oficialData, mesesFiltro),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [patients, tratamento, tab3, tab4, tab5, tab6, quad, equipeFilter, denominadorB1, oficialData, mesesKey],
+  );
+}
+
 /** Conceito de um indicador (pelo rótulo) para um percentual já calculado. */
 export const conceitoPorIndicador = (label: string, pct: number): Conceito =>
   INDICADORES.find((i) => i.label === label)?.getConceito(pct) ?? "none";
@@ -859,12 +883,12 @@ export const conceitoPorIndicador = (label: string, pct: number): Conceito =>
  * não gera meses, então juntamos os meses calculados em cada quadrimestre.
  */
 export function resultadoComTodosOsMeses(
-  ...args: Parameters<typeof useResultadoFinal>
+  ...args: Parameters<typeof calcularResultadoFinal>
 ): EquipeResult[] {
   const [p, t, t3, t4, t5, t6, , eq, den, of] = args;
-  const base = useResultadoFinal(p, t, t3, t4, t5, t6, "todos", eq, den, of, []).porEquipe;
+  const base = calcularResultadoFinal(p, t, t3, t4, t5, t6, "todos", eq, den, of, []).porEquipe;
   const quads = QUADRIMESTRE_OPTIONS_SEM_TODOS.map(q =>
-    useResultadoFinal(p, t, t3, t4, t5, t6, q.value as Quadrimestre, eq, den, of, []).porEquipe);
+    calcularResultadoFinal(p, t, t3, t4, t5, t6, q.value as Quadrimestre, eq, den, of, []).porEquipe);
   return base.map(r => ({
     ...r,
     indicadores: r.indicadores.map(i => {
