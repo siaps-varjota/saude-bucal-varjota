@@ -6,6 +6,7 @@ import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
+import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
 
 interface Prioridade {
@@ -53,6 +54,7 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [res, setRes] = useState<{ resumo: string; prioridades: Prioridade[] } | null>(null);
+  const [usouFallback, setUsouFallback] = useState(false);
 
   const dados = useMemo(() => {
     const eqs = selEquipes.length ? selEquipes : equipes;
@@ -83,7 +85,7 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
   }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes, indicador]);
 
   const analisar = async () => {
-    setErro(null); setRes(null);
+    setErro(null); setRes(null); setUsouFallback(false);
     if (dados.length === 0) {
       setErro("Nenhuma equipe tem resultados nos meses escolhidos. Escolha outro período ou outra equipe.");
       return;
@@ -96,7 +98,14 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
       if (!msg && error && "context" in error) {
         try { msg = (await (error as { context: Response }).context.json())?.error; } catch { /* ignore */ }
       }
-      setErro(msg ?? "Não foi possível gerar a análise agora.");
+      // IA indisponível (sem créditos, limite, falha do serviço): usa regras fixas.
+      const iaIndisponivel = !msg || /créditos|muitas solicitações|não foi possível|falha ao processar/i.test(msg);
+      if (iaIndisponivel) {
+        setRes(gerarPrioridadesFallback(dados));
+        setUsouFallback(true);
+        return;
+      }
+      setErro(msg);
       return;
     }
     setRes(data);
@@ -142,7 +151,11 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
                 </ul>
               </div>
             ))}
-            <p className="text-[11px] text-muted-foreground">Sugestões geradas por IA — revise com a equipe antes de aplicar.</p>
+            <p className="text-[11px] text-muted-foreground">
+              {usouFallback
+                ? "A IA está indisponível no momento: estas sugestões seguem regras fixas e são mais genéricas. Revise com a equipe antes de aplicar."
+                : "Sugestões geradas por IA — revise com a equipe antes de aplicar."}
+            </p>
           </div>
         )}
       </CardContent>
