@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { limitarPercentualB2, percentualB2 } from "@/lib/b2Percentage";
 import { calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
-import { useResultadoFinal } from "@/hooks/useResultadoFinal";
+import { calcularResultadoFinal } from "@/hooks/useResultadoFinal";
 import { makeOficialKey, type OficialData, type OficialRow } from "@/hooks/useOficialData";
 import type { TratamentoPatient } from "@/hooks/useTratamentoData";
 
@@ -32,7 +32,7 @@ describe("B2 ceiling", () => {
     const oficialData: OficialData = {
       rows, index: new Map(rows.map(row => [makeOficialKey(row.mes, row.equipe), row])),
     };
-    const { porEquipe } = useResultadoFinal([], tratamento, [], [], [], [], "Q2-2026", "all", { porEquipe: {}, total: 0 }, oficialData);
+    const { porEquipe } = calcularResultadoFinal([], tratamento, [], [], [], [], "Q2-2026", "all", { porEquipe: {}, total: 0 }, oficialData);
     const b2 = porEquipe[0]?.indicadores.find(ind => ind.indicador === "Tratamento Concluído");
     expect(b2?.mesesDetalhe[3]?.porcentagem).toBe(100);
     expect(b2?.porcentagem).toBeCloseTo((37 / 56 * 100 + 43 / 65 * 100 + 49 / 86 * 100 + 100) / 4);
