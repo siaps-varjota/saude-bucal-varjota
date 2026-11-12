@@ -1,4 +1,5 @@
-import { parse, isValid, format } from "date-fns";
+import { isValid, format } from "date-fns";
+import { parse } from "@/lib/fastParse";
 
 const MONTH_MAP: Record<string, string> = {
   "janeiro": "01", "fevereiro": "02", "março": "03", "abril": "04",
