@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Calendar } from "lucide-react";
-import { format, parse, subMonths, isValid } from "date-fns";
+import { format, subMonths, isValid } from "date-fns";
+import { parse } from "@/lib/fastParse";
 import { ptBR } from "date-fns/locale";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";

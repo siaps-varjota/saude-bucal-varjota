@@ -13,7 +13,8 @@ import {
   Search, ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { parse, isValid } from "date-fns";
+import { isValid } from "date-fns";
+import { parse } from "@/lib/fastParse";
 
 interface TratamentoTableProps {
   patients: TratamentoPatient[];

@@ -11,7 +11,8 @@ import {
 import { Patient } from "@/hooks/usePatientData";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { parse, isValid } from "date-fns";
+import { isValid } from "date-fns";
+import { parse } from "@/lib/fastParse";
 
 type SortKey = "id" | "nome" | "equipe" | "microarea" | "idade" | "sexo" | "primeiraConsulta" | "comPrimeiraConsulta";
 type SortDirection = "asc" | "desc" | null;

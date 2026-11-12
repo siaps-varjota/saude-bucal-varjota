@@ -1,7 +1,8 @@
 import { percentualB2 } from "@/lib/b2Percentage";
 import { useMemo } from "react";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
-import { parse, isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
+import { isValid, startOfMonth, endOfMonth, isWithinInterval, format } from "date-fns";
+import { parse } from "@/lib/fastParse";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";

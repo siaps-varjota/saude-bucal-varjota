@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Patient } from "@/hooks/usePatientData";
 import { CalendarDays, Target } from "lucide-react";
-import { parse, isValid, getMonth, getYear, format } from "date-fns";
+import { isValid, getMonth, getYear, format } from "date-fns";
+import { parse } from "@/lib/fastParse";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
