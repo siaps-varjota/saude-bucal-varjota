@@ -74,12 +74,18 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
             denominadorPeriodo: mesesSel.reduce((s, m) => s + m.denominador, 0),
             meses: mesesSel.map(m => ({ mes: m.mes, numerador: m.numerador, denominador: m.denominador, percentual: Number(m.porcentagem.toFixed(1)), fonte: m.fonte })),
           };
-        }).filter(i => i.meses.length > 0),
-      }));
+        }).filter(i => i.meses.some(m => m.denominador > 0)),
+      }))
+      .filter(r => r.indicadores.length > 0);
   }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes, indicador]);
 
   const analisar = async () => {
-    setLoading(true); setErro(null); setRes(null);
+    setErro(null); setRes(null);
+    if (dados.length === 0) {
+      setErro("Nenhuma equipe tem resultados nos meses escolhidos. Escolha outro período ou outra equipe.");
+      return;
+    }
+    setLoading(true);
     const { data, error } = await supabase.functions.invoke("sugerir-acoes", { body: { dados } });
     setLoading(false);
     if (error || data?.error) {
