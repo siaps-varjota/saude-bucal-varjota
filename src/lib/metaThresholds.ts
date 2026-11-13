@@ -336,3 +336,41 @@ export function calcFaltamMesAtualMenorMelhor(
   if (!isFinite(x)) return { faltam: null, ...base };
   return { faltam: x < 0 ? 0 : Math.floor(x) + 1, ...base };
 }
+
+/** Piso do B3: abaixo de 3% o conceito é Regular (faixa Ótimo/Bom é ≥ 3%). */
+export const PISO_B3 = 0.03;
+
+export interface FaltamB3 extends FaltamMesAtual {
+  /** menor % que o mês atual pode ter para a média do período não cair do piso */
+  alvoMin: number;
+  /** exodontias a somar (num e den) para atingir o piso; 0 = já acima do piso */
+  faltamExo: number;
+}
+
+/**
+ * B3 com faixa: a média dos N meses precisa ficar em [piso, limite).
+ *  - acima do limite  -> somar procedimentos ao denominador (sem novas exodontias);
+ *  - abaixo do piso   -> são necessárias mais exodontias (mínimo).
+ */
+export function calcFaltamMesAtualB3(
+  meses: MesCalcLabel[],
+  nMeses: number,
+  limite: number,
+  piso: number = PISO_B3,
+  hoje: Date = new Date(),
+): FaltamB3 | null {
+  const sup = calcFaltamMesAtualMenorMelhor(meses, nMeses, limite, hoje);
+  if (!sup) return null;
+  const atual = meses[sup.idxAberto];
+  const fechados = meses.filter((m, i) => i < sup.idxAberto && m.den > 0);
+  const soma = fechados.reduce((s, m) => s + razao(m), 0);
+  const abertos = Math.max(1, nMeses - fechados.length);
+  const alvoMin = (nMeses * piso - soma) / abertos;
+
+  let faltamExo = 0;
+  if (alvoMin > 0 && atual.den > 0 && razao(atual) < alvoMin && alvoMin < 1) {
+    // (num + x) / (den + x) >= alvoMin
+    faltamExo = Math.max(0, Math.ceil((alvoMin * atual.den - atual.num) / (1 - alvoMin) - 1e-9));
+  }
+  return { ...sup, alvoMin, faltamExo };
+}
