@@ -168,3 +168,115 @@ export function calcFaltamPar(
     viaMedia: false,
   };
 }
+
+// ── Método "mês atual": média ≥ meta nos N meses do período ────────────────────
+// O conceito do período é a MÉDIA dos percentuais mensais. Para fechar o período
+// com média ≥ meta: N × meta − Σ(meses já FECHADOS) é dividido igualmente entre o
+// mês em andamento e os meses que ainda não aconteceram. O mês em andamento deve
+// atingir esse percentual; os meses futuros serão calculados quando existirem.
+
+export interface MesCalcLabel {
+  mes?: string;
+  num: number;
+  den: number;
+}
+
+const ABBR_MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** "Nov/2026" ou "11/2026" -> ano*12 + mês (0-11); null se não reconhecer. */
+export function chaveMes(label?: string): number | null {
+  if (!label) return null;
+  const [a, b] = label.split("/");
+  const ano = parseInt(b, 10);
+  if (isNaN(ano)) return null;
+  let m = ABBR_MES.indexOf(a.trim().slice(0, 3).toLowerCase());
+  if (m < 0) {
+    const n = parseInt(a, 10);
+    if (isNaN(n) || n < 1 || n > 12) return null;
+    m = n - 1;
+  }
+  return ano * 12 + m;
+}
+
+/**
+ * Índice do mês "em andamento": o mês corrente do calendário, se estiver na lista;
+ * senão (período já encerrado) o último mês com dado.
+ */
+export function indiceMesAberto(meses: MesCalcLabel[], hoje: Date = new Date()): number {
+  const chaveHoje = hoje.getFullYear() * 12 + hoje.getMonth();
+  const idx = meses.findIndex((m) => chaveMes(m.mes) === chaveHoje);
+  if (idx >= 0) return idx;
+  for (let i = meses.length - 1; i >= 0; i--) if (meses[i].den > 0) return i;
+  return meses.length - 1;
+}
+
+const razao = (m: { num: number; den: number }, cap?: number) => {
+  const r = m.den > 0 ? m.num / m.den : 0;
+  return cap != null ? Math.min(cap, r) : r;
+};
+
+export interface FaltamMesAtual {
+  /** unidades a somar no mês atual; 0 = já atingido; null = inalcançável neste mês */
+  faltam: number | null;
+  /** fração (0-1) que o mês atual precisa atingir */
+  alvo: number;
+  idxAberto: number;
+  mesAberto?: string;
+  fechados: number;
+}
+
+export function calcFaltamMesAtual(
+  meses: MesCalcLabel[],
+  nMeses: number,
+  threshold: number,
+  deltaNum = 1,
+  deltaDenom = 0,
+  capMensal?: number,
+  hoje: Date = new Date(),
+): FaltamMesAtual | null {
+  if (meses.length === 0) return null;
+  const idx = indiceMesAberto(meses, hoje);
+  if (idx < 0) return null;
+  const fechados = meses.filter((m, i) => i < idx && m.den > 0);
+  const soma = fechados.reduce((s, m) => s + razao(m, capMensal), 0);
+  const abertos = Math.max(1, nMeses - fechados.length);
+  const alvo = (nMeses * threshold - soma) / abertos;
+  const atual = meses[idx];
+  const base = { alvo, idxAberto: idx, mesAberto: atual.mes, fechados: fechados.length };
+
+  if (atual.den > 0 && razao(atual, capMensal) > alvo) return { faltam: 0, ...base };
+  if (alvo <= 0) return { faltam: 0, ...base };
+  if (capMensal != null && alvo > capMensal) return { faltam: null, ...base };
+
+  const dn = deltaNum || 1;
+  const dd = deltaDenom || 0;
+  let x: number;
+  if (dd === 0) {
+    x = (alvo * atual.den - atual.num) / dn;
+  } else {
+    const div = dn - dd * alvo;
+    if (div <= 0) return { faltam: null, ...base };
+    x = (alvo * atual.den - atual.num) / div;
+  }
+  if (!isFinite(x)) return { faltam: null, ...base };
+  return { faltam: x <= 0 ? 0 : Math.floor(x) + 1, ...base };
+}
+
+/**
+ * Percentual (0-100) do período projetado: soma `extraNum`/`extraDen` ao mês em
+ * andamento e refaz a média mensal (só meses com denominador > 0).
+ */
+export function projetaMediaMensal(
+  meses: MesCalcLabel[],
+  extraNum: number,
+  extraDen: number,
+  capMensal?: number,
+  hoje: Date = new Date(),
+): number | null {
+  if (meses.length === 0) return null;
+  const idx = indiceMesAberto(meses, hoje);
+  const proj = meses.map((m, i) => (i === idx ? { ...m, num: m.num + extraNum, den: m.den + extraDen } : m));
+  const validos = proj.filter((m) => m.den > 0);
+  if (validos.length === 0) return null;
+  return (validos.reduce((s, m) => s + razao(m, capMensal), 0) / validos.length) * 100;
+}
