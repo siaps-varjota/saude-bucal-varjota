@@ -66,7 +66,10 @@ const NOTA_SCORE: Record<Conceito, string> = {
 const INDICADORES_COM_SIMULACAO = new Set([
   "1ª Consulta Odontológica",
   "Tratamento Concluído",
+  "Taxa de Exodontias",
+  "Escovação Supervisionada",
   "Proced. Odont. Preventivos",
+  "Trat. Restaurador Atraumático",
 ]);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -257,6 +260,7 @@ const ProjecaoBloco = ({
   pctAtual,
   anyInput,
   conceitoInfo,
+  rotuloMes,
 }: {
   titulo: string;
   descricao: string;
@@ -266,17 +270,21 @@ const ProjecaoBloco = ({
   pctAtual: number;
   anyInput: boolean;
   conceitoInfo: ReturnType<typeof derivaConceito>;
+  /** Mês a que se referem os números (ex.: "Nov/2026"); omitido = período inteiro. */
+  rotuloMes?: string;
 }) => {
   const ganho = novaPct - pctAtual;
   return (
     <div className="flex flex-col gap-1 min-w-[110px] max-w-[150px]">
       <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">{titulo}</p>
       <p className="text-[9px] text-muted-foreground leading-snug whitespace-pre-line">{descricao}</p>
-      <p className="text-sm font-bold leading-tight mt-0.5">
+      {rotuloMes && <p className="text-[9px] font-semibold text-orange-700/80 uppercase mt-0.5">{rotuloMes}</p>}
+      <p className="text-sm font-bold leading-tight">
         {Number.isInteger(novoNum) ? novoNum.toLocaleString("pt-BR") : novoNum.toFixed(1)}
         <span className="text-xs font-normal text-muted-foreground"> / {novoDenom.toLocaleString("pt-BR")}</span>
       </p>
       <p className="text-xs text-muted-foreground">
+        {rotuloMes && <span className="block text-[9px] uppercase">média do período</span>}
         {novaPct.toFixed(1)}%
         {anyInput && (
           <span className={`ml-1 font-medium ${ganho >= 0 ? "text-emerald-600" : "text-red-600"}`}>
@@ -382,14 +390,26 @@ const SimulacaoCard = ({
   // mensal é refeita (meses fechados ficam como estão).
   const mesesDe = (ind?: IndicadorResult) =>
     (ind?.mesesDetalhe ?? []).map(m => ({ mes: m.mes, num: m.numerador, den: m.denominador }));
+  // Os meses que ainda não aconteceram entram com o mesmo desempenho do mês atual.
+  const nMesesPeriodo = useContext(PeriodoMesesContext);
   const projeta = (ind: IndicadorResult | undefined, dNum: number, dDen: number, cap?: number): number | null =>
-    projetaMediaMensal(mesesDe(ind), dNum, dDen, cap);
+    projetaMediaMensal(mesesDe(ind), dNum, dDen, cap, new Date(), nMesesPeriodo);
+
+  const mesAtualDe = (ind?: IndicadorResult) => {
+    const ms = mesesDe(ind);
+    return ms.length > 0 ? ms[indiceMesAberto(ms)] : null;
+  };
+  const b1Mes = mesAtualDe(b1Ind), b2Mes = mesAtualDe(b2Ind), b3Mes = mesAtualDe(b3Ind), b5Mes = mesAtualDe(b5Ind);
+  const b4Ind = todosIndicadores?.find(i => i.indicador === "Escovação Supervisionada");
+  const b6Ind = todosIndicadores?.find(i => i.indicador === "Trat. Restaurador Atraumático");
+  const b4Mes = mesAtualDe(b4Ind), b6Mes = mesAtualDe(b6Ind);
 
   const b1NovoNum   = b1Numerador + extraConsultas;
   const b1NovaDenom = b1Denominador;
   const b1PctAtual  = pctBase(b1Ind, b1Numerador, b1Denominador);
   const b1Delta     = b1NovaDenom > 0 ? ((b1NovoNum - b1Numerador) / b1NovaDenom) * 100 : 0;
-  const b1NovaPct   = projeta(b1Ind, extraConsultas, 0) ?? (b1PctAtual + b1Delta);
+  const b1Ref       = projeta(b1Ind, 0, 0) ?? b1PctAtual;
+  const b1NovaPct   = !anyInput ? b1PctAtual : (projeta(b1Ind, extraConsultas, 0) ?? (b1PctAtual + b1Delta));
   const b1Conceito  = derivaConceito(b1NovaPct, b1Thresh);
 
   const b2NovoNum   = b2Numerador + extraConsultas * 0.5 + extraConclusoes;
@@ -397,7 +417,8 @@ const SimulacaoCard = ({
   const b2PctAtual  = limitarPercentualB2(pctBase(b2Ind, b2Numerador, b2Denominador));
   const b2AggAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
   const b2AggNova   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
-  const b2NovaPct   = limitarPercentualB2(
+  const b2Ref       = limitarPercentualB2(projeta(b2Ind, 0, 0, 1) ?? b2PctAtual);
+  const b2NovaPct   = !anyInput ? b2PctAtual : limitarPercentualB2(
     projeta(b2Ind, extraConsultas * 0.5 + extraConclusoes, extraConsultas, 1) ?? (b2PctAtual + (b2AggNova - b2AggAtual)));
   const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
@@ -409,7 +430,8 @@ const SimulacaoCard = ({
   const b3PctAtual  = pctBase(b3Ind, b3Numerador, b3Denominador);
   const b3AggAtual  = b3Denominador > 0 ? (b3Numerador / b3Denominador) * 100 : 0;
   const b3AggNova   = b3NovaDenom > 0 ? (b3NovoNum / b3NovaDenom) * 100 : 0;
-  const b3NovaPct   = projeta(b3Ind, 0, extraB3Den) ?? (b3PctAtual + (b3AggNova - b3AggAtual));
+  const b3Ref       = projeta(b3Ind, 0, 0) ?? b3PctAtual;
+  const b3NovaPct   = !anyInput ? b3PctAtual : (projeta(b3Ind, 0, extraB3Den) ?? (b3PctAtual + (b3AggNova - b3AggAtual)));
   const b3Conceito  = derivaConceitoB3(b3NovaPct);
 
   const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
@@ -418,7 +440,8 @@ const SimulacaoCard = ({
   const b5AggAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5AggNova   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
   const b5Extra = (extraConsultas + extraConclusoes) * 2;
-  const b5NovaPct   = projeta(b5Ind, b5Extra, b5Extra) ?? (b5PctAtual + (b5AggNova - b5AggAtual));
+  const b5Ref       = projeta(b5Ind, 0, 0) ?? b5PctAtual;
+  const b5NovaPct   = !anyInput ? b5PctAtual : (projeta(b5Ind, b5Extra, b5Extra) ?? (b5PctAtual + (b5AggNova - b5AggAtual)));
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
 
   const mesesRef = mesesDe(b5Ind ?? b1Ind ?? b2Ind);
@@ -429,10 +452,10 @@ const SimulacaoCard = ({
   const notaNum = (c: ReturnType<typeof derivaConceito>): number =>
     parseFloat(c.nota.replace(",", "."));
 
-  const b1ConceitoAtual = derivaConceito(b1PctAtual, b1Thresh);
-  const b2ConceitoAtual = derivaConceito(b2PctAtual, b2Thresh);
-  const b3ConceitoAtual = derivaConceitoB3(b3PctAtual);
-  const b5ConceitoAtual = derivaConceito(b5PctAtual, b5Thresh);
+  const b1ConceitoAtual = derivaConceito(anyInput ? b1Ref : b1PctAtual, b1Thresh);
+  const b2ConceitoAtual = derivaConceito(anyInput ? b2Ref : b2PctAtual, b2Thresh);
+  const b3ConceitoAtual = derivaConceitoB3(anyInput ? b3Ref : b3PctAtual);
+  const b5ConceitoAtual = derivaConceito(anyInput ? b5Ref : b5PctAtual, b5Thresh);
 
 
   const ajusteSeConceitoMudou = (
@@ -459,7 +482,7 @@ const SimulacaoCard = ({
   const hasNota   = notaFinalAtual > 0;
 
   return (
-    <div className="flex flex-col w-full max-w-[640px] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 shadow-sm">
+    <div className="flex flex-col w-full max-w-[900px] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 shadow-sm">
       <div className="flex items-center gap-1.5 mb-2">
         <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
         <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Simulação</span>
@@ -511,17 +534,18 @@ const SimulacaoCard = ({
       <div className="w-full h-px bg-orange-200 mb-2" />
 
       <p className="text-[10px] text-muted-foreground mb-2">
-        Os valores simulados entram no mês atual{mesAtualSim ? ` (${mesAtualSim})` : ""}; os meses já fechados não mudam.
+        Os valores simulados entram no mês atual{mesAtualSim ? ` (${mesAtualSim})` : ""}; os meses já fechados não mudam e os próximos meses são projetados com o mesmo desempenho do mês atual.
       </p>
 
-      <div className="flex gap-x-3 content-start">
+      <div className="flex flex-wrap gap-x-3 gap-y-3 content-start">
         <ProjecaoBloco
           titulo="Projeção B1"
           descricao="consulta → +1 num (den fixo)"
-          novoNum={b1NovoNum}
-          novoDenom={b1NovaDenom}
+          novoNum={b1Mes ? b1Mes.num + extraConsultas : b1NovoNum}
+          novoDenom={b1Mes ? b1Mes.den : b1NovaDenom}
+          rotuloMes={b1Mes?.mes}
           novaPct={b1NovaPct}
-          pctAtual={b1PctAtual}
+          pctAtual={anyInput ? b1Ref : b1PctAtual}
           anyInput={anyInput}
           conceitoInfo={b1Conceito}
         />
@@ -529,10 +553,11 @@ const SimulacaoCard = ({
         <ProjecaoBloco
           titulo="Projeção B2"
           descricao={"consulta → +0,5 num / +1 den\ntrat. → +1 num"}
-          novoNum={b2NovoNum}
-          novoDenom={b2NovaDenom}
+          novoNum={b2Mes ? b2Mes.num + extraConsultas * 0.5 + extraConclusoes : b2NovoNum}
+          novoDenom={b2Mes ? b2Mes.den + extraConsultas : b2NovaDenom}
+          rotuloMes={b2Mes?.mes}
           novaPct={b2NovaPct}
-          pctAtual={b2PctAtual}
+          pctAtual={anyInput ? b2Ref : b2PctAtual}
           anyInput={anyInput}
           conceitoInfo={b2Conceito}
         />
@@ -540,10 +565,11 @@ const SimulacaoCard = ({
         <ProjecaoBloco
           titulo="Projeção B3"
           descricao={"consulta ou trat. → +2 den\n(num fixo — menor-melhor)"}
-          novoNum={b3NovoNum}
-          novoDenom={b3NovaDenom}
+          novoNum={b3Mes ? b3Mes.num : b3NovoNum}
+          novoDenom={b3Mes ? b3Mes.den + extraB3Den : b3NovaDenom}
+          rotuloMes={b3Mes?.mes}
           novaPct={b3NovaPct}
-          pctAtual={b3PctAtual}
+          pctAtual={anyInput ? b3Ref : b3PctAtual}
           anyInput={anyInput}
           conceitoInfo={b3Conceito}
         />
@@ -551,13 +577,46 @@ const SimulacaoCard = ({
         <ProjecaoBloco
           titulo="Projeção B5"
           descricao="consulta ou trat. → +2 num / +2 den"
-          novoNum={b5NovoNum}
-          novoDenom={b5NovaDenom}
+          novoNum={b5Mes ? b5Mes.num + b5Extra : b5NovoNum}
+          novoDenom={b5Mes ? b5Mes.den + b5Extra : b5NovaDenom}
+          rotuloMes={b5Mes?.mes}
           novaPct={b5NovaPct}
-          pctAtual={b5PctAtual}
+          pctAtual={anyInput ? b5Ref : b5PctAtual}
           anyInput={anyInput}
           conceitoInfo={b5Conceito}
         />
+        {b4Ind && (
+          <>
+            <div className="w-px self-stretch bg-orange-200" />
+            <ProjecaoBloco
+              titulo="Projeção B4"
+              descricao={"não é alterado por\nconsultas/trat. concluídos"}
+              novoNum={b4Mes ? b4Mes.num : b4Ind.numerador}
+              novoDenom={b4Mes ? b4Mes.den : b4Ind.denominador}
+              rotuloMes={b4Mes?.mes}
+              novaPct={b4Ind.porcentagem}
+              pctAtual={b4Ind.porcentagem}
+              anyInput={anyInput}
+              conceitoInfo={derivaConceito(b4Ind.porcentagem, META_THRESHOLDS["Escovação Supervisionada"]!)}
+            />
+          </>
+        )}
+        {b6Ind && (
+          <>
+            <div className="w-px self-stretch bg-orange-200" />
+            <ProjecaoBloco
+              titulo="Projeção B6"
+              descricao={"não é alterado por\nconsultas/trat. concluídos"}
+              novoNum={b6Mes ? b6Mes.num : b6Ind.numerador}
+              novoDenom={b6Mes ? b6Mes.den : b6Ind.denominador}
+              rotuloMes={b6Mes?.mes}
+              novaPct={b6Ind.porcentagem}
+              pctAtual={b6Ind.porcentagem}
+              anyInput={anyInput}
+              conceitoInfo={derivaConceito(b6Ind.porcentagem, META_THRESHOLDS["Trat. Restaurador Atraumático"]!)}
+            />
+          </>
+        )}
       </div>
     </div>
   );
