@@ -32,6 +32,13 @@ describe("método do mês atual", () => {
     expect(calcFaltamMesAtual(b1, 4, 0.0075, 1, 0, undefined, hoje)!.faltam).toBe(0);
   });
 
+  it("B5 simulado com 36 consultas fecha a média de 4 meses em Bom (≥55%)", () => {
+    const p = projetaMediaMensal(b5, 72, 72, undefined, hoje, 4)!;
+    expect(p).toBeGreaterThanOrEqual(55 - 1e-6);
+    const sem = projetaMediaMensal(b5, 70, 70, undefined, hoje, 4)!; // 35 consultas: ainda não fecha
+    expect(sem).toBeLessThan(55);
+  });
+
   it("projeta a média somando só no mês atual", () => {
     const p0 = projetaMediaMensal(b5, 0, 0, undefined, hoje)!;
     expect(p0).toBeCloseTo((335 / 693 + 227 / 484 + 133 / 256) / 3 * 100, 5);
