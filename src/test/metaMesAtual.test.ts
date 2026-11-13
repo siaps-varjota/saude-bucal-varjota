@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcFaltamMesAtual, projetaMediaMensal } from "@/lib/metaThresholds";
+import { calcFaltamMesAtual, calcFaltamMesAtualMenorMelhor, projetaMediaMensal } from "@/lib/metaThresholds";
 
 const hoje = new Date(2026, 10, 12); // 12/nov/2026
 
@@ -44,5 +44,20 @@ describe("método do mês atual", () => {
     expect(p0).toBeCloseTo((335 / 693 + 227 / 484 + 133 / 256) / 3 * 100, 5);
     const p1 = projetaMediaMensal(b5, 100, 100, undefined, hoje)!;
     expect(p1).toBeGreaterThan(p0);
+  });
+
+  it("B3 (menor é melhor): mês atual precisa ficar abaixo do alvo", () => {
+    const b3 = [
+      { mes: "Set/2026", num: 10, den: 100 },   // 10%
+      { mes: "Out/2026", num: 9, den: 100 },    // 9%
+      { mes: "Nov/2026", num: 15, den: 100 },   // 15%
+      { mes: "Dez/2026", num: 0, den: 0 },
+    ];
+    // Ótimo < 10%: alvo Nov = (40 − 19)/2 = 10,5%
+    const r = calcFaltamMesAtualMenorMelhor(b3, 4, 0.10, hoje)!;
+    expect(r.alvo * 100).toBeCloseTo(10.5, 5);
+    const x = r.faltam!;
+    expect(15 / (100 + x)).toBeLessThan(r.alvo);
+    expect(15 / (100 + x - 1)).toBeGreaterThanOrEqual(r.alvo);
   });
 });
