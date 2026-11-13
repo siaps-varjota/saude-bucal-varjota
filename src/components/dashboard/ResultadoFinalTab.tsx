@@ -370,7 +370,13 @@ const SimulacaoCard = ({
 
   const extraConsultas  = Math.max(0, parseInt(rawConsultas,  10) || 0);
   const extraConclusoes = Math.max(0, parseInt(rawConclusoes, 10) || 0);
-  const anyInput = extraConsultas > 0 || extraConclusoes > 0;
+  const [rawEscovacao, setRawEscovacao] = useState("0");
+  const [rawPreventivos, setRawPreventivos] = useState("0");
+  const [rawArt, setRawArt] = useState("0");
+  const extraEscovacao  = Math.max(0, parseInt(rawEscovacao,  10) || 0);
+  const extraPreventivos = Math.max(0, parseInt(rawPreventivos, 10) || 0);
+  const extraArt        = Math.max(0, parseInt(rawArt, 10) || 0);
+  const anyInput = extraConsultas > 0 || extraConclusoes > 0 || extraEscovacao > 0 || extraPreventivos > 0 || extraArt > 0;
 
   const b1Thresh = META_THRESHOLDS["1ª Consulta Odontológica"]!;
   const b2Thresh = META_THRESHOLDS["Tratamento Concluído"]!;
@@ -424,7 +430,7 @@ const SimulacaoCard = ({
 
   // B3: consulta ou trat. concluído → +2 den (entram no total de proced.
   // individuais, denominador de B3), sem mexer no numerador (exodontias)
-  const extraB3Den  = (extraConsultas + extraConclusoes) * 2;
+  const extraB3Den  = (extraConsultas + extraConclusoes) * 2 + extraPreventivos;
   const b3NovoNum   = b3Numerador;
   const b3NovaDenom = b3Denominador + extraB3Den;
   const b3PctAtual  = pctBase(b3Ind, b3Numerador, b3Denominador);
@@ -434,15 +440,27 @@ const SimulacaoCard = ({
   const b3NovaPct   = !anyInput ? b3PctAtual : (projeta(b3Ind, 0, extraB3Den) ?? (b3PctAtual + (b3AggNova - b3AggAtual)));
   const b3Conceito  = derivaConceitoB3(b3NovaPct);
 
-  const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
-  const b5NovaDenom = b5Denominador + (extraConsultas + extraConclusoes) * 2;
+  const b5Extra = (extraConsultas + extraConclusoes) * 2 + extraPreventivos;
+  const b5NovoNum   = b5Numerador + b5Extra;
+  const b5NovaDenom = b5Denominador + b5Extra;
   const b5PctAtual  = pctBase(b5Ind, b5Numerador, b5Denominador);
   const b5AggAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5AggNova   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
-  const b5Extra = (extraConsultas + extraConclusoes) * 2;
   const b5Ref       = projeta(b5Ind, 0, 0) ?? b5PctAtual;
   const b5NovaPct   = !anyInput ? b5PctAtual : (projeta(b5Ind, b5Extra, b5Extra) ?? (b5PctAtual + (b5AggNova - b5AggAtual)));
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
+
+  // B4: escovação supervisionada → +1 num (den fixo). B6: ART → +1 num / +1 den.
+  const b4Thresh = META_THRESHOLDS["Escovação Supervisionada"]!;
+  const b6Thresh = META_THRESHOLDS["Trat. Restaurador Atraumático"]!;
+  const b4PctAtual = pctBase(b4Ind, b4Ind?.numerador ?? 0, b4Ind?.denominador ?? 0);
+  const b6PctAtual = pctBase(b6Ind, b6Ind?.numerador ?? 0, b6Ind?.denominador ?? 0);
+  const b4Ref       = projeta(b4Ind, 0, 0) ?? b4PctAtual;
+  const b6Ref       = projeta(b6Ind, 0, 0) ?? b6PctAtual;
+  const b4NovaPct   = !anyInput ? b4PctAtual : (projeta(b4Ind, extraEscovacao, 0) ?? b4PctAtual);
+  const b6NovaPct   = !anyInput ? b6PctAtual : (projeta(b6Ind, extraArt, extraArt) ?? b6PctAtual);
+  const b4Conceito  = derivaConceito(b4NovaPct, b4Thresh);
+  const b6Conceito  = derivaConceito(b6NovaPct, b6Thresh);
 
   const mesesRef = mesesDe(b5Ind ?? b1Ind ?? b2Ind);
   const mesAtualSim = mesesRef.length > 0 ? mesesRef[indiceMesAberto(mesesRef)]?.mes : undefined;
@@ -456,6 +474,8 @@ const SimulacaoCard = ({
   const b2ConceitoAtual = derivaConceito(anyInput ? b2Ref : b2PctAtual, b2Thresh);
   const b3ConceitoAtual = derivaConceitoB3(anyInput ? b3Ref : b3PctAtual);
   const b5ConceitoAtual = derivaConceito(anyInput ? b5Ref : b5PctAtual, b5Thresh);
+  const b4ConceitoAtual = derivaConceito(anyInput ? b4Ref : b4PctAtual, b4Thresh);
+  const b6ConceitoAtual = derivaConceito(anyInput ? b6Ref : b6PctAtual, b6Thresh);
 
 
   const ajusteSeConceitoMudou = (
@@ -476,7 +496,9 @@ const SimulacaoCard = ({
           + ajusteSeConceitoMudou(b1Ind, b1ConceitoAtual, b1Conceito)
           + ajusteSeConceitoMudou(b2Ind, b2ConceitoAtual, b2Conceito)
           + ajusteSeConceitoMudou(b3Ind, b3ConceitoAtual, b3Conceito)
-          + ajusteSeConceitoMudou(b5Ind, b5ConceitoAtual, b5Conceito);
+          + ajusteSeConceitoMudou(b4Ind, b4ConceitoAtual, b4Conceito)
+          + ajusteSeConceitoMudou(b5Ind, b5ConceitoAtual, b5Conceito)
+          + ajusteSeConceitoMudou(b6Ind, b6ConceitoAtual, b6Conceito);
 
   const notaDelta = notaFinalProjetada - notaFinalAtual;
   const hasNota   = notaFinalAtual > 0;
@@ -505,6 +527,30 @@ const SimulacaoCard = ({
             onRawChange={setRawConclusoes}
             onDecrement={() => setRawConclusoes(String(Math.max(0, extraConclusoes - 1)))}
             onIncrement={() => setRawConclusoes(String(extraConclusoes + 1))}
+          />
+          <InputStepper
+            label="+ adicionar"
+            sublabel="escovações"
+            rawValue={rawEscovacao}
+            onRawChange={setRawEscovacao}
+            onDecrement={() => setRawEscovacao(String(Math.max(0, extraEscovacao - 1)))}
+            onIncrement={() => setRawEscovacao(String(extraEscovacao + 1))}
+          />
+          <InputStepper
+            label="+ adicionar"
+            sublabel="proced. preventivos"
+            rawValue={rawPreventivos}
+            onRawChange={setRawPreventivos}
+            onDecrement={() => setRawPreventivos(String(Math.max(0, extraPreventivos - 1)))}
+            onIncrement={() => setRawPreventivos(String(extraPreventivos + 1))}
+          />
+          <InputStepper
+            label="+ adicionar"
+            sublabel="ART"
+            rawValue={rawArt}
+            onRawChange={setRawArt}
+            onDecrement={() => setRawArt(String(Math.max(0, extraArt - 1)))}
+            onIncrement={() => setRawArt(String(extraArt + 1))}
           />
         </div>
 
@@ -564,7 +610,7 @@ const SimulacaoCard = ({
         <div className="w-px self-stretch bg-orange-200" />
         <ProjecaoBloco
           titulo="Projeção B3"
-          descricao={"consulta ou trat. → +2 den\n(num fixo — menor-melhor)"}
+          descricao={"consulta ou trat. → +2 den\nproced. prev. → +1 den\n(num fixo — menor-melhor)"}
           novoNum={b3Mes ? b3Mes.num : b3NovoNum}
           novoDenom={b3Mes ? b3Mes.den + extraB3Den : b3NovaDenom}
           rotuloMes={b3Mes?.mes}
@@ -576,7 +622,7 @@ const SimulacaoCard = ({
         <div className="w-px self-stretch bg-orange-200" />
         <ProjecaoBloco
           titulo="Projeção B5"
-          descricao="consulta ou trat. → +2 num / +2 den"
+          descricao={"consulta ou trat. → +2 num / +2 den\nproced. prev. → +1 num / +1 den"}
           novoNum={b5Mes ? b5Mes.num + b5Extra : b5NovoNum}
           novoDenom={b5Mes ? b5Mes.den + b5Extra : b5NovaDenom}
           rotuloMes={b5Mes?.mes}
@@ -590,14 +636,14 @@ const SimulacaoCard = ({
             <div className="w-px self-stretch bg-orange-200" />
             <ProjecaoBloco
               titulo="Projeção B4"
-              descricao={"não é alterado por\nconsultas/trat. concluídos"}
-              novoNum={b4Mes ? b4Mes.num : b4Ind.numerador}
+              descricao="escovação → +1 num (den fixo)"
+              novoNum={b4Mes ? b4Mes.num + extraEscovacao : b4Ind.numerador + extraEscovacao}
               novoDenom={b4Mes ? b4Mes.den : b4Ind.denominador}
               rotuloMes={b4Mes?.mes}
-              novaPct={b4Ind.porcentagem}
-              pctAtual={b4Ind.porcentagem}
+              novaPct={b4NovaPct}
+              pctAtual={anyInput ? b4Ref : b4PctAtual}
               anyInput={anyInput}
-              conceitoInfo={derivaConceito(b4Ind.porcentagem, META_THRESHOLDS["Escovação Supervisionada"]!)}
+              conceitoInfo={b4Conceito}
             />
           </>
         )}
@@ -606,14 +652,14 @@ const SimulacaoCard = ({
             <div className="w-px self-stretch bg-orange-200" />
             <ProjecaoBloco
               titulo="Projeção B6"
-              descricao={"não é alterado por\nconsultas/trat. concluídos"}
-              novoNum={b6Mes ? b6Mes.num : b6Ind.numerador}
-              novoDenom={b6Mes ? b6Mes.den : b6Ind.denominador}
+              descricao="ART → +1 num / +1 den"
+              novoNum={(b6Mes ? b6Mes.num : b6Ind.numerador) + extraArt}
+              novoDenom={(b6Mes ? b6Mes.den : b6Ind.denominador) + extraArt}
               rotuloMes={b6Mes?.mes}
-              novaPct={b6Ind.porcentagem}
-              pctAtual={b6Ind.porcentagem}
+              novaPct={b6NovaPct}
+              pctAtual={anyInput ? b6Ref : b6PctAtual}
               anyInput={anyInput}
-              conceitoInfo={derivaConceito(b6Ind.porcentagem, META_THRESHOLDS["Trat. Restaurador Atraumático"]!)}
+              conceitoInfo={b6Conceito}
             />
           </>
         )}
