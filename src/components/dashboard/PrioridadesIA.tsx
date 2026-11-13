@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, FileDown } from "lucide-react";
+import jsPDF from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
@@ -111,6 +112,32 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
     setRes(data);
   };
 
+  const gerarPdf = () => {
+    if (!res) return;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const W = 210, M = 14, maxW = W - 2 * M;
+    let y = 16;
+    const linhas = (t: string, size: number, bold = false, gap = 1.5) => {
+      doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size);
+      for (const l of doc.splitTextToSize(t, maxW) as string[]) {
+        if (y > 282) { doc.addPage(); y = 16; }
+        doc.text(l, M, y); y += size * 0.42 + gap;
+      }
+    };
+    linhas(`Prioridades e ações sugeridas (IA)${indicador ? " — " + indicador : ""}`, 15, true);
+    linhas(`Equipes: ${selEquipes.length ? selEquipes.join(", ") : "Todas"}  |  Quadrimestres: ${selQuads.length ? selQuads.join(", ") : "Todos"}  |  Meses: ${selMeses.length ? selMeses.join(", ") : "Todos"}`, 9);
+    linhas(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 9); y += 3;
+    linhas("Resumo", 12, true); linhas(res.resumo, 10); y += 3;
+    res.prioridades.forEach((p, i) => {
+      linhas(`${i + 1}. ${p.indicador} — ${p.equipe} (Prioridade ${NIVEL[p.nivel]?.label ?? p.nivel})`, 11, true);
+      linhas(p.motivo, 10);
+      p.acoes.forEach(a => linhas(`• ${a}`, 10));
+      y += 3;
+    });
+    linhas(usouFallback ? "Sugestões por regras fixas (IA indisponível). Revise com a equipe antes de aplicar." : "Sugestões geradas por IA — revise com a equipe antes de aplicar.", 8);
+    doc.save(`analise-ia${indicador ? "-" + indicador.replace(/\s+/g, "-") : ""}.pdf`);
+  };
+
   return (
     <Card className="border-border/50 shadow-md">
       <CardHeader className="pb-3">
@@ -122,13 +149,16 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] items-end">
+        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_10rem_auto_auto] items-end">
           <MultiSelect options={equipes.map(e => ({ value: e, label: e }))} value={selEquipes} onChange={setSelEquipes} placeholderAll="Todas as equipes" width="w-full" />
           <MultiSelect options={QUADRIMESTRE_OPTIONS_SEM_TODOS.map(q => ({ value: q.value, label: q.label }))} value={selQuads} onChange={setSelQuads} placeholderAll="Todos os quadrimestres" width="w-full" />
           <MultiSelect options={meses.map(m => ({ value: m, label: m }))} value={selMeses} onChange={setSelMeses} placeholderAll="Todos os meses" width="w-full" />
           <Button onClick={analisar} disabled={loading || dados.length === 0}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {loading ? "Analisando..." : "Gerar análise"}
+          </Button>
+          <Button variant="outline" onClick={gerarPdf} disabled={!res}>
+            <FileDown className="h-4 w-4" /> Gerar PDF
           </Button>
         </div>
 
