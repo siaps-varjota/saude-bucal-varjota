@@ -19,6 +19,8 @@ export interface MetaThreshold {
   deltaNum: number;
   /** Incremento típico no denominador por unidade adicionada */
   deltaDenom: number;
+  /** true quando MENOR é melhor (ex.: B3): os thresholds são limites SUPERIORES (valor < threshold). */
+  menorMelhor?: boolean;
 }
 
 export const META_THRESHOLDS: Partial<Record<string, MetaThreshold>> = {
@@ -45,6 +47,15 @@ export const META_THRESHOLDS: Partial<Record<string, MetaThreshold>> = {
     labelBom: "> 0,5%",  thresholdBom: 0.005,
     labelOtimo: "> 1%",  thresholdOtimo: 0.01,
     unit: "atend.", deltaNum: 1, deltaDenom: 0,
+  },
+  // B3 — menor é melhor: Ótimo < 10% | Bom < 12% (limites superiores, estritos).
+  // Só entra aqui para o card de meta; cálculos "maior é melhor" ignoram menorMelhor.
+  "Taxa de Exodontias": {
+    code: "B3",
+    labelBom: "< 12%",   thresholdBom: 0.12,
+    labelOtimo: "< 10%", thresholdOtimo: 0.10,
+    unit: "proced.", deltaNum: 0, deltaDenom: 1,
+    menorMelhor: true,
   },
   "Trat. Restaurador Atraumático": {
     code: "B6",
@@ -292,4 +303,36 @@ export function projetaMediaMensal(
   const validos = proj.filter((m) => m.den > 0);
   if (validos.length === 0) return null;
   return (validos.reduce((s, m) => s + razao(m, capMensal), 0) / validos.length) * 100;
+}
+
+/**
+ * Versão "menor é melhor" (B3): a média dos N meses precisa ficar ABAIXO de
+ * `threshold`. O mês atual precisa ficar abaixo de (N × limite − Σ fechados) / abertos.
+ * Só é possível reduzir o % somando procedimentos (sem novas exodontias) ao denominador.
+ * `faltam` = procedimentos a somar no mês atual; 0 = já atingido; null = inalcançável.
+ */
+export function calcFaltamMesAtualMenorMelhor(
+  meses: MesCalcLabel[],
+  nMeses: number,
+  threshold: number,
+  hoje: Date = new Date(),
+): FaltamMesAtual | null {
+  if (meses.length === 0) return null;
+  const idx = indiceMesAberto(meses, hoje);
+  if (idx < 0) return null;
+  const fechados = meses.filter((m, i) => i < idx && m.den > 0);
+  const soma = fechados.reduce((s, m) => s + razao(m), 0);
+  const abertos = Math.max(1, nMeses - fechados.length);
+  const alvo = (nMeses * threshold - soma) / abertos;
+  const atual = meses[idx];
+  const base = { alvo, idxAberto: idx, mesAberto: atual.mes, fechados: fechados.length };
+
+  if (alvo <= 0) return { faltam: null, ...base };
+  if (atual.den > 0 && razao(atual) < alvo) return { faltam: 0, ...base };
+  if (atual.num <= 0) return { faltam: 0, ...base };
+
+  // (num) / (den + x) < alvo  ->  x > num/alvo − den
+  const x = atual.num / alvo - atual.den;
+  if (!isFinite(x)) return { faltam: null, ...base };
+  return { faltam: x < 0 ? 0 : Math.floor(x) + 1, ...base };
 }
