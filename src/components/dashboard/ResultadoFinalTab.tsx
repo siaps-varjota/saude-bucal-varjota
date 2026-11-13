@@ -275,7 +275,7 @@ const ProjecaoBloco = ({
 }) => {
   const ganho = novaPct - pctAtual;
   return (
-    <div className="flex flex-col gap-1 min-w-[110px] max-w-[150px]">
+    <div className="flex flex-col gap-1 flex-1 min-w-[120px] max-w-[200px]">
       <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wide leading-tight">{titulo}</p>
       <p className="text-[9px] text-muted-foreground leading-snug whitespace-pre-line">{descricao}</p>
       {rotuloMes && <p className="text-[9px] font-semibold text-orange-700/80 uppercase mt-0.5">{rotuloMes}</p>}
@@ -504,7 +504,7 @@ const SimulacaoCard = ({
   const hasNota   = notaFinalAtual > 0;
 
   return (
-    <div className="flex flex-col w-full max-w-[900px] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 shadow-sm">
+    <div className="flex flex-col flex-1 min-w-[320px] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 shadow-sm">
       <div className="flex items-center gap-1.5 mb-2">
         <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
         <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Simulação</span>
@@ -1277,11 +1277,11 @@ const DetalheRow = ({
     <TableRow className="bg-muted/20">
       <TableCell colSpan={colSpan} className="py-2 px-2">
         <div className="flex items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 w-full">
             {hasLeftCol && (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex items-stretch justify-center gap-2 flex-wrap">
                 {metaThresholds && (
-                  <div className="flex items-stretch gap-2 flex-wrap">
+                  <>
                     <MetaQuadrimestreCard
                       denominador={ind.denominador}
                       numerador={ind.numerador}
@@ -1303,11 +1303,11 @@ const DetalheRow = ({
                         ) : null;
                       })}
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {hasMeses && (
-                  <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 shadow-sm self-start">
+                  <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 shadow-sm">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                       <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
@@ -1343,7 +1343,7 @@ const DetalheRow = ({
             )}
 
             {(hasSimCard || hasCruzadoCard) && (
-              <div className="flex flex-wrap items-start justify-center gap-2">
+              <div className="flex flex-wrap items-start justify-center gap-2 w-full">
                 {hasSimCard && (
                   <SimulacaoCard
                     b1Numerador={b1?.numerador ?? 0}
