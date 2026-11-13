@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcFaltamMesAtual, calcFaltamMesAtualMenorMelhor, projetaMediaMensal } from "@/lib/metaThresholds";
+import { calcFaltamMesAtual, calcFaltamMesAtualMenorMelhor, calcFaltamMesAtualB3, projetaMediaMensal } from "@/lib/metaThresholds";
 
 const hoje = new Date(2026, 10, 12); // 12/nov/2026
 
@@ -59,5 +59,29 @@ describe("método do mês atual", () => {
     const x = r.faltam!;
     expect(15 / (100 + x)).toBeLessThan(r.alvo);
     expect(15 / (100 + x - 1)).toBeGreaterThanOrEqual(r.alvo);
+  });
+
+  it("B3 com piso de 3%: abaixo do mínimo pede exodontias; acima do máximo pede denominador", () => {
+    const baixo = [
+      { mes: "Set/2026", num: 1, den: 100 },   // 1%
+      { mes: "Out/2026", num: 1, den: 100 },   // 1%
+      { mes: "Nov/2026", num: 0, den: 100 },   // 0%
+      { mes: "Dez/2026", num: 0, den: 0 },
+    ];
+    const r = calcFaltamMesAtualB3(baixo, 4, 0.10, 0.03, hoje)!;
+    expect(r.alvoMin * 100).toBeCloseTo(5, 5);   // (12 − 2)/2
+    expect(r.faltam).toBe(0);
+    expect(r.faltamExo).toBeGreaterThan(0);
+    expect((0 + r.faltamExo) / (100 + r.faltamExo)).toBeGreaterThanOrEqual(r.alvoMin - 1e-9);
+
+    const alto = [
+      { mes: "Set/2026", num: 5, den: 100 },
+      { mes: "Out/2026", num: 5, den: 100 },
+      { mes: "Nov/2026", num: 20, den: 100 },
+      { mes: "Dez/2026", num: 0, den: 0 },
+    ];
+    const r2 = calcFaltamMesAtualB3(alto, 4, 0.10, 0.03, hoje)!;
+    expect(r2.faltam).toBeGreaterThan(0);
+    expect(r2.faltamExo).toBe(0);
   });
 });
