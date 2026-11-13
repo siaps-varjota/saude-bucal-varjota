@@ -23,7 +23,7 @@ const conceitoLabel = (c: string) =>
 function buildSimRow(ind: IndicadorResult) {
   const notaAtualPonderada = ind.nota * ind.peso;
   const cfg = SIM_CONFIG[ind.indicador];
-  if (!cfg) {
+  if (!cfg || cfg.menorMelhor) {
     // B3 / B6 — sem simulação por incremento, mas ainda com prefixo de label
     const prefixo = LABEL_SEM_SIMULACAO[ind.indicador];
     return {
