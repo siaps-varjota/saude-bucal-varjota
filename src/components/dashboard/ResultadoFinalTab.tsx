@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamMesAtual, projetaMediaMensal, chaveMes, indiceMesAberto } from "@/lib/metaThresholds";
 import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
@@ -132,6 +132,10 @@ function derivaConceitoB3(pct: number): {
 const PeriodoMesesContext = createContext(4);
 
 // ── Card Meta do Quadrimestre ─────────────────────────────────────────────────
+// Método: o conceito do período é a MÉDIA dos percentuais mensais. Para fechar o
+// período com média ≥ meta, (N × meta − Σ meses já fechados) é dividido entre o
+// mês em andamento e os meses que ainda não aconteceram; o mês atual precisa
+// atingir esse percentual (os próximos serão calculados quando existirem).
 const MetaQuadrimestreCard = ({
   denominador,
   numerador,
@@ -139,7 +143,6 @@ const MetaQuadrimestreCard = ({
   deltaNum,
   deltaDenom,
   faltaUnit: faltaUnitProp,
-  mesesDecorridos,
   meses,
   capMensal,
 }: {
@@ -150,65 +153,67 @@ const MetaQuadrimestreCard = ({
   deltaDenom?: number;
   faltaUnit?: string;
   mesesDecorridos?: number;
-  meses?: { numerador: number; denominador: number }[];
+  meses?: { mes?: string; numerador: number; denominador: number }[];
   /** Teto da razão mensal na média (ex.: 1 para B2, que nunca passa de 100%). */
   capMensal?: number;
 }) => {
   const periodoMeses = useContext(PeriodoMesesContext);
   const unit      = thresholds.unit || "atend.";
+  const exibeUnit = faltaUnitProp ?? unit;
+  const dn = deltaNum ?? 1;
+  const dd = deltaDenom ?? 0;
 
-  // Mesma metodologia do Tratamento Concluído: o denominador do período é a SOMA
-  // dos meses já decorridos (e não a projeção do quadrimestre inteiro, como B1/B4
-  // trazem em `denominador`). Assim, quem já está Ótimo pela média mensal não
-  // aparece como "faltando" por causa de um denominador de 4 meses.
-  const mesesLista = (meses ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
-  const mesesComDado = mesesLista.filter(m => m.den > 0);
-  const denEfetivo = mesesComDado.length > 0
-    ? mesesComDado.reduce((s, m) => s + m.den, 0)
-    : denominador;
-  const mesesBase = mesesComDado.length > 0 ? mesesComDado.length : periodoMeses;
+  const mesesLista = (meses ?? []).map(m => ({ mes: m.mes, num: m.numerador ?? 0, den: m.denominador ?? 0 }));
+  const calc = (threshold: number) =>
+    calcFaltamMesAtual(mesesLista, periodoMeses, threshold, dn, dd, capMensal);
+  const bom   = calc(thresholds.thresholdBom);
+  const otimo = calc(thresholds.thresholdOtimo);
 
-  const metaBomAgg   = strictMeta(denEfetivo, thresholds.thresholdBom);
-  const metaOtimoAgg = strictMeta(denEfetivo, thresholds.thresholdOtimo);
+  // Sem dados mensais: mantém o somatório do período como alternativa.
+  const semMeses = !bom || !otimo;
+  const aggBom   = calcFaltamShared(numerador, denominador, thresholds.thresholdBom,   dn, dd);
+  const aggOtimo = calcFaltamShared(numerador, denominador, thresholds.thresholdOtimo, dn, dd);
 
-  // "Faltam" no período: SOMATÓRIO dos meses decorridos (numerador total / denominador total).
-  const faltamBom   = calcFaltamShared(numerador, denEfetivo, thresholds.thresholdBom,   deltaNum ?? 1, deltaDenom ?? 0);
-  const faltamOtimo = calcFaltamShared(numerador, denEfetivo, thresholds.thresholdOtimo, deltaNum ?? 1, deltaDenom ?? 0);
-  // Percentual do período = média dos percentuais mensais (é ele que define o conceito).
-  const mediaMensal = mesesComDado.length > 0
-    ? mesesComDado.reduce((s, m) => s + (capMensal != null ? Math.min(capMensal, m.num / m.den) : m.num / m.den), 0) / mesesComDado.length
-    : (denEfetivo > 0 ? numerador / denEfetivo : 0);
+  const mesAtual = bom?.idxAberto != null ? mesesLista[bom.idxAberto] : undefined;
+  const numMes = mesAtual?.num ?? numerador;
 
-  // Mesma metodologia do Tratamento Concluído: o "Faltam" vem do SOMATÓRIO do
-  // período. A regra da média mensal (tudo somado no último mês) só entra quando o
-  // somatório já bateu a meta mas a média ainda não, e é descartada se exigir um
-  // valor inviável (ex.: B5 pedindo dezenas de milhares de procedimentos).
-  const faltamPeriodo = (threshold: number, agg: number): number => {
-    if (mediaMensal > threshold) return 0;                 // conceito já atingido pela média
-    if (agg > 0) return agg;                               // somatório ainda não atingiu
-    const m = calcFaltamMediaMensal(mesesLista, threshold, deltaNum ?? 1, deltaDenom ?? 0, capMensal);
-    return m !== null && m > 0 ? m : 1;
-  };
-  const faltamFinalBom   = faltamPeriodo(thresholds.thresholdBom, faltamBom);
-  const faltamFinalOtimo = Math.max(faltamPeriodo(thresholds.thresholdOtimo, faltamOtimo), faltamFinalBom);
-  const dnMeta = deltaNum ?? 1;
-  // Meta exibida = resultado atual + o que falta, para meta e "Faltam" sempre baterem.
-  const metaBom   = faltamFinalBom   > 0 ? numerador + faltamFinalBom   * dnMeta : metaBomAgg;
-  const metaOtimo = faltamFinalOtimo > 0 ? numerador + faltamFinalOtimo * dnMeta : metaOtimoAgg;
-  const exibeUnit   = faltaUnitProp ?? unit;
+  // Semanas que restam no mês atual (só quando o mês atual é o mês do calendário).
+  const hoje = new Date();
+  const ehMesCorrente = !!mesAtual && chaveMes(mesAtual.mes) === hoje.getFullYear() * 12 + hoje.getMonth();
+  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  const semanasRestantes = ehMesCorrente ? Math.max(1, diasNoMes - hoje.getDate() + 1) / 7 : 0;
+  const fmtSemanal = (faltam: number) => semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
-  const mesesUsados      = mesesDecorridos ?? 0;
-  const semanasRestantes = Math.max(0, periodoMeses - mesesUsados) * 4.33;
-  const fmtSemanal = (faltam: number) =>
-    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
-
-  const renderFaltam = (faltam: number, okClass: string) => {
-    return faltam > 0
-      ? <>
-          <p className="text-xs font-medium text-red-600">Faltam: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
-          <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltam)}</p>
-        </>
-      : <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>;
+  const renderColuna = (
+    r: ReturnType<typeof calcFaltamMesAtual> | null,
+    agg: number,
+    okClass: string,
+  ) => {
+    const faltam = r ? r.faltam : agg;
+    const metaMes = r && faltam != null ? numMes + faltam * dn : null;
+    const metaAgg = numerador + (agg > 0 ? agg * dn : 0);
+    return (
+      <>
+        <p className={`text-xl font-bold leading-tight ${okClass}`}>
+          {(r ? metaMes ?? "—" : metaAgg).toLocaleString("pt-BR")}{" "}
+          <span className="text-sm font-normal">{unit}</span>
+        </p>
+        {r ? (
+          <>
+            <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {(r.alvo * 100).toFixed(1).replace(".", ",")}%</p>
+            <p className="text-xs text-muted-foreground">Média/semana: {metaMes != null ? (metaMes / 4.33).toFixed(1) : "—"}</p>
+          </>
+        ) : null}
+        {faltam === null
+          ? <p className="text-xs font-medium text-red-600">Inalcançável neste mês</p>
+          : faltam > 0
+            ? <>
+                <p className="text-xs font-medium text-red-600">Faltam: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
+                <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltam)}</p>
+              </>
+            : <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>}
+      </>
+    );
   };
 
   return (
@@ -219,32 +224,25 @@ const MetaQuadrimestreCard = ({
           {periodoMeses === 1 ? "Meta do Mês" : periodoMeses === 4 ? "Meta do Quadrimestre" : `Meta do Período (${periodoMeses} meses)`}
         </span>
         <span className="text-xs text-muted-foreground ml-0.5">
-          de {denEfetivo.toLocaleString("pt-BR")}
+          {!semMeses && mesAtual?.mes ? `— ${mesAtual.mes}` : `de ${denominador.toLocaleString("pt-BR")}`}
         </span>
       </div>
 
       <div className="flex gap-6">
         <div>
           <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
-          <p className="text-xl font-bold text-emerald-700 leading-tight">
-            {metaBom.toLocaleString("pt-BR")}{" "}
-            <span className="text-sm font-normal">{unit}</span>
-          </p>
-          <p className="text-xs text-muted-foreground">Média/mês: {(metaBom / mesesBase).toFixed(1)}</p>
-          <p className="text-xs text-muted-foreground">Média/semana: {(metaBom / (mesesBase * 4.33)).toFixed(1)}</p>
-          {renderFaltam(faltamFinalBom, "text-emerald-600")}
+          {renderColuna(bom, aggBom, "text-emerald-700")}
         </div>
         <div>
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
-          <p className="text-xl font-bold text-blue-700 leading-tight">
-            {metaOtimo.toLocaleString("pt-BR")}{" "}
-            <span className="text-sm font-normal">{unit}</span>
-          </p>
-          <p className="text-xs text-muted-foreground">Média/mês: {(metaOtimo / mesesBase).toFixed(1)}</p>
-          <p className="text-xs text-muted-foreground">Média/semana: {(metaOtimo / (mesesBase * 4.33)).toFixed(1)}</p>
-          {renderFaltam(faltamFinalOtimo, "text-blue-600")}
+          {renderColuna(otimo, aggOtimo, "text-blue-700")}
         </div>
       </div>
+      {!semMeses && (
+        <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground max-w-[300px]">
+          Média dos {periodoMeses} meses ≥ meta: o restante após os meses fechados é dividido entre o mês atual e os próximos.
+        </p>
+      )}
     </div>
   );
 };
@@ -380,11 +378,18 @@ const SimulacaoCard = ({
   const pctBase = (ind: IndicadorResult | undefined, num: number, den: number) =>
     ind ? ind.porcentagem : (den > 0 ? (num / den) * 100 : 0);
 
+  // Método do mês atual: o que for simulado entra no mês em andamento e a média
+  // mensal é refeita (meses fechados ficam como estão).
+  const mesesDe = (ind?: IndicadorResult) =>
+    (ind?.mesesDetalhe ?? []).map(m => ({ mes: m.mes, num: m.numerador, den: m.denominador }));
+  const projeta = (ind: IndicadorResult | undefined, dNum: number, dDen: number, cap?: number): number | null =>
+    projetaMediaMensal(mesesDe(ind), dNum, dDen, cap);
+
   const b1NovoNum   = b1Numerador + extraConsultas;
   const b1NovaDenom = b1Denominador;
   const b1PctAtual  = pctBase(b1Ind, b1Numerador, b1Denominador);
   const b1Delta     = b1NovaDenom > 0 ? ((b1NovoNum - b1Numerador) / b1NovaDenom) * 100 : 0;
-  const b1NovaPct   = b1PctAtual + b1Delta;
+  const b1NovaPct   = projeta(b1Ind, extraConsultas, 0) ?? (b1PctAtual + b1Delta);
   const b1Conceito  = derivaConceito(b1NovaPct, b1Thresh);
 
   const b2NovoNum   = b2Numerador + extraConsultas * 0.5 + extraConclusoes;
@@ -392,7 +397,8 @@ const SimulacaoCard = ({
   const b2PctAtual  = limitarPercentualB2(pctBase(b2Ind, b2Numerador, b2Denominador));
   const b2AggAtual  = b2Denominador > 0 ? (b2Numerador / b2Denominador) * 100 : 0;
   const b2AggNova   = b2NovaDenom > 0 ? (b2NovoNum / b2NovaDenom) * 100 : 0;
-  const b2NovaPct   = limitarPercentualB2(b2PctAtual + (b2AggNova - b2AggAtual));
+  const b2NovaPct   = limitarPercentualB2(
+    projeta(b2Ind, extraConsultas * 0.5 + extraConclusoes, extraConsultas, 1) ?? (b2PctAtual + (b2AggNova - b2AggAtual)));
   const b2Conceito  = derivaConceito(b2NovaPct, b2Thresh);
 
   // B3: consulta ou trat. concluído → +2 den (entram no total de proced.
@@ -403,7 +409,7 @@ const SimulacaoCard = ({
   const b3PctAtual  = pctBase(b3Ind, b3Numerador, b3Denominador);
   const b3AggAtual  = b3Denominador > 0 ? (b3Numerador / b3Denominador) * 100 : 0;
   const b3AggNova   = b3NovaDenom > 0 ? (b3NovoNum / b3NovaDenom) * 100 : 0;
-  const b3NovaPct   = b3PctAtual + (b3AggNova - b3AggAtual);
+  const b3NovaPct   = projeta(b3Ind, 0, extraB3Den) ?? (b3PctAtual + (b3AggNova - b3AggAtual));
   const b3Conceito  = derivaConceitoB3(b3NovaPct);
 
   const b5NovoNum   = b5Numerador + (extraConsultas + extraConclusoes) * 2;
@@ -411,18 +417,12 @@ const SimulacaoCard = ({
   const b5PctAtual  = pctBase(b5Ind, b5Numerador, b5Denominador);
   const b5AggAtual  = b5Denominador > 0 ? (b5Numerador / b5Denominador) * 100 : 0;
   const b5AggNova   = b5NovaDenom > 0 ? (b5NovoNum / b5NovaDenom) * 100 : 0;
-  // Mesma regra do card de meta: soma no último mês com dado e refaz a média mensal
-  const b5MesesValidos = (b5Ind?.mesesDetalhe ?? []).filter((m) => m.denominador > 0);
   const b5Extra = (extraConsultas + extraConclusoes) * 2;
-  const b5NovaPct   = b5MesesValidos.length > 0
-    ? b5MesesValidos.reduce((s, m, i) => {
-        const isLast = i === b5MesesValidos.length - 1;
-        const n = m.numerador + (isLast ? b5Extra : 0);
-        const d = m.denominador + (isLast ? b5Extra : 0);
-        return s + (n / d) * 100;
-      }, 0) / b5MesesValidos.length
-    : b5PctAtual + (b5AggNova - b5AggAtual);
+  const b5NovaPct   = projeta(b5Ind, b5Extra, b5Extra) ?? (b5PctAtual + (b5AggNova - b5AggAtual));
   const b5Conceito  = derivaConceito(b5NovaPct, b5Thresh);
+
+  const mesesRef = mesesDe(b5Ind ?? b1Ind ?? b2Ind);
+  const mesAtualSim = mesesRef.length > 0 ? mesesRef[indiceMesAberto(mesesRef)]?.mes : undefined;
 
   const notaFinalAtual = todosIndicadores?.reduce((s, i) => s + i.notaFinal, 0) ?? 0;
 
@@ -509,6 +509,10 @@ const SimulacaoCard = ({
       </div>
 
       <div className="w-full h-px bg-orange-200 mb-2" />
+
+      <p className="text-[10px] text-muted-foreground mb-2">
+        Os valores simulados entram no mês atual{mesAtualSim ? ` (${mesAtualSim})` : ""}; os meses já fechados não mudam.
+      </p>
 
       <div className="flex gap-x-3 content-start">
         <ProjecaoBloco
