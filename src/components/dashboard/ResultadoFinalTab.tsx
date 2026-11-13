@@ -197,9 +197,9 @@ const MetaQuadrimestreCard = ({
     const metaAgg = numerador + (agg > 0 ? agg * dn : 0);
     return (
       <>
-        <p className={`text-xl font-bold leading-tight ${okClass}`}>
+        <p className={`text-lg font-bold leading-tight ${okClass}`}>
           {(r ? metaMes ?? "—" : metaAgg).toLocaleString("pt-BR")}{" "}
-          <span className="text-sm font-normal">{unit}</span>
+          <span className="text-xs font-normal">{unit}</span>
         </p>
         {r ? (
           <>
@@ -220,8 +220,8 @@ const MetaQuadrimestreCard = ({
   };
 
   return (
-    <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm">
-      <div className="flex items-center gap-1.5 mb-2">
+    <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-3 py-2 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-1.5">
         <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
         <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
           {periodoMeses === 1 ? "Meta do Mês" : periodoMeses === 4 ? "Meta do Quadrimestre" : `Meta do Período (${periodoMeses} meses)`}
@@ -231,7 +231,7 @@ const MetaQuadrimestreCard = ({
         </span>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-4">
         <div>
           <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
           {renderColuna(bom, aggBom, "text-emerald-700")}
@@ -242,7 +242,7 @@ const MetaQuadrimestreCard = ({
         </div>
       </div>
       {!semMeses && (
-        <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground max-w-[300px]">
+        <p className="mt-1 text-[10px] leading-snug text-muted-foreground max-w-[280px]">
           Média dos {periodoMeses} meses ≥ meta: o restante após os meses fechados é dividido entre o mês atual e os próximos.
         </p>
       )}
@@ -1223,17 +1223,17 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
   const faltamProximo   = proximoThresh !== null ? calcFaltam(proximoThresh) : 0;
 
   return (
-    <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 shadow-sm min-w-[150px]">
-      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">{cfg.label}</p>
-      <p className="text-[10px] text-muted-foreground leading-snug mb-1.5 truncate" title={ind.indicador}>
+    <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 shadow-sm min-w-[140px]">
+      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-0.5">{cfg.label}</p>
+      <p className="text-[10px] text-muted-foreground leading-snug mb-1 truncate" title={ind.indicador}>
         {ind.indicador}
       </p>
       <p className="text-sm font-bold leading-tight">
         {fmtNum(ind.numerador)}
         <span className="text-xs font-normal text-muted-foreground"> / {fmtNum(ind.denominador)}</span>
       </p>
-      <p className="text-xs text-muted-foreground mb-1.5">{pct.toFixed(1)}%</p>
-      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit mb-1.5 ${conceito.bgBorder} ${conceito.textColor}`}>
+      <p className="text-xs text-muted-foreground mb-1">{pct.toFixed(1)}%</p>
+      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-xs font-bold w-fit mb-1 ${conceito.bgBorder} ${conceito.textColor}`}>
         {conceito.label}
       </div>
       {isOtimo ? (
@@ -1295,28 +1295,30 @@ const DetalheRow = ({
                       })}
                       {...(ind.indicador === "Tratamento Concluído" && { capMensal: 1 })}
                     />
-                    {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
-                      const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);
-                      return relInd ? (
-                        <StatusRelacionadoCard key={nomeRel} ind={relInd} />
-                      ) : null;
-                    })}
+                    <div className="flex items-stretch gap-2">
+                      {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
+                        const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);
+                        return relInd ? (
+                          <StatusRelacionadoCard key={nomeRel} ind={relInd} />
+                        ) : null;
+                      })}
+                    </div>
                   </div>
                 )}
 
                 {hasMeses && (
-                  <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2 shadow-sm flex-grow">
-                    <div className="flex items-center gap-1.5 mb-2">
+                  <div className="flex flex-col items-center bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 shadow-sm self-start">
+                    <div className="flex items-center gap-1.5 mb-1.5">
                       <Target className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
                       <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">
                         Detalhamento Mensal
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-stretch justify-center gap-3">
+                    <div className="flex flex-wrap items-stretch justify-center gap-2">
                       {ind.mesesDetalhe.map((mes) => (
                         <div
                           key={mes.mes}
-                          className="flex flex-col items-center text-center bg-background border rounded-lg px-3 py-2 shadow-sm"
+                          className="flex flex-col items-center text-center bg-background border rounded-lg px-2.5 py-1.5 shadow-sm"
                           style={{ minWidth: cardMinWidth }}
                         >
                           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
