@@ -1037,7 +1037,7 @@ const CorrelacaoCruzadaCard = ({
 
   return (
     <div
-      className={`flex flex-col gap-2.5 rounded-lg px-3 py-2.5 shadow-sm w-full max-w-[640px] border ${corCardBg}`}
+      className={`flex flex-col gap-2.5 rounded-lg px-3 py-2.5 shadow-sm w-full border ${corCardBg}`}
     >
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-col shrink-0">
