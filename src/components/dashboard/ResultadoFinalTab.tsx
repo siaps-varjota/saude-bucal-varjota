@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamMesAtual, calcFaltamMesAtualMenorMelhor, projetaMediaMensal, chaveMes, indiceMesAberto } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamMesAtual, calcFaltamMesAtualB3, projetaMediaMensal, chaveMes, indiceMesAberto } from "@/lib/metaThresholds";
 import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
@@ -262,33 +262,37 @@ const MetaQuadrimestreMenorMelhorCard = ({
 }) => {
   const periodoMeses = useContext(PeriodoMesesContext);
   const mesesLista = (meses ?? []).map(m => ({ mes: m.mes, num: m.numerador ?? 0, den: m.denominador ?? 0 }));
-  const bom   = calcFaltamMesAtualMenorMelhor(mesesLista, periodoMeses, thresholds.thresholdBom);
-  const otimo = calcFaltamMesAtualMenorMelhor(mesesLista, periodoMeses, thresholds.thresholdOtimo);
+  const bom   = calcFaltamMesAtualB3(mesesLista, periodoMeses, thresholds.thresholdBom);
+  const otimo = calcFaltamMesAtualB3(mesesLista, periodoMeses, thresholds.thresholdOtimo);
   const mesAtual = bom ? mesesLista[bom.idxAberto] : undefined;
   const hoje = new Date();
   const ehMesCorrente = !!mesAtual && chaveMes(mesAtual.mes) === hoje.getFullYear() * 12 + hoje.getMonth();
   const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
   const semanasRestantes = ehMesCorrente ? Math.max(1, diasNoMes - hoje.getDate() + 1) / 7 : 0;
+  const pctFmt = (v: number) => (v * 100).toFixed(1).replace(".", ",");
 
-  const coluna = (r: ReturnType<typeof calcFaltamMesAtualMenorMelhor>, okClass: string) => {
+  const coluna = (r: ReturnType<typeof calcFaltamMesAtualB3>, okClass: string) => {
     if (!r || !mesAtual) return <p className="text-xs text-muted-foreground">Sem dados mensais</p>;
+    const dentro = r.faltam === 0 && r.faltamExo === 0;
     return (
       <>
-        <p className={`text-xl font-bold leading-tight ${okClass}`}>
-          {r.faltam === null ? "—" : (mesAtual.den + r.faltam).toLocaleString("pt-BR")}{" "}
-          <span className="text-sm font-normal">proced. no mês</span>
+        <p className="text-xs text-muted-foreground">
+          Mês atual: {r.alvoMin > 0 ? `entre ${pctFmt(r.alvoMin)}% e ` : "até "}
+          {r.faltam === null ? "—" : `${pctFmt(r.alvo)}%`}
         </p>
-        <p className="text-xs text-muted-foreground">Mês atual precisa de ≤ {(r.alvo * 100).toFixed(1).replace(".", ",")}%</p>
         {r.faltam === null ? (
           <p className="text-xs font-medium text-red-600">Inalcançável neste mês</p>
         ) : r.faltam > 0 ? (
           <>
-            <p className="text-xs font-medium text-red-600">Faltam: {r.faltam.toLocaleString("pt-BR")} proced.</p>
+            <p className="text-xs font-medium text-red-600">Acima do máximo: sem novas exodontias</p>
+            <p className="text-xs font-medium text-red-600">Faltam: {r.faltam.toLocaleString("pt-BR")} proced. no denominador</p>
             <p className="text-xs text-red-600">Média/semana: {semanasRestantes > 0 ? (r.faltam / semanasRestantes).toFixed(1) : "—"}</p>
           </>
-        ) : (
+        ) : r.faltamExo > 0 ? (
+          <p className="text-xs font-medium text-amber-700">Abaixo do mínimo: faltam {r.faltamExo.toLocaleString("pt-BR")} exodontia(s)</p>
+        ) : dentro ? (
           <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>
-        )}
+        ) : null}
       </>
     );
   };
@@ -313,8 +317,8 @@ const MetaQuadrimestreMenorMelhorCard = ({
         </div>
       </div>
       <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground max-w-[320px]">
-        Menor é melhor: média dos {periodoMeses} meses abaixo do limite. O mês atual só melhora somando
-        procedimentos ao denominador, sem novas exodontias; os próximos meses são calculados quando existirem.
+        Faixa do B3: média dos {periodoMeses} meses ≥ 3% (abaixo é Regular) e abaixo do limite. Acima do máximo não se
+        fazem mais exodontias: é preciso aumentar o denominador com outros procedimentos.
       </p>
     </div>
   );
