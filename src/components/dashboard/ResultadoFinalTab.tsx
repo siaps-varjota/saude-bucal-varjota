@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
-import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamMesAtual, projetaMediaMensal, chaveMes, indiceMesAberto } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamMesAtual, calcFaltamMesAtualMenorMelhor, projetaMediaMensal, chaveMes, indiceMesAberto } from "@/lib/metaThresholds";
 import { formatDesempate } from "@/lib/desempateScore";
 import { MesReferenciaMultiSelect } from "./MesReferenciaMultiSelect";
 import { PendenciasReportButton } from "./PendenciasReportButton";
@@ -246,6 +246,76 @@ const MetaQuadrimestreCard = ({
           Média dos {periodoMeses} meses ≥ meta: o restante após os meses fechados é dividido entre o mês atual e os próximos.
         </p>
       )}
+    </div>
+  );
+};
+
+// ── Card Meta do Quadrimestre — indicadores "menor é melhor" (B3) ─────────────
+// Mesmo método da média mensal: média dos N meses < limite. Só dá para reduzir o
+// % somando procedimentos (sem novas exodontias) ao denominador do mês atual.
+const MetaQuadrimestreMenorMelhorCard = ({
+  thresholds,
+  meses,
+}: {
+  thresholds: NonNullable<(typeof META_THRESHOLDS)[string]>;
+  meses?: { mes?: string; numerador: number; denominador: number }[];
+}) => {
+  const periodoMeses = useContext(PeriodoMesesContext);
+  const mesesLista = (meses ?? []).map(m => ({ mes: m.mes, num: m.numerador ?? 0, den: m.denominador ?? 0 }));
+  const bom   = calcFaltamMesAtualMenorMelhor(mesesLista, periodoMeses, thresholds.thresholdBom);
+  const otimo = calcFaltamMesAtualMenorMelhor(mesesLista, periodoMeses, thresholds.thresholdOtimo);
+  const mesAtual = bom ? mesesLista[bom.idxAberto] : undefined;
+  const hoje = new Date();
+  const ehMesCorrente = !!mesAtual && chaveMes(mesAtual.mes) === hoje.getFullYear() * 12 + hoje.getMonth();
+  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  const semanasRestantes = ehMesCorrente ? Math.max(1, diasNoMes - hoje.getDate() + 1) / 7 : 0;
+
+  const coluna = (r: ReturnType<typeof calcFaltamMesAtualMenorMelhor>, okClass: string) => {
+    if (!r || !mesAtual) return <p className="text-xs text-muted-foreground">Sem dados mensais</p>;
+    return (
+      <>
+        <p className={`text-xl font-bold leading-tight ${okClass}`}>
+          {r.faltam === null ? "—" : (mesAtual.den + r.faltam).toLocaleString("pt-BR")}{" "}
+          <span className="text-sm font-normal">proced. no mês</span>
+        </p>
+        <p className="text-xs text-muted-foreground">Mês atual precisa de ≤ {(r.alvo * 100).toFixed(1).replace(".", ",")}%</p>
+        {r.faltam === null ? (
+          <p className="text-xs font-medium text-red-600">Inalcançável neste mês</p>
+        ) : r.faltam > 0 ? (
+          <>
+            <p className="text-xs font-medium text-red-600">Faltam: {r.faltam.toLocaleString("pt-BR")} proced.</p>
+            <p className="text-xs text-red-600">Média/semana: {semanasRestantes > 0 ? (r.faltam / semanasRestantes).toFixed(1) : "—"}</p>
+          </>
+        ) : (
+          <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <div className="flex flex-col justify-center bg-violet-50 border border-violet-200 rounded-lg px-4 py-2 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Target className="h-3.5 w-3.5 text-violet-600 shrink-0" />
+        <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">
+          {periodoMeses === 1 ? "Meta do Mês" : periodoMeses === 4 ? "Meta do Quadrimestre" : `Meta do Período (${periodoMeses} meses)`}
+        </span>
+        {mesAtual?.mes && <span className="text-xs text-muted-foreground ml-0.5">— {mesAtual.mes}</span>}
+      </div>
+      <div className="flex gap-6">
+        <div>
+          <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
+          {coluna(bom, "text-emerald-700")}
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
+          {coluna(otimo, "text-blue-700")}
+        </div>
+      </div>
+      <p className="mt-1.5 text-[10px] leading-snug text-muted-foreground max-w-[320px]">
+        Menor é melhor: média dos {periodoMeses} meses abaixo do limite. O mês atual só melhora somando
+        procedimentos ao denominador, sem novas exodontias; os próximos meses são calculados quando existirem.
+      </p>
     </div>
   );
 };
@@ -1282,6 +1352,9 @@ const DetalheRow = ({
               <div className="flex items-stretch justify-center gap-2 flex-wrap">
                 {metaThresholds && (
                   <>
+                    {metaThresholds.menorMelhor ? (
+                    <MetaQuadrimestreMenorMelhorCard thresholds={metaThresholds} meses={ind.mesesDetalhe} />
+                    ) : (
                     <MetaQuadrimestreCard
                       denominador={ind.denominador}
                       numerador={ind.numerador}
@@ -1295,6 +1368,7 @@ const DetalheRow = ({
                       })}
                       {...(ind.indicador === "Tratamento Concluído" && { capMensal: 1 })}
                     />
+                    )}
                     <div className="flex items-stretch gap-2">
                       {(STATUS_RELACIONADOS[ind.indicador] ?? []).map((nomeRel) => {
                         const relInd = todosIndicadores?.find(i => i.indicador === nomeRel);
