@@ -264,7 +264,10 @@ export function calcFaltamMesAtual(
 
 /**
  * Percentual (0-100) do período projetado: soma `extraNum`/`extraDen` ao mês em
- * andamento e refaz a média mensal (só meses com denominador > 0).
+ * andamento. Com `nMeses`, os meses que ainda não aconteceram são assumidos com o
+ * MESMO desempenho do mês em andamento (mesma premissa do cálculo de "Faltam"),
+ * e a média é feita sobre os `nMeses` do período. Sem `nMeses`, é a média dos
+ * meses com denominador > 0.
  */
 export function projetaMediaMensal(
   meses: MesCalcLabel[],
@@ -272,10 +275,20 @@ export function projetaMediaMensal(
   extraDen: number,
   capMensal?: number,
   hoje: Date = new Date(),
+  nMeses?: number,
 ): number | null {
   if (meses.length === 0) return null;
   const idx = indiceMesAberto(meses, hoje);
   const proj = meses.map((m, i) => (i === idx ? { ...m, num: m.num + extraNum, den: m.den + extraDen } : m));
+  const atual = proj[idx];
+
+  if (nMeses != null && atual && atual.den > 0) {
+    const fechados = proj.filter((m, i) => i < idx && m.den > 0);
+    const abertos = Math.max(1, nMeses - fechados.length);
+    const soma = fechados.reduce((s, m) => s + razao(m, capMensal), 0) + razao(atual, capMensal) * abertos;
+    return (soma / (fechados.length + abertos)) * 100;
+  }
+
   const validos = proj.filter((m) => m.den > 0);
   if (validos.length === 0) return null;
   return (validos.reduce((s, m) => s + razao(m, capMensal), 0) / validos.length) * 100;
