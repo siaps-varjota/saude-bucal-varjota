@@ -504,7 +504,7 @@ const SimulacaoCard = ({
   const hasNota   = notaFinalAtual > 0;
 
   return (
-    <div className="flex flex-col flex-1 min-w-[320px] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 shadow-sm">
+    <div className="flex flex-col w-full min-w-[320px] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 shadow-sm">
       <div className="flex items-center gap-1.5 mb-2">
         <FlaskConical className="h-3.5 w-3.5 text-orange-600 shrink-0" />
         <span className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Simulação</span>
@@ -619,18 +619,6 @@ const SimulacaoCard = ({
           anyInput={anyInput}
           conceitoInfo={b3Conceito}
         />
-        <div className="w-px self-stretch bg-orange-200" />
-        <ProjecaoBloco
-          titulo="Projeção B5"
-          descricao={"consulta ou trat. → +2 num / +2 den\nproced. prev. → +1 num / +1 den"}
-          novoNum={b5Mes ? b5Mes.num + b5Extra : b5NovoNum}
-          novoDenom={b5Mes ? b5Mes.den + b5Extra : b5NovaDenom}
-          rotuloMes={b5Mes?.mes}
-          novaPct={b5NovaPct}
-          pctAtual={anyInput ? b5Ref : b5PctAtual}
-          anyInput={anyInput}
-          conceitoInfo={b5Conceito}
-        />
         {b4Ind && (
           <>
             <div className="w-px self-stretch bg-orange-200" />
@@ -647,6 +635,18 @@ const SimulacaoCard = ({
             />
           </>
         )}
+        <div className="w-px self-stretch bg-orange-200" />
+        <ProjecaoBloco
+          titulo="Projeção B5"
+          descricao={"consulta ou trat. → +2 num / +2 den\nproced. prev. → +1 num / +1 den"}
+          novoNum={b5Mes ? b5Mes.num + b5Extra : b5NovoNum}
+          novoDenom={b5Mes ? b5Mes.den + b5Extra : b5NovaDenom}
+          rotuloMes={b5Mes?.mes}
+          novaPct={b5NovaPct}
+          pctAtual={anyInput ? b5Ref : b5PctAtual}
+          anyInput={anyInput}
+          conceitoInfo={b5Conceito}
+        />
         {b6Ind && (
           <>
             <div className="w-px self-stretch bg-orange-200" />
@@ -1343,7 +1343,10 @@ const DetalheRow = ({
             )}
 
             {(hasSimCard || hasCruzadoCard) && (
-              <div className="flex flex-wrap items-start justify-center gap-2 w-full">
+              <div className="flex flex-col items-center gap-2 w-full">
+                {hasCruzadoCard && (
+                  <CorrelacaoCruzadaCard ind={ind} todosIndicadores={todosIndicadores} />
+                )}
                 {hasSimCard && (
                   <SimulacaoCard
                     b1Numerador={b1?.numerador ?? 0}
@@ -1356,9 +1359,6 @@ const DetalheRow = ({
                     b5Denominador={b5?.denominador ?? 0}
                     todosIndicadores={todosIndicadores}
                   />
-                )}
-                {hasCruzadoCard && (
-                  <CorrelacaoCruzadaCard ind={ind} todosIndicadores={todosIndicadores} />
                 )}
               </div>
             )}
