@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Filter } from "lucide-react";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
-import { useResultadoFinal as computeResultadoFinal, resultadoComTodosOsMeses, EquipeResult } from "@/hooks/useResultadoFinal";
+import { calcularResultadoFinal as computeResultadoFinal, resultadoComTodosOsMeses, EquipeResult } from "@/hooks/useResultadoFinal";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
 import { Tab3Record } from "@/hooks/useTab3Data";
