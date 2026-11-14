@@ -46,24 +46,37 @@ const semAdditional = (o: any): any =>
     ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)]))
     : o;
 
+const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Tenta os modelos em ordem; em 503/429 (sobrecarga/limite) repete com pausa curta.
 async function chamarGemini(entrada: string, apiKey: string) {
-  const modelo = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: INSTRUCOES }] },
-      contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):\n${entrada}` }] }],
-      generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 },
-    }),
-  });
-  if (!r.ok) {
-    console.error("gemini", r.status, await r.text());
-    return { status: r.status === 429 ? 429 : 502 } as const;
+  const preferido = Deno.env.get("GEMINI_MODEL");
+  const modelos = [...new Set([preferido, "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.8-flash-lite"].filter(Boolean))] as string[];
+  let ultimoStatus = 502;
+  for (const modelo of modelos) {
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: INSTRUCOES }] },
+          contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):\n${entrada}` }] }],
+          generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 },
+        }),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        const texto = j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ?? "";
+        if (texto) return { texto } as const;
+        break;
+      }
+      console.error("gemini", modelo, r.status, (await r.text()).slice(0, 300));
+      ultimoStatus = r.status;
+      if (r.status === 503 || r.status === 429) { await esperar(1500 * (tentativa + 1)); continue; }
+      break; // 404/400/401...: tenta o próximo modelo
+    }
   }
-  const j = await r.json();
-  const texto = j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ?? "";
-  return { texto } as const;
+  return { status: ultimoStatus === 429 ? 429 : 502 } as const;
 }
 
 Deno.serve(async (req) => {
