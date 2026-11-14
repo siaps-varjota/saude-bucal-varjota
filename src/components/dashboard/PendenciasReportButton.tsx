@@ -23,7 +23,7 @@ const conceitoLabel = (c: string) =>
 const N_MESES = 4; // quadrimestre
 
 // Unidade do "Faltam" (B5: cada consulta/tratamento soma +2 preventivos).
-const UNIDADE_FALTAM: Record<string, string> = { B5: "consultas" };
+const UNIDADE_FALTAM: Record<string, string> = { B5: "1ª Cons/Trat. Conc." };
 
 const MES_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const rotuloMes = (label?: string) => {

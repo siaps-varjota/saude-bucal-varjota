@@ -790,7 +790,7 @@ function direcaoConceito(c: Conceito): "favoravel" | "desfavoravel" | "neutro" {
 const STATUS_CONFIG: Record<string, { label: string; unit: string; deltaNum: number; deltaDenom: number }> = {
   "1ª Consulta Odontológica": { label: "B1",  unit: "atend.",    deltaNum: 1, deltaDenom: 0 },
   "Tratamento Concluído":     { label: "B2",  unit: "trat.",     deltaNum: 1, deltaDenom: 0 },
-  "Proced. Odont. Preventivos": { label: "B5", unit: "consultas", deltaNum: 2, deltaDenom: 2 },
+  "Proced. Odont. Preventivos": { label: "B5", unit: "1ª Cons/Trat. Conc.", deltaNum: 2, deltaDenom: 2 },
 };
 
 // ── Causa da divergência e ação recomendada, por indicador ──────────────────
@@ -1377,7 +1377,7 @@ const DetalheRow = ({
                       {...(ind.indicador === "Proced. Odont. Preventivos" && {
                         deltaNum: 2,
                         deltaDenom: 2,
-                        faltaUnit: "consultas",
+                        faltaUnit: "1ª Cons/Trat. Conc.",
                       })}
                       {...(ind.indicador === "Tratamento Concluído" && { capMensal: 1 })}
                     />
