@@ -231,18 +231,18 @@ const MetaQuadrimestreCard = ({
         </span>
       </div>
 
-      <div className="flex gap-4">
-        <div>
+      <div className="flex gap-4 items-start">
+        <div className="w-[150px] break-words">
           <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
           {renderColuna(bom, aggBom, "text-emerald-700")}
         </div>
-        <div>
+        <div className="w-[150px] break-words">
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
           {renderColuna(otimo, aggOtimo, "text-blue-700")}
         </div>
       </div>
       {!semMeses && (
-        <p className="mt-1 text-[10px] leading-snug text-muted-foreground max-w-[280px]">
+        <p className="mt-1 text-[10px] leading-snug text-muted-foreground max-w-[400px]">
           Média dos {periodoMeses} meses ≥ meta: o restante após os meses fechados é dividido entre o mês atual e os próximos.
         </p>
       )}
@@ -307,11 +307,11 @@ const MetaQuadrimestreMenorMelhorCard = ({
         {mesAtual?.mes && <span className="text-xs text-muted-foreground ml-0.5">— {mesAtual.mes}</span>}
       </div>
       <div className="flex gap-6">
-        <div>
+        <div className="w-[150px] break-words">
           <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
           {coluna(bom, "text-emerald-700")}
         </div>
-        <div>
+        <div className="w-[150px] break-words">
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
           {coluna(otimo, "text-blue-700")}
         </div>
