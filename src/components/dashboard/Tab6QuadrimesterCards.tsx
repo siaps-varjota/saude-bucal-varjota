@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tab6Record } from "@/hooks/useTab6Data";
-import { CalendarDays, Target } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal, calcFaltamPar, META_THRESHOLDS } from "@/lib/metaThresholds";
+import { META_THRESHOLDS } from "@/lib/metaThresholds";
+import { MetaMesAtualCard } from "@/components/dashboard/MetaMesAtualCard";
 
 interface Tab6QuadrimesterCardsProps {
   records: Tab6Record[];
@@ -92,7 +93,7 @@ export const Tab6QuadrimesterCards = ({
       let monthsWithData     = 0;
       let somaPctMensal      = 0;
       let mesesComPct        = 0;
-      const mesesLista: { num: number; den: number }[] = [];
+      const mesesLista: { mes: string; num: number; den: number }[] = [];
 
       quadMonths.forEach((m) => {
         const inPast = q.year < currentYear || (q.year === currentYear && m <= currentMonth);
@@ -128,7 +129,7 @@ export const Tab6QuadrimesterCards = ({
 
         totalExodontias    += mesNum;
         totalProcedimentos += mesDen;
-        mesesLista.push({ num: mesNum, den: mesDen });
+        mesesLista.push({ mes: mmyyyy, num: mesNum, den: mesDen });
         if (mesDen > 0) {
           somaPctMensal += (mesNum / mesDen) * 100;
           mesesComPct++;
@@ -154,67 +155,16 @@ export const Tab6QuadrimesterCards = ({
 
   // Meta baseada no quadrimestre atual (último visível)
   const currentQuadData  = visibleCards[visibleCards.length - 1];
-  const totalProcQuad    = currentQuadData?.totalProcedimentos ?? 0;
-  const metaBom          = totalProcQuad > 0 ? Math.ceil(totalProcQuad * 0.06) + 1 : 0;
-  const metaOtimo        = totalProcQuad > 0 ? Math.ceil(totalProcQuad * 0.08) + 1 : 0;
-  const mediaMensalBom   = metaBom   / 4;
-  const mediaMensalOtimo = metaOtimo / 4;
-  const totalAtual       = currentQuadData?.totalExodontias ?? 0;
-  // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
   const thB6             = META_THRESHOLDS["Trat. Restaurador Atraumático"]!;
-  const parB6 = calcFaltamPar(
-    currentQuadData?.mesesLista ?? [], thB6.thresholdBom, thB6.thresholdOtimo, thB6.deltaNum, thB6.deltaDenom,
-    Math.max(0, metaBom - totalAtual), Math.max(0, metaOtimo - totalAtual),
-  );
-  const faltamBom        = parB6.bom;
-  const faltamOtimo      = parB6.otimo;
-  const atingiuBom       = faltamBom   === 0 && metaBom   > 0;
-  const atingiuOtimo     = faltamOtimo === 0 && metaOtimo > 0;
   const fonteMeta        = currentQuadData?.fonte ?? "preliminar";
-  const mesesComDados    = currentQuadData?.monthsWithData ?? 1;
-  const semanasRestantes = Math.max(0, (4 - mesesComDados)) * 4.33;
-  const fmtSemanal = (faltam: number) =>
-    semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
-
   const metaCard = (
-    <Card className="border-0 shadow-md bg-gradient-to-br from-purple-100 to-purple-50 border-l-4 border-l-purple-500 h-full col-span-2 transition-all hover:shadow-xl hover:-translate-y-0.5">
-      <CardContent className="p-4 flex flex-col justify-center h-full">
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <Target className="h-4 w-4 text-purple-600" />
-          <span className="text-sm font-medium text-purple-700">Meta do Quadrimestre</span>
-          <span className="text-xs text-muted-foreground ml-1">de {totalProcQuad} proc.</span>
-          <FonteBadge fonte={fonteMeta} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="border-r pr-4">
-            <p className="text-xs font-semibold text-emerald-700 mb-1">Bom (&gt; 6%)</p>
-            <p className="text-2xl font-bold text-emerald-700">{metaBom} TRA</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalBom.toFixed(1)}</p>
-            <p className="text-xs text-muted-foreground">Média/semana: {(mediaMensalBom / 4.33).toFixed(1)}</p>
-            {atingiuBom
-              ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <>
-                  <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamBom} TRA</p>
-                  <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamBom)}</p>
-                </>
-            }
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-blue-700 mb-1">Ótimo (&gt; 8%)</p>
-            <p className="text-2xl font-bold text-blue-700">{metaOtimo} TRA</p>
-            <p className="text-xs text-muted-foreground">Média/mês: {mediaMensalOtimo.toFixed(1)}</p>
-            <p className="text-xs text-muted-foreground">Média/semana: {(mediaMensalOtimo / 4.33).toFixed(1)}</p>
-            {atingiuOtimo
-              ? <p className="text-xs font-semibold text-emerald-600 mt-1">✓ Meta atingida!</p>
-              : <>
-                  <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {faltamOtimo} TRA</p>
-                  <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltamOtimo)}</p>
-                </>
-            }
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <MetaMesAtualCard
+      meses={currentQuadData?.mesesLista ?? []}
+      labelBom="> 6%" labelOtimo="> 8%"
+      thresholdBom={thB6.thresholdBom} thresholdOtimo={thB6.thresholdOtimo}
+      deltaNum={thB6.deltaNum} deltaDenom={thB6.deltaDenom}
+      unit="TRA" fonte={fonteMeta}
+    />
   );
 
   return (

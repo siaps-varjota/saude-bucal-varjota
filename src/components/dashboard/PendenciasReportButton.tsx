@@ -5,7 +5,7 @@ import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
 import type { EquipeResult, IndicadorResult } from "@/hooks/useResultadoFinal";
-import { META_THRESHOLDS, LABEL_SEM_SIMULACAO, calcFaltam, calcFaltamMediaMensal } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, LABEL_SEM_SIMULACAO, PISO_B3, calcFaltam, calcFaltamMesAtual, calcFaltamMesAtualB3 } from "@/lib/metaThresholds";
 
 interface Props {
   equipe: string; // "all" or specific equipe name
@@ -20,34 +20,127 @@ const SIM_CONFIG = META_THRESHOLDS;
 const conceitoLabel = (c: string) =>
   c === "otimo" ? "Ótimo" : c === "bom" ? "Bom" : c === "suficiente" ? "Suficiente" : c === "regular" ? "Regular" : "—";
 
-function buildSimRow(ind: IndicadorResult) {
+const N_MESES = 4; // quadrimestre
+
+// Unidade do "Faltam" (B5: cada consulta/tratamento soma +2 preventivos).
+const UNIDADE_FALTAM: Record<string, string> = { B5: "consultas" };
+
+const MES_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const rotuloMes = (label?: string) => {
+  if (!label) return "";
+  const [a, b] = label.split("/");
+  const n = parseInt(a, 10);
+  return !isNaN(n) && n >= 1 && n <= 12 ? `${MES_ABBR[n - 1]}/${b}` : label;
+};
+const fmtPct = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")}%`;
+
+interface SimRow {
+  indicador: string;
+  atual: string;
+  conceitoAtual: string;
+  proximo: string;
+  /** texto da célula (pode ter 2 linhas) */
+  faltam: string;
+  /** texto curto para as sugestões ("222 consultas") */
+  faltamCurto: string;
+  pendente: boolean;
+  notaProj: string;
+  notaProjNum: number;
+  impacto: string;
+  obs: string;
+}
+
+export function buildSimRow(ind: IndicadorResult): SimRow {
   const notaAtualPonderada = ind.nota * ind.peso;
   const cfg = SIM_CONFIG[ind.indicador];
-  if (!cfg || cfg.menorMelhor) {
-    // B3 / B6 — sem simulação por incremento, mas ainda com prefixo de label
-    const prefixo = LABEL_SEM_SIMULACAO[ind.indicador];
+  const prefixo = LABEL_SEM_SIMULACAO[ind.indicador];
+  const mesesLista = (ind.mesesDetalhe ?? []).map(m => ({ mes: m.mes, num: m.numerador ?? 0, den: m.denominador ?? 0 }));
+
+  if (!cfg) {
     return {
       indicador: prefixo ? `${prefixo} — ${ind.indicador}` : ind.indicador,
       atual: `${ind.numerador}/${ind.denominador} (${ind.porcentagem.toFixed(1)}%)`,
       conceitoAtual: conceitoLabel(ind.conceito),
-      proximo: "—",
-      faltam: "—",
+      proximo: "—", faltam: "—", faltamCurto: "—", pendente: false,
       notaProj: notaAtualPonderada.toFixed(2).replace(".", ","),
+      notaProjNum: notaAtualPonderada,
       impacto: "—",
       obs: "Indicador sem simulação por incremento.",
     };
   }
+
   const pct = ind.porcentagem;
+
+  // ── B3 (menor é melhor): faixa Ótimo ≥3% e <10% | Bom ≥10% e <12% ─────────
+  if (cfg.menorMelhor) {
+    const isOtimo = pct >= PISO_B3 * 100 && pct < cfg.thresholdOtimo * 100;
+    const isBom = !isOtimo && pct >= cfg.thresholdOtimo * 100 && pct < cfg.thresholdBom * 100;
+    const temDado = ind.denominador > 0 && pct > 0;
+    const proximoLabel = !temDado || isOtimo ? null : isBom || pct < PISO_B3 * 100 ? `Ótimo (${cfg.labelOtimo})` : `Bom (${cfg.labelBom})`;
+    const limite = isBom || pct < PISO_B3 * 100 ? cfg.thresholdOtimo : cfg.thresholdBom;
+    const r = proximoLabel ? calcFaltamMesAtualB3(mesesLista, N_MESES, limite) : null;
+
+    let faltam = "—", faltamCurto = "—", pendente = false;
+    if (!temDado) {
+      faltam = "—";
+    } else if (isOtimo) {
+      faltam = "OK — atingido"; faltamCurto = faltam;
+    } else if (!r) {
+      faltam = "—";
+    } else if (r.faltam === null) {
+      faltam = "Inalcançável no mês"; faltamCurto = faltam; pendente = true;
+    } else if (r.faltam > 0) {
+      faltamCurto = `${r.faltam.toLocaleString("pt-BR")} proced. (denominador)`;
+      faltam = `${faltamCurto}\n${rotuloMes(r.mesAberto)}: ≤ ${fmtPct(r.alvo)}, sem novas exodontias`;
+      pendente = true;
+    } else if (r.faltamExo > 0) {
+      faltamCurto = `${r.faltamExo.toLocaleString("pt-BR")} exodontia(s) (mínimo)`;
+      faltam = `${faltamCurto}\n${rotuloMes(r.mesAberto)}: ≥ ${fmtPct(r.alvoMin)}`;
+      pendente = true;
+    } else {
+      faltam = "0"; faltamCurto = "0";
+    }
+    const notaProjBase = isOtimo || !temDado ? ind.nota : isBom || pct < PISO_B3 * 100 ? 1.0 : 0.75;
+    const notaProjPonderada = (isOtimo || !temDado ? ind.nota : notaProjBase) * ind.peso;
+    const impactoPontos = notaProjPonderada - notaAtualPonderada;
+    return {
+      indicador: `${cfg.code} — ${ind.indicador}`,
+      atual: `${ind.numerador}/${ind.denominador} (${pct.toFixed(1)}%)`,
+      conceitoAtual: conceitoLabel(ind.conceito),
+      proximo: proximoLabel ?? "—",
+      faltam, faltamCurto, pendente,
+      notaProj: notaProjPonderada.toFixed(2).replace(".", ","),
+      notaProjNum: notaProjPonderada,
+      impacto: !pendente || impactoPontos <= 0 ? "—" : `+${impactoPontos.toFixed(2).replace(".", ",")} pts`,
+      obs: "",
+    };
+  }
+
+  // ── Indicadores "maior é melhor": método do mês atual ─────────────────────
   const isOtimo = pct > cfg.thresholdOtimo * 100;
   const isBom = pct > cfg.thresholdBom * 100;
   const proximoLabel = isOtimo ? null : isBom ? `Ótimo (${cfg.labelOtimo})` : `Bom (${cfg.labelBom})`;
   const proximoThresh = isOtimo ? null : isBom ? cfg.thresholdOtimo : cfg.thresholdBom;
-  const mesesLista = (ind.mesesDetalhe ?? []).map(m => ({ num: m.numerador ?? 0, den: m.denominador ?? 0 }));
   const capMensal = cfg.code === "B2" ? 1 : undefined;
-  const faltam = proximoThresh != null
-    ? (calcFaltamMediaMensal(mesesLista, proximoThresh, cfg.deltaNum, cfg.deltaDenom, capMensal)
-       ?? calcFaltam(ind.numerador, ind.denominador, proximoThresh, cfg.deltaNum, cfg.deltaDenom))
-    : 0;
+  const unit = UNIDADE_FALTAM[cfg.code] ?? cfg.unit;
+
+  let faltam = "OK — atingido", faltamCurto = "OK — atingido", pendente = false;
+  if (proximoThresh != null) {
+    const r = calcFaltamMesAtual(mesesLista, N_MESES, proximoThresh, cfg.deltaNum, cfg.deltaDenom, capMensal);
+    pendente = true;
+    if (r && r.faltam === null) {
+      faltam = faltamCurto = "Inalcançável no mês";
+    } else if (r) {
+      faltamCurto = `${r.faltam!.toLocaleString("pt-BR")} ${unit}`;
+      faltam = r.faltam === 0
+        ? "0"
+        : `${faltamCurto}\n${rotuloMes(r.mesAberto)}: ≥ ${fmtPct(r.alvo)}`;
+      if (r.faltam === 0) pendente = false;
+    } else {
+      const f = calcFaltam(ind.numerador, ind.denominador, proximoThresh, cfg.deltaNum, cfg.deltaDenom);
+      faltamCurto = faltam = `${f.toLocaleString("pt-BR")} ${unit}`;
+    }
+  }
   const notaProjBase = isOtimo ? 1.0 : isBom ? 1.0 : 0.75;
   const notaProjPonderada = notaProjBase * ind.peso;
   const impactoPontos = notaProjPonderada - notaAtualPonderada;
@@ -56,10 +149,11 @@ function buildSimRow(ind: IndicadorResult) {
     atual: `${ind.numerador}/${ind.denominador} (${pct.toFixed(1)}%)`,
     conceitoAtual: conceitoLabel(ind.conceito),
     proximo: proximoLabel ?? "—",
-    faltam: isOtimo ? "OK — atingido" : `${faltam.toLocaleString("pt-BR")} ${cfg.unit}`,
+    faltam, faltamCurto, pendente,
     notaProj: notaProjPonderada.toFixed(2).replace(".", ","),
+    notaProjNum: notaProjPonderada,
     impacto: isOtimo || impactoPontos <= 0 ? "—" : `+${impactoPontos.toFixed(2).replace(".", ",")} pts`,
-    obs: isOtimo ? "Já no Ótimo." : `Atinge ${proximoLabel?.split(" ")[0]} com +${faltam} ${cfg.unit}.`,
+    obs: isOtimo ? "Já no Ótimo." : `Atinge ${proximoLabel?.split(" ")[0]} com +${faltamCurto}.`,
   };
 }
 
@@ -163,19 +257,17 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         const SUGESTAO_PROCEDIMENTO: Record<string, string> = {
           B1: "captação de 1ª consulta odontológica (busca ativa de pacientes ainda sem consulta inicial)",
           B2: "conclusão dos tratamentos odontológicos já iniciados (retorno dos pacientes com tratamento em aberto)",
-          B3: "redução de exodontias, priorizando tratamento conservador/restaurador no lugar da extração",
+          B3: "aumento dos demais procedimentos individuais (denominador), sem novas exodontias quando o mês já passou do limite; priorizar tratamento conservador/restaurador no lugar da extração",
           B4: "ações de escovação supervisionada (ações coletivas em escolas, creches e grupos)",
           B5: "procedimentos odontológicos preventivos (flúor, selante, profilaxia)",
           B6: "Tratamento Restaurador Atraumático — ART (especialmente em crianças)",
         };
 
         // Indicadores com pendências reais (exclui "—" e "OK — atingido")
-        const pendentes = simRows.filter(
-          (r) => r.faltam !== "—" && r.faltam !== "OK — atingido",
-        );
+        const pendentes = simRows.filter((r) => r.pendente);
         if (pendentes.length > 0) {
           const listaPendentes = pendentes
-            .map((r) => `${r.indicador.split(" — ")[0]} (faltam ${r.faltam})`)
+            .map((r) => `${r.indicador.split(" — ")[0]} (faltam ${r.faltamCurto})`)
             .join("; ");
           const sugestoesProcedimentos = pendentes
             .map((r) => {
@@ -190,15 +282,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         }
 
         const notaAtual = equipeResult.notaFinal;
-        const notaProjTotal = indSorted.reduce((acc, ind) => {
-          const cfg = SIM_CONFIG[ind.indicador];
-          if (!cfg) return acc + ind.nota * ind.peso;
-          const pct = ind.porcentagem;
-          const isOtimo = pct > cfg.thresholdOtimo * 100;
-          const isBom = pct > cfg.thresholdBom * 100;
-          const notaBase = isOtimo ? 1.0 : isBom ? 1.0 : 0.75;
-          return acc + notaBase * ind.peso;
-        }, 0);
+        const notaProjTotal = simRows.reduce((acc, r) => acc + r.notaProjNum, 0);
 
         // Larguras proporcionais às originais (65/32/25/40/40/22/26 = 250mm de
         // referência), reescaladas para preencher exatamente a largura útil da
@@ -248,7 +332,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         doc.setFontSize(9);
         y += 4;
         const rodapeTexto = doc.splitTextToSize(
-          "Simulação considera o incremento típico de cada indicador (B1/B2: +1 atend., B5: +2 num/+2 den, B6: +1 ART num/+1 den). B3 não usa simulação por incremento. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador especificamente ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
+          "Metas pelo método da média mensal: a média dos 4 meses do quadrimestre precisa atingir o limite. O que sobra após os meses já fechados é dividido entre o mês atual e os próximos; a coluna \"Faltam\" indica o necessário NO MÊS ATUAL (os próximos meses são calculados quando existirem). Incremento por unidade: B1/B2/B4: +1 no numerador; B5: +2 num/+2 den por consulta ou tratamento; B6: +1 ART num/+1 den. B3 (menor é melhor, faixa de 3% a 10% para Ótimo): acima do limite não se fazem novas exodontias e é preciso aumentar o denominador; abaixo de 3% faltam exodontias. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
           pageW - 28,
         );
         doc.text(rodapeTexto, 14, y);

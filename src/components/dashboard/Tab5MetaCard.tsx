@@ -8,7 +8,7 @@ import { parse } from "@/lib/fastParse";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal, calcFaltamPar, META_THRESHOLDS } from "@/lib/metaThresholds";
+import { calcFaltamMesAtual, semanasRestantesNoMes, META_THRESHOLDS } from "@/lib/metaThresholds";
 
 interface Tab5MetaCardProps {
   records: Tab5Record[];
@@ -101,7 +101,7 @@ export const Tab5MetaCard = ({
     let todosMesesOficiais = true;
     let somaPctMensal      = 0;
     let mesesComPct        = 0;
-    const mesesLista: { num: number; den: number }[] = [];
+    const mesesLista: { mes: string; num: number; den: number }[] = [];
 
     quadMonths.forEach(mesIdx => {
       const inPast = y < now.getFullYear() || (y === now.getFullYear() && mesIdx <= range.actualEndMonth);
@@ -133,7 +133,7 @@ export const Tab5MetaCard = ({
 
       preventivos      += mesNum;
       totalIndividuais += mesDen;
-      mesesLista.push({ num: mesNum, den: mesDen });
+      mesesLista.push({ mes: mmyyyy, num: mesNum, den: mesDen });
       if (mesDen > 0) {
         somaPctMensal += (mesNum / mesDen) * 100;
         mesesComPct++;
@@ -160,23 +160,13 @@ export const Tab5MetaCard = ({
       return d ? isWithinInterval(d, { start: range.start, end: range.end }) : false;
     }).length;
 
-    const calcNeeded = (target: number): number => {
-      if (totalIndividuais > 0 && (preventivos / totalIndividuais) >= target) return 0;
-      if (totalIndividuais === 0 && target <= 1) return 1;
-      const numerator   = target * totalIndividuais - preventivos;
-      const denominator = 2 * (1 - target);
-      if (denominator <= 0) return 0;
-      return Math.max(0, Math.ceil(numerator / denominator));
-    };
-
-    // "Faltam" pela regra do percentual médio mensal (soma no último mês com dado)
+    // "Faltam" pelo método do mês atual: média dos 4 meses ≥ meta; o que sobra após os
+    // meses fechados é dividido entre o mês em andamento e os que ainda não aconteceram.
     const thB5 = META_THRESHOLDS["Proced. Odont. Preventivos"]!;
-    const parB5 = calcFaltamPar(
-      mesesLista, thB5.thresholdBom, thB5.thresholdOtimo, thB5.deltaNum, thB5.deltaDenom,
-      calcNeeded(0.55), calcNeeded(0.65),
-    );
-    const faltamBom   = parB5.bom;
-    const faltamOtimo = parB5.otimo;
+    const rBom   = calcFaltamMesAtual(mesesLista, 4, thB5.thresholdBom,   thB5.deltaNum, thB5.deltaDenom);
+    const rOtimo = calcFaltamMesAtual(mesesLista, 4, thB5.thresholdOtimo, thB5.deltaNum, thB5.deltaDenom);
+    const faltamBom   = rBom?.faltam ?? 0;
+    const faltamOtimo = rOtimo?.faltam ?? 0;
 
     // ── Simulações com B1 oficial ──────────────────────────────────────────
     const simulations = (() => {
@@ -243,9 +233,9 @@ export const Tab5MetaCard = ({
 
     return {
       preventivos, totalIndividuais, currentPct,
-      faltamBom, faltamOtimo,
-      alreadyBom:   currentPct >= 55,
-      alreadyOtimo: currentPct >= 65,
+      faltamBom, faltamOtimo, rBom, rOtimo,
+      alreadyBom:   rBom   ? rBom.faltam   === 0 : currentPct >= 55,
+      alreadyOtimo: rOtimo ? rOtimo.faltam === 0 : currentPct >= 65,
       pendentesTab2,
       fonte,
       simulations,
@@ -257,11 +247,12 @@ export const Tab5MetaCard = ({
 
   const {
     preventivos, totalIndividuais, currentPct,
-    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo,
-    pendentesTab2, fonte, simulations, mesesDecorridos,
+    faltamBom, faltamOtimo, rBom, rOtimo, alreadyBom, alreadyOtimo,
+    pendentesTab2, fonte, simulations,
   } = metaData;
 
-  const semanasRestantes = Math.max(0, 4 - mesesDecorridos) * 4.33;
+  const semanasRestantes = semanasRestantesNoMes(rBom?.mesAberto);
+  const pctMes = (r: typeof rBom) => (r ? `${(r.alvo * 100).toFixed(1).replace(".", ",")}%` : "");
   const fmtSemanal = (faltam: number) =>
     semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
@@ -272,7 +263,7 @@ export const Tab5MetaCard = ({
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Target className="w-4 h-4 text-violet-600" />
-            <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Proced. Odont. Preventivos</span>
+            <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Proced. Odont. Preventivos{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</span>
             <FonteBadge fonte={fonte} />
           </div>
 
@@ -310,8 +301,10 @@ export const Tab5MetaCard = ({
                 <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
+                  <p className="text-2xl font-bold text-emerald-700">{rBom?.faltam === null ? "—" : faltamBom}</p>
                   <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
+                  <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rBom)}</p>
+                  {rBom?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
                 </>
               )}
@@ -326,8 +319,10 @@ export const Tab5MetaCard = ({
                 <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
+                  <p className="text-2xl font-bold text-blue-700">{rOtimo?.faltam === null ? "—" : faltamOtimo}</p>
                   <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
+                  <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rOtimo)}</p>
+                  {rOtimo?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
                 </>
               )}

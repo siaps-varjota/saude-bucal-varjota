@@ -8,7 +8,7 @@ import { parse } from "@/lib/fastParse";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMediaMensal, calcFaltamPar } from "@/lib/metaThresholds";
+import { calcFaltamMesAtual, semanasRestantesNoMes, META_THRESHOLDS } from "@/lib/metaThresholds";
 
 interface TratamentoMetaCardProps {
   patients: TratamentoPatient[];
@@ -122,7 +122,7 @@ export const TratamentoMetaCard = ({
     let todosMesesOficiais = true;
     let somaPctMensal      = 0;
     let mesesComPct        = 0;
-    const mesesLista: { num: number; den: number }[] = [];
+    const mesesLista: { mes: string; num: number; den: number }[] = [];
 
 
     for (let m = range.startMonth; m <= range.actualEndMonth; m++) {
@@ -153,7 +153,7 @@ export const TratamentoMetaCard = ({
       const resolved = resolveMonthB2(monthDate, prelNum, prelDen, equipe, oficialData?.index);
       totalNum += resolved.num;
       totalDen += resolved.den;
-      mesesLista.push({ num: resolved.num, den: resolved.den });
+      mesesLista.push({ mes: format(monthDate, "MM/yyyy"), num: resolved.num, den: resolved.den });
       if (resolved.den > 0) {
         somaPctMensal += percentualB2(resolved.num, resolved.den);
         mesesComPct++;
@@ -183,10 +183,12 @@ export const TratamentoMetaCard = ({
     const currentPct  = mesesComPct > 0
       ? somaPctMensal / mesesComPct
       : percentualB2(totalNum, totalDen);
-    // "Faltam" pelo total do quadrimestre: menor numerador estritamente > 50% / > 75%
-    void calcFaltamPar; void mesesLista;
-    const faltamBom   = totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.5) + 1 - totalNum) : 0;
-    const faltamOtimo = totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.75) + 1 - totalNum) : 0;
+    // "Faltam" pelo método do mês atual: média dos 4 meses > meta; o que sobra após os
+    // meses fechados é dividido entre o mês em andamento e os que ainda não aconteceram.
+    const rBom   = calcFaltamMesAtual(mesesLista, 4, META_THRESHOLDS["Tratamento Concluído"]!.thresholdBom,   1, 0, 1);
+    const rOtimo = calcFaltamMesAtual(mesesLista, 4, META_THRESHOLDS["Tratamento Concluído"]!.thresholdOtimo, 1, 0, 1);
+    const faltamBom   = rBom?.faltam   ?? (totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.5)  + 1 - totalNum) : 0);
+    const faltamOtimo = rOtimo?.faltam ?? (totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.75) + 1 - totalNum) : 0);
 
     // ── Simulações ────────────────────────────────────────────────────────
     const simulations = (() => {
@@ -252,8 +254,9 @@ export const TratamentoMetaCard = ({
       currentPct,
       faltamBom,
       faltamOtimo,
-      alreadyBom:   currentPct > 50,
-      alreadyOtimo: currentPct > 75,
+      rBom, rOtimo,
+      alreadyBom:   rBom   ? rBom.faltam   === 0 : currentPct > 50,
+      alreadyOtimo: rOtimo ? rOtimo.faltam === 0 : currentPct > 75,
       fonte,
       simulations,
       mesesDecorridos,
@@ -264,10 +267,11 @@ export const TratamentoMetaCard = ({
 
   const {
     consultasQuad, tratamentosQuad, pendentes, currentPct,
-    faltamBom, faltamOtimo, alreadyBom, alreadyOtimo, fonte, simulations, mesesDecorridos,
+    faltamBom, faltamOtimo, rBom, rOtimo, alreadyBom, alreadyOtimo, fonte, simulations,
   } = metaData;
 
-  const semanasRestantes = Math.max(0, 4 - mesesDecorridos) * 4.33;
+  const semanasRestantes = semanasRestantesNoMes(rBom?.mesAberto);
+  const pctMes = (r: typeof rBom) => (r ? `${(r.alvo * 100).toFixed(1).replace(".", ",")}%` : "");
   const fmtSemanal = (faltam: number) =>
     semanasRestantes > 0 ? (faltam / semanasRestantes).toFixed(1) : "—";
 
@@ -278,7 +282,7 @@ export const TratamentoMetaCard = ({
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Target className="w-4 h-4 text-violet-600" />
-            <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Tratamento Concluído</span>
+            <span className="text-sm font-semibold text-violet-700">Meta do Quadrimestre — Tratamento Concluído{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</span>
             <FonteBadge fonte={fonte} />
           </div>
 
@@ -307,8 +311,10 @@ export const TratamentoMetaCard = ({
                 <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
+                  <p className="text-2xl font-bold text-emerald-700">{rBom?.faltam === null ? "—" : faltamBom}</p>
                   <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                  <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rBom)}</p>
+                  {rBom?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(faltamBom)}</p>
                 </>
               )}
@@ -323,8 +329,10 @@ export const TratamentoMetaCard = ({
                 <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
+                  <p className="text-2xl font-bold text-blue-700">{rOtimo?.faltam === null ? "—" : faltamOtimo}</p>
                   <p className="text-xs text-muted-foreground">tratamentos a concluir</p>
+                  <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rOtimo)}</p>
+                  {rOtimo?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(faltamOtimo)}</p>
                 </>
               )}
