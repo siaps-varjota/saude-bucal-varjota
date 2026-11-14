@@ -203,7 +203,7 @@ const MetaQuadrimestreCard = ({
         </p>
         {r ? (
           <>
-            <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {(r.alvo * 100).toFixed(1).replace(".", ",")}%</p>
+            <p className="text-xs font-semibold text-foreground">Neste mês{r.mesAberto ? ` (${r.mesAberto})` : ""} precisa de ≥ {(r.alvo * 100).toFixed(1).replace(".", ",")}%</p>
             <p className="text-xs text-muted-foreground">Média/semana: {metaMes != null ? (metaMes / 4.33).toFixed(1) : "—"}</p>
           </>
         ) : null}
@@ -211,7 +211,7 @@ const MetaQuadrimestreCard = ({
           ? <p className="text-xs font-medium text-red-600">Inalcançável neste mês</p>
           : faltam > 0
             ? <>
-                <p className="text-xs font-medium text-red-600">Faltam neste mês: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
+                <p className="text-xs font-medium text-red-600">Faltam NESTE MÊS{r?.mesAberto ? ` (${r.mesAberto})` : ""}: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
                 <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltam)}</p>
               </>
             : <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>}
@@ -277,7 +277,7 @@ const MetaQuadrimestreMenorMelhorCard = ({
     return (
       <>
         <p className="text-xs text-muted-foreground">
-          Mês atual: {r.alvoMin > 0 ? `entre ${pctFmt(r.alvoMin)}% e ` : "até "}
+          <span className="font-semibold text-foreground">Neste mês{r.mesAberto ? ` (${r.mesAberto})` : ""}:</span> {r.alvoMin > 0 ? `entre ${pctFmt(r.alvoMin)}% e ` : "até "}
           {r.faltam === null ? "—" : `${pctFmt(r.alvo)}%`}
         </p>
         {r.faltam === null ? (
@@ -285,11 +285,11 @@ const MetaQuadrimestreMenorMelhorCard = ({
         ) : r.faltam > 0 ? (
           <>
             <p className="text-xs font-medium text-red-600">Acima do máximo: sem novas exodontias</p>
-            <p className="text-xs font-medium text-red-600">Faltam neste mês: {r.faltam.toLocaleString("pt-BR")} proced. no denominador</p>
+            <p className="text-xs font-medium text-red-600">Faltam NESTE MÊS{r.mesAberto ? ` (${r.mesAberto})` : ""}: {r.faltam.toLocaleString("pt-BR")} proced. no denominador</p>
             <p className="text-xs text-red-600">Média/semana: {semanasRestantes > 0 ? (r.faltam / semanasRestantes).toFixed(1) : "—"}</p>
           </>
         ) : r.faltamExo > 0 ? (
-          <p className="text-xs font-medium text-amber-700">Abaixo do mínimo: faltam {r.faltamExo.toLocaleString("pt-BR")} exodontia(s)</p>
+          <p className="text-xs font-medium text-amber-700">Abaixo do mínimo neste mês: faltam {r.faltamExo.toLocaleString("pt-BR")} exodontia(s)</p>
         ) : dentro ? (
           <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>
         ) : null}
@@ -1287,8 +1287,15 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
   const pct = ind.porcentagem;
   const conceito = derivaConceito(pct, thresholds);
 
-  const calcFaltam = (threshold: number): number =>
-    calcFaltamShared(ind.numerador, ind.denominador, threshold, cfg.deltaNum, cfg.deltaDenom);
+  const mesesRel = (ind.mesesDetalhe ?? []).map(m => ({ mes: m.mes, num: m.numerador ?? 0, den: m.denominador ?? 0 }));
+  const capRel = ind.indicador === "Tratamento Concluído" ? 1 : undefined;
+  const rotuloRel = mesesRel.length ? calcFaltamMesAtual(mesesRel, 4, thresholds.thresholdBom, cfg.deltaNum, cfg.deltaDenom, capRel)?.mesAberto : undefined;
+  // Método do mês atual (null = inalcançável neste mês)
+  const calcFaltam = (threshold: number): number => {
+    if (mesesRel.length === 0) return calcFaltamShared(ind.numerador, ind.denominador, threshold, cfg.deltaNum, cfg.deltaDenom);
+    const r = calcFaltamMesAtual(mesesRel, 4, threshold, cfg.deltaNum, cfg.deltaDenom, capRel);
+    return r ? r.faltam ?? -1 : 0;
+  };
 
   const isOtimo   = pct > thresholds.thresholdOtimo * 100;
   const isBom     = pct > thresholds.thresholdBom   * 100;
@@ -1312,9 +1319,11 @@ const StatusRelacionadoCard = ({ ind }: { ind: IndicadorResult }) => {
       </div>
       {isOtimo ? (
         <p className="text-[10px] font-medium text-blue-600">✓ Ótimo atingido!</p>
+      ) : faltamProximo < 0 ? (
+        <p className="text-[10px] font-medium text-red-600 leading-snug">Inalcançável neste mês<br /><span className="text-muted-foreground">p/ {proximoLabel}</span></p>
       ) : faltamProximo > 0 ? (
         <p className="text-[10px] font-medium text-red-600 leading-snug">
-          Faltam {faltamProximo.toLocaleString("pt-BR")} {cfg.unit}<br />
+          Faltam neste mês{rotuloRel ? ` (${rotuloRel})` : ""}: {faltamProximo.toLocaleString("pt-BR")} {cfg.unit}<br />
           <span className="text-muted-foreground">p/ {proximoLabel}</span>
         </p>
       ) : (
