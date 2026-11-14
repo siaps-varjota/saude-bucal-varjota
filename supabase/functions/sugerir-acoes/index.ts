@@ -50,33 +50,37 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Tenta os modelos em ordem; em 503/429 (sobrecarga/limite) repete com pausa curta.
 async function chamarGemini(entrada: string, apiKey: string) {
-  const preferido = Deno.env.get("GEMINI_MODEL");
-  const modelos = [...new Set([preferido, "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.8-flash-lite"].filter(Boolean))] as string[];
-  let ultimoStatus = 502;
+  // Lista de modelos, do preferido ao reserva. Pode ser trocada pelo segredo GEMINI_MODELS (separado por vírgula).
+  const modelos = (Deno.env.get("GEMINI_MODELS") ?? Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash,gemini-flash-latest")
+    .split(",").map((m) => m.trim()).filter(Boolean);
+  const corpo = JSON.stringify({
+    systemInstruction: { parts: [{ text: INSTRUCOES }] },
+    contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):\n${entrada}` }] }],
+    generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 },
+  });
+  let ultimo = 502;
   for (const modelo of modelos) {
+    // 503 (alta demanda) e 429 (limite) costumam passar em segundos: tenta até 3 vezes por modelo.
     for (let tentativa = 0; tentativa < 3; tentativa++) {
+      if (tentativa > 0) await new Promise((r) => setTimeout(r, 1500 * tentativa));
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: INSTRUCOES }] },
-          contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):\n${entrada}` }] }],
-          generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 },
-        }),
+        body: corpo,
       });
       if (r.ok) {
         const j = await r.json();
         const texto = j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ?? "";
         if (texto) return { texto } as const;
+        ultimo = 502;
         break;
       }
       console.error("gemini", modelo, r.status, (await r.text()).slice(0, 300));
-      ultimoStatus = r.status;
-      if (r.status === 503 || r.status === 429) { await esperar(1500 * (tentativa + 1)); continue; }
-      break; // 404/400/401...: tenta o próximo modelo
+      ultimo = r.status === 429 ? 429 : 502;
+      if (r.status !== 503 && r.status !== 429) break; // 400/401/403/404: outro modelo, sem repetir
     }
   }
-  return { status: ultimoStatus === 429 ? 429 : 502 } as const;
+  return { status: ultimo } as const;
 }
 
 Deno.serve(async (req) => {
