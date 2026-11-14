@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2, FileDown } from "lucide-react";
 import jsPDF from "jspdf";
-import { supabase } from "@/integrations/supabase/client";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
@@ -92,13 +91,23 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke("sugerir-acoes", { body: { dados } });
+    // Função serverless da Vercel (api/sugerir-acoes.ts), independente do Lovable/Supabase.
+    let data: any = null;
+    let error: unknown = null;
+    try {
+      const resp = await fetch("/api/sugerir-acoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dados }),
+      });
+      data = await resp.json().catch(() => null);
+      if (!resp.ok && !data?.error) error = new Error(`HTTP ${resp.status}`);
+    } catch (e) {
+      error = e;
+    }
     setLoading(false);
     if (error || data?.error) {
-      let msg = data?.error as string | undefined;
-      if (!msg && error && "context" in error) {
-        try { msg = (await (error as { context: Response }).context.json())?.error; } catch { /* ignore */ }
-      }
+      const msg = data?.error as string | undefined;
       // IA indisponível (sem créditos, limite, falha do serviço): usa regras fixas.
       const iaIndisponivel = !msg || /créditos|muitas solicitações|não foi possível|falha ao processar/i.test(msg);
       if (iaIndisponivel) {
