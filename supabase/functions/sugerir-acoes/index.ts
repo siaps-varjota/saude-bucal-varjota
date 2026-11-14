@@ -46,13 +46,18 @@ const semAdditional = (o: any): any =>
     ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)]))
     : o;
 
+console.log("sugerir-acoes v2 (gemini com repeticao e modelos de reserva)");
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Tenta os modelos em ordem; em 503/429 (sobrecarga/limite) repete com pausa curta.
 async function chamarGemini(entrada: string, apiKey: string) {
   // Lista de modelos, do preferido ao reserva. Pode ser trocada pelo segredo GEMINI_MODELS (separado por vírgula).
-  const modelos = (Deno.env.get("GEMINI_MODELS") ?? Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash,gemini-flash-latest")
-    .split(",").map((m) => m.trim()).filter(Boolean);
+  // Aceita GEMINI_MODELS (lista) e/ou GEMINI_MODEL (um nome); acrescenta modelos padrão no fim, sem repetir.
+  const lista = [Deno.env.get("GEMINI_MODELS"), Deno.env.get("GEMINI_MODEL"), "gemini-3.8-flash,gemini-flash-latest"]
+    .flatMap((v) => (v ?? "").split(","))
+    .map((m) => m.trim().replace(/^models\//, "").replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
+  const modelos = [...new Set(lista)];
   const corpo = JSON.stringify({
     systemInstruction: { parts: [{ text: INSTRUCOES }] },
     contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):\n${entrada}` }] }],
@@ -60,9 +65,9 @@ async function chamarGemini(entrada: string, apiKey: string) {
   });
   let ultimo = 502;
   for (const modelo of modelos) {
-    // 503 (alta demanda) e 429 (limite) costumam passar em segundos: tenta até 3 vezes por modelo.
-    for (let tentativa = 0; tentativa < 3; tentativa++) {
-      if (tentativa > 0) await new Promise((r) => setTimeout(r, 1500 * tentativa));
+    // 503 (alta demanda) e 429 (limite) costumam passar em segundos: tenta até 4 vezes por modelo (pausas de 2 s, 4 s e 6 s).
+    for (let tentativa = 0; tentativa < 4; tentativa++) {
+      if (tentativa > 0) await esperar(2000 * tentativa);
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
