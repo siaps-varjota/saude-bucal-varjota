@@ -38,14 +38,24 @@ ${entrada}` }] }],
     generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 }
   });
   let ultimo = 502;
+  const limite = Date.now() + 100000; // orçamento total de ~100 s; depois disso desiste e o painel usa as regras fixas
   for (const modelo of modelos) {
     for (let tentativa = 0; tentativa < 3; tentativa++) {
+      if (Date.now() > limite) return { status: ultimo };
       if (tentativa > 0) await esperar(1500 * tentativa);
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: corpo
-      });
+      let r;
+      try {
+        r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body: corpo,
+          signal: AbortSignal.timeout(35000) // cada chamada espera no máximo 35 s
+        });
+      } catch (e) {
+        console.error("gemini", modelo, "sem resposta (tempo esgotado ou rede)", String(e?.name ?? e));
+        ultimo = 502;
+        continue; // tenta de novo / próximo modelo
+      }
       if (r.ok) {
         const j = await r.json();
         const texto = j?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
@@ -62,6 +72,20 @@ ${entrada}` }] }],
 }
 const config = { maxDuration: 60 };
 async function handler(req, res) {
+  // GET /api/sugerir-acoes  -> lista os modelos que a sua chave pode usar (só nomes; ajuda a escolher GEMINI_MODELS)
+  if (req.method === "GET") {
+    const k = process.env.GEMINI_API_KEY;
+    if (!k) return res.status(500).json({ error: "GEMINI_API_KEY não configurada." });
+    try {
+      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": k }, signal: AbortSignal.timeout(15000) });
+      const j = await r.json();
+      if (!r.ok) return res.status(502).json({ error: "Google recusou a listagem.", status: r.status });
+      const modelos = (j.models ?? []).filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent")).map((m) => String(m.name).replace(/^models\//, ""));
+      return res.status(200).json({ modelos });
+    } catch (e) {
+      return res.status(502).json({ error: "Não foi possível listar os modelos." });
+    }
+  }
   if (req.method !== "POST") return res.status(405).json({ error: "M\xE9todo n\xE3o permitido" });
   const dados = req.body?.dados;
   if (!Array.isArray(dados) || dados.length === 0) return res.status(400).json({ error: "Selecione ao menos uma equipe com dados." });
