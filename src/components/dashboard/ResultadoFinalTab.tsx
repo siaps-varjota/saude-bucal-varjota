@@ -203,7 +203,7 @@ const MetaQuadrimestreCard = ({
         </p>
         {r ? (
           <>
-            <p className="text-xs font-semibold text-foreground">Neste mês{r.mesAberto ? ` (${r.mesAberto})` : ""} precisa de ≥ {(r.alvo * 100).toFixed(1).replace(".", ",")}%</p>
+            <p className="text-xs font-semibold text-foreground"><span className="whitespace-nowrap">Neste mês{r.mesAberto ? ` (${r.mesAberto})` : ""}</span> precisa de ≥ {(r.alvo * 100).toFixed(1).replace(".", ",")}%</p>
             <p className="text-xs text-muted-foreground">Média/semana: {metaMes != null ? (metaMes / 4.33).toFixed(1) : "—"}</p>
           </>
         ) : null}
@@ -211,7 +211,7 @@ const MetaQuadrimestreCard = ({
           ? <p className="text-xs font-medium text-red-600">Inalcançável neste mês</p>
           : faltam > 0
             ? <>
-                <p className="text-xs font-medium text-red-600">Faltam NESTE MÊS{r?.mesAberto ? ` (${r.mesAberto})` : ""}: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
+                <p className="text-xs font-medium text-red-600"><span className="whitespace-nowrap">Faltam NESTE MÊS{r?.mesAberto ? ` (${r.mesAberto})` : ""}:</span> {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
                 <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltam)}</p>
               </>
             : <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>}
@@ -232,11 +232,11 @@ const MetaQuadrimestreCard = ({
       </div>
 
       <div className="flex gap-4 items-start">
-        <div className="w-[150px] break-words">
+        <div className="w-[200px] break-words">
           <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
           {renderColuna(bom, aggBom, "text-emerald-700")}
         </div>
-        <div className="w-[150px] break-words">
+        <div className="w-[200px] break-words">
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
           {renderColuna(otimo, aggOtimo, "text-blue-700")}
         </div>
@@ -285,7 +285,7 @@ const MetaQuadrimestreMenorMelhorCard = ({
         ) : r.faltam > 0 ? (
           <>
             <p className="text-xs font-medium text-red-600">Acima do máximo: sem novas exodontias</p>
-            <p className="text-xs font-medium text-red-600">Faltam NESTE MÊS{r.mesAberto ? ` (${r.mesAberto})` : ""}: {r.faltam.toLocaleString("pt-BR")} proced. no denominador</p>
+            <p className="text-xs font-medium text-red-600"><span className="whitespace-nowrap">Faltam NESTE MÊS{r.mesAberto ? ` (${r.mesAberto})` : ""}:</span> {r.faltam.toLocaleString("pt-BR")} proced. no denominador</p>
             <p className="text-xs text-red-600">Média/semana: {semanasRestantes > 0 ? (r.faltam / semanasRestantes).toFixed(1) : "—"}</p>
           </>
         ) : r.faltamExo > 0 ? (
@@ -307,11 +307,11 @@ const MetaQuadrimestreMenorMelhorCard = ({
         {mesAtual?.mes && <span className="text-xs text-muted-foreground ml-0.5">— {mesAtual.mes}</span>}
       </div>
       <div className="flex gap-6">
-        <div className="w-[150px] break-words">
+        <div className="w-[200px] break-words">
           <p className="text-xs font-semibold text-emerald-700">Bom ({thresholds.labelBom})</p>
           {coluna(bom, "text-emerald-700")}
         </div>
-        <div className="w-[150px] break-words">
+        <div className="w-[200px] break-words">
           <p className="text-xs font-semibold text-blue-700">Ótimo ({thresholds.labelOtimo})</p>
           {coluna(otimo, "text-blue-700")}
         </div>
