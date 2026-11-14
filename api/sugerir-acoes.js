@@ -36,6 +36,10 @@ A nota final vale at\xE9 10 pontos e soma os indicadores C1 Acesso APS (peso 1),
 Faixas de C2 a C7 (% do indicador): Regular at\xE9 25, Suficiente acima de 25, Bom acima de 50, \xD3timo acima de 75. C1: \xD3timo entre 50 e 70, Bom acima de 30 e at\xE9 50, Suficiente acima de 10 e at\xE9 30, Regular at\xE9 10 ou acima de 70. Use SEMPRE valorPeriodo e conceitoPeriodo informados; n\xE3o recalcule.
 Priorize indicadores de maior peso e mais distantes do \xD3timo e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas e vi\xE1veis (busca ativa com os ACS, agendamento, registro correto no e-SUS PEC, organiza\xE7\xE3o da agenda).
 Responda em portugu\xEAs do Brasil, objetivo, sem inventar n\xFAmeros. Ordene da mais urgente para a menos urgente; no m\xE1ximo 8. No campo "indicador" use o c\xF3digo e o nome (ex.: "C3 — Gesta\xE7\xE3o e Puerp\xE9rio") e em "equipe" o nome da equipe.`;
+const INSTRUCOES_ESF_ABA = `Voc\xEA \xE9 um apoiador t\xE9cnico das equipes de Sa\xFAde da Fam\xEDlia (eSF/eAP) na Aten\xE7\xE3o Prim\xE1ria do SUS (Novo Financiamento).
+Voc\xEA recebe UMA aba tem\xE1tica do painel (campo "aba"), a regra de pontua\xE7\xE3o dela ("regraPontuacao"), os quadrimestres e as equipes selecionados e a lista de indicadores (boas pr\xE1ticas) com quantos registros atendem ("atendem"), o total, quantos faltam e o percentual.
+Analise SOMENTE esta aba e esta sele\xE7\xE3o. Identifique as boas pr\xE1ticas com maior n\xFAmero de faltantes e menor percentual, considerando a regra de pontua\xE7\xE3o (indicadores de maior peso rendem mais ponto) e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas, concretas e espec\xEDficas para cada indicador (busca ativa com os ACS, agendamento, registro correto no e-SUS PEC, organiza\xE7\xE3o da agenda). Use SEMPRE os n\xFAmeros informados; n\xE3o recalcule nem invente dados.
+Responda em portugu\xEAs do Brasil, objetivo. Ordene da mais urgente para a menos urgente; no m\xE1ximo 6. No campo "indicador" use o t\xEDtulo do indicador exatamente como recebido e em "equipe" as equipes selecionadas (ou "Todas as equipes"). N\xEDvel: alta se o percentual for menor que 50%, m\xE9dia entre 50% e 75%, baixa acima de 75%.`;
 const semAdditional = (o) => Array.isArray(o) ? o.map(semAdditional) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)])) : o;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 async function chamarGemini(entrada, apiKey, instrucoes) {
@@ -114,7 +118,7 @@ async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "Falha ao processar a an\xE1lise. Chave GEMINI_API_KEY n\xE3o configurada." });
   try {
-    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF : INSTRUCOES);
+    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA : INSTRUCOES);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
     return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
