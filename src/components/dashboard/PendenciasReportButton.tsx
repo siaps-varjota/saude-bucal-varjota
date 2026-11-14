@@ -91,11 +91,11 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
       faltam = "Inalcançável no mês"; faltamCurto = faltam; pendente = true;
     } else if (r.faltam > 0) {
       faltamCurto = `${r.faltam.toLocaleString("pt-BR")} proced. (denominador)`;
-      faltam = `${faltamCurto}\n${rotuloMes(r.mesAberto)}: ≤ ${fmtPct(r.alvo)}, sem novas exodontias`;
+      faltam = `${faltamCurto}\n${rotuloMes(r.mesAberto)}: até ${fmtPct(r.alvo)}, sem novas exodontias`;
       pendente = true;
     } else if (r.faltamExo > 0) {
       faltamCurto = `${r.faltamExo.toLocaleString("pt-BR")} exodontia(s) (mínimo)`;
-      faltam = `${faltamCurto}\n${rotuloMes(r.mesAberto)}: ≥ ${fmtPct(r.alvoMin)}`;
+      faltam = `${faltamCurto}\n${rotuloMes(r.mesAberto)}: mín. ${fmtPct(r.alvoMin)}`;
       pendente = true;
     } else {
       faltam = "0"; faltamCurto = "0";
@@ -134,7 +134,7 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
       faltamCurto = `${r.faltam!.toLocaleString("pt-BR")} ${unit}`;
       faltam = r.faltam === 0
         ? "0"
-        : `${faltamCurto}\n${rotuloMes(r.mesAberto)}: ≥ ${fmtPct(r.alvo)}`;
+        : `${faltamCurto}\n${rotuloMes(r.mesAberto)}: mín. ${fmtPct(r.alvo)}`;
       if (r.faltam === 0) pendente = false;
     } else {
       const f = calcFaltam(ind.numerador, ind.denominador, proximoThresh, cfg.deltaNum, cfg.deltaDenom);
