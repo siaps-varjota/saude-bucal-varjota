@@ -44,7 +44,7 @@ const semAdditional = (o: any): any =>
   Array.isArray(o) ? o.map(semAdditional)
   : o && typeof o === "object"
     ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)]))
-    : o;
+    : o; 
 
 console.log("sugerir-acoes v2 (gemini com repeticao e modelos de reserva)");
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
