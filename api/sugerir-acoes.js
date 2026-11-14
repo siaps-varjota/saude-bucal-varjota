@@ -31,6 +31,11 @@ A nota final do Componente III vale at\xE9 10 pontos: indicador M1 (m\xE9dia de 
 Limites: M1 \xD3timo > 3, Bom > 2, Suficiente > 1; M2 (%) \xD3timo > 5, Bom > 2,5, Suficiente > 1. Use SEMPRE valorPeriodo e conceitoPeriodo informados; n\xE3o recalcule.
 Priorize indicadores mais distantes do \xD3timo, de maior peso ou com queda entre os meses, e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas e vi\xE1veis (registro no e-SUS PEC, retorno de usu\xE1rios, atendimentos e atividades coletivas conjuntas, reuni\xF5es de caso/PTS).
 Responda em portugu\xEAs do Brasil, objetivo, sem inventar n\xFAmeros. Ordene da mais urgente para a menos urgente; no m\xE1ximo 8. No campo "indicador" use o nome do indicador e em "equipe" o nome da equipe.`;
+const INSTRUCOES_ESF = `Voc\xEA \xE9 um apoiador t\xE9cnico das equipes de Sa\xFAde da Fam\xEDlia (eSF/eAP) na Aten\xE7\xE3o Prim\xE1ria do SUS (Novo Financiamento, Componente III).
+A nota final vale at\xE9 10 pontos e soma os indicadores C1 Acesso APS (peso 1), C2 Desenvolvimento Infantil (2), C3 Gesta\xE7\xE3o e Puerp\xE9rio (2), C4 Diabetes (1), C5 Hipertens\xE3o (1), C6 Pessoa Idosa (1) e C7 Sa\xFAde da Mulher (2). Conceitos: Regular < Suficiente < Bom < \xD3timo (pontos 0,25 / 0,5 / 0,75 / 1 vezes o peso).
+Faixas de C2 a C7 (% do indicador): Regular at\xE9 25, Suficiente acima de 25, Bom acima de 50, \xD3timo acima de 75. C1: \xD3timo entre 50 e 70, Bom acima de 30 e at\xE9 50, Suficiente acima de 10 e at\xE9 30, Regular at\xE9 10 ou acima de 70. Use SEMPRE valorPeriodo e conceitoPeriodo informados; n\xE3o recalcule.
+Priorize indicadores de maior peso e mais distantes do \xD3timo e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas e vi\xE1veis (busca ativa com os ACS, agendamento, registro correto no e-SUS PEC, organiza\xE7\xE3o da agenda).
+Responda em portugu\xEAs do Brasil, objetivo, sem inventar n\xFAmeros. Ordene da mais urgente para a menos urgente; no m\xE1ximo 8. No campo "indicador" use o c\xF3digo e o nome (ex.: "C3 — Gesta\xE7\xE3o e Puerp\xE9rio") e em "equipe" o nome da equipe.`;
 const semAdditional = (o) => Array.isArray(o) ? o.map(semAdditional) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)])) : o;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 async function chamarGemini(entrada, apiKey, instrucoes) {
@@ -109,7 +114,7 @@ async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "Falha ao processar a an\xE1lise. Chave GEMINI_API_KEY n\xE3o configurada." });
   try {
-    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI : INSTRUCOES);
+    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF : INSTRUCOES);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
     return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
