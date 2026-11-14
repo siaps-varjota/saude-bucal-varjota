@@ -374,3 +374,10 @@ export function calcFaltamMesAtualB3(
   }
   return { ...sup, alvoMin, faltamExo };
 }
+
+/** Semanas que restam no mês corrente (0 quando o mês em andamento não é o do calendário). */
+export function semanasRestantesNoMes(mesAberto?: string, hoje: Date = new Date()): number {
+  if (!mesAberto || chaveMes(mesAberto) !== hoje.getFullYear() * 12 + hoje.getMonth()) return 0;
+  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  return Math.max(1, diasNoMes - hoje.getDate() + 1) / 7;
+}
