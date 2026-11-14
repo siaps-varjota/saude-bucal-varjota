@@ -47,7 +47,7 @@ const semAdditional = (o: any): any =>
     : o;
 
 async function chamarGemini(entrada: string, apiKey: string) {
-  const modelo = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+  const modelo = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
