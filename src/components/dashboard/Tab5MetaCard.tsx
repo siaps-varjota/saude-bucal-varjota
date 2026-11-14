@@ -8,7 +8,7 @@ import { parse } from "@/lib/fastParse";
 import { FonteBadge } from "@/components/dashboard/FonteBadge";
 import { OficialData, makeOficialKey, normalizeMes } from "@/hooks/useOficialData";
 import { FonteDado } from "@/hooks/useOficialMerge";
-import { calcFaltamMesAtual, semanasRestantesNoMes, META_THRESHOLDS } from "@/lib/metaThresholds";
+import { calcFaltamMesAtual, indiceMesAberto, semanasRestantesNoMes, META_THRESHOLDS } from "@/lib/metaThresholds";
 
 interface Tab5MetaCardProps {
   records: Tab5Record[];
@@ -169,63 +169,54 @@ export const Tab5MetaCard = ({
     const faltamOtimo = rOtimo?.faltam ?? 0;
 
     // ── Simulações com B1 oficial ──────────────────────────────────────────
+    // Método do mês atual: a 1ª Consulta atinge a meta NESTE MÊS; cada consulta nova soma
+    // +2 preventivos esperados (+2 no numerador e +2 no denominador) no mês do B5.
     const simulations = (() => {
       const isCurrentQ  = `Q${currentQuad.quad}-${currentQuad.year}` === quadKey;
       const startMonth  = q === 1 ? 0 : q === 2 ? 4 : 8;
       const endMonth    = isCurrentQ ? now.getMonth() : startMonth + 3;
-      const meses       = endMonth - startMonth + 1;
 
-      // Resolve B1 acumulado com oficial
-      let denB1Quad = 0;
-      let numB1Quad = 0;
+      // B1 mês a mês: oficial; senão consultas (1ª consulta) do mês nos pacientes
+      const b1Meses: { mes: string; num: number; den: number }[] = [];
       for (let m = startMonth; m <= endMonth; m++) {
         const mmyyyy  = `${String(m + 1).padStart(2, "0")}/${y}`;
         const mesNorm = normalizeMes(mmyyyy) ?? mmyyyy;
         const ofRow   = oficialData?.index.get(makeOficialKey(mesNorm, equipe));
-        if (!!ofRow) {
-          numB1Quad += ofRow.numB1;
-          denB1Quad += ofRow.denB1;
+        if (ofRow) {
+          b1Meses.push({ mes: mmyyyy, num: ofRow.numB1, den: ofRow.denB1 });
         } else {
-          // fallback: usa denominadorB1 prop e consultasAba1Quad prop
-          denB1Quad += denominadorB1;
+          const prelNum = allTratamentoPatients.filter(p => {
+            const d = parseDateStr(p.primeiraConsulta);
+            return d?.getMonth() === m && d?.getFullYear() === y;
+          }).length;
+          b1Meses.push({ mes: mmyyyy, num: prelNum, den: denominadorB1 });
         }
       }
+      const thB1 = META_THRESHOLDS["1ª Consulta Odontológica"]!;
+      const b1Bom   = calcFaltamMesAtual(b1Meses, 4, thB1.thresholdBom,   1, 0);
+      const b1Otimo = calcFaltamMesAtual(b1Meses, 4, thB1.thresholdOtimo, 1, 0);
+      const faltamAba1Bom   = b1Bom?.faltam   ?? 0;
+      const faltamAba1Otimo = b1Otimo?.faltam ?? 0;
+      const numMesB1 = b1Bom ? b1Meses[b1Bom.idxAberto].num : 0;
 
-      const denB1Rep = meses > 0 ? Math.round(denB1Quad / meses) : denominadorB1;
-      const aba1Real = numB1Quad > 0 ? numB1Quad : consultasAba1Quad;
-
-      const consultasAlvo1Bom   = (Math.floor(denB1Rep * 0.03) + 1) * meses;
-      const consultasAlvo1Otimo = (Math.floor(denB1Rep * 0.05) + 1) * meses;
-
-      const aba1JaAtingiuBom   = aba1Real >= consultasAlvo1Bom;
-      const aba1JaAtingiuOtimo = aba1Real >= consultasAlvo1Otimo;
-      const faltamAba1Bom      = Math.max(0, consultasAlvo1Bom   - aba1Real);
-      const faltamAba1Otimo    = Math.max(0, consultasAlvo1Otimo - aba1Real);
-
-      const novasConsultasBom   = Math.max(0, consultasAlvo1Bom   - consultasTab2Quad);
-      const novasConsultasOtimo = Math.max(0, consultasAlvo1Otimo - consultasTab2Quad);
-
-      const prevSimBom    = preventivos      + novasConsultasBom   * 2;
-      const totalSimBom   = totalIndividuais + novasConsultasBom   * 2;
-      const prevSimOtimo  = preventivos      + novasConsultasOtimo * 2;
-      const totalSimOtimo = totalIndividuais + novasConsultasOtimo * 2;
-
-      const calcNeededSim = (prev: number, total: number, target: number): number => {
-        if (total > 0 && prev / total >= target) return 0;
-        const numerator   = target * total - prev;
-        const denominator = 2 * (1 - target);
-        if (denominator <= 0) return 0;
-        return Math.max(0, Math.ceil(numerator / denominator));
+      const b5Need = (extraConsultas: number, threshold: number): number | null => {
+        if (mesesLista.length === 0) return 0;
+        const idx = indiceMesAberto(mesesLista);
+        const mod = mesesLista.map((m, i) => i === idx ? { ...m, num: m.num + 2 * extraConsultas, den: m.den + 2 * extraConsultas } : m);
+        return calcFaltamMesAtual(mod, 4, threshold, 2, 2)?.faltam ?? 0;
       };
 
       return {
-        consultasAlvo1Bom, consultasAlvo1Otimo,
-        aba1JaAtingiuBom, aba1JaAtingiuOtimo,
+        mesLabel: b1Bom?.mesAberto ?? "",
+        consultasAlvo1Bom:   numMesB1 + faltamAba1Bom,
+        consultasAlvo1Otimo: numMesB1 + faltamAba1Otimo,
+        aba1JaAtingiuBom:   faltamAba1Bom === 0,
+        aba1JaAtingiuOtimo: faltamAba1Otimo === 0,
         faltamAba1Bom, faltamAba1Otimo,
-        faltamBomBom:     calcNeededSim(prevSimBom, totalSimBom, 0.55),
-        faltamBomOtimo:   calcNeededSim(prevSimBom, totalSimBom, 0.65),
-        faltamOtimoBom:   calcNeededSim(prevSimOtimo, totalSimOtimo, 0.55),
-        faltamOtimoOtimo: calcNeededSim(prevSimOtimo, totalSimOtimo, 0.65),
+        faltamBomBom:     b5Need(faltamAba1Bom,   thB5.thresholdBom),
+        faltamBomOtimo:   b5Need(faltamAba1Bom,   thB5.thresholdOtimo),
+        faltamOtimoBom:   b5Need(faltamAba1Otimo, thB5.thresholdBom),
+        faltamOtimoOtimo: b5Need(faltamAba1Otimo, thB5.thresholdOtimo),
       };
     })();
 
@@ -251,6 +242,7 @@ export const Tab5MetaCard = ({
     pendentesTab2, fonte, simulations,
   } = metaData;
 
+  const fmtNeed = (v: number | null) => (v === null ? "—" : v);
   const semanasRestantes = semanasRestantesNoMes(rBom?.mesAberto);
   const pctMes = (r: typeof rBom) => (r ? `${(r.alvo * 100).toFixed(1).replace(".", ",")}%` : "");
   const fmtSemanal = (faltam: number) =>
@@ -302,7 +294,7 @@ export const Tab5MetaCard = ({
               ) : (
                 <>
                   <p className="text-2xl font-bold text-emerald-700">{rBom?.faltam === null ? "—" : faltamBom}</p>
-                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
+                  <p className="text-xs font-semibold text-foreground">1ª consultas ou tratamentos concluídos neste mês{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</p>
                   <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rBom)}</p>
                   {rBom?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamBom)}</p>
@@ -320,7 +312,7 @@ export const Tab5MetaCard = ({
               ) : (
                 <>
                   <p className="text-2xl font-bold text-blue-700">{rOtimo?.faltam === null ? "—" : faltamOtimo}</p>
-                  <p className="text-xs text-muted-foreground">1ª consultas ou tratamentos concluídos</p>
+                  <p className="text-xs font-semibold text-foreground">1ª consultas ou tratamentos concluídos neste mês{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</p>
                   <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rOtimo)}</p>
                   {rOtimo?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana p/ atingir: {fmtSemanal(faltamOtimo)}</p>
@@ -338,7 +330,7 @@ export const Tab5MetaCard = ({
             <div className="flex items-center gap-2 mb-4">
               <FlaskConical className="w-4 h-4 text-orange-600" />
               <span className="text-sm font-semibold text-orange-700 uppercase tracking-wide">
-                Simulação — Se atingir meta na 1ª Consulta Odontológica (Aba 1)
+                Simulação — Se atingir meta na 1ª Consulta Odontológica (Aba 1) neste mês{simulations.mesLabel ? ` (${simulations.mesLabel})` : ""}
               </span>
             </div>
 
@@ -346,11 +338,11 @@ export const Tab5MetaCard = ({
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-emerald-700">
-                    Se Aba 1 atingir Bom (&gt;3%) → {simulations.consultasAlvo1Bom} Consultas
+                    Se Aba 1 atingir Bom (&gt;0,75%) → {simulations.consultasAlvo1Bom} consultas no mês
                   </p>
                   {simulations.aba1JaAtingiuBom
                     ? <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
-                    : <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Bom} na Aba 1)</span>
+                    : <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Bom} na Aba 1 neste mês)</span>
                   }
                 </div>
                 <div className="flex gap-4">
@@ -358,7 +350,7 @@ export const Tab5MetaCard = ({
                     <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥55%)</p>
                     {simulations.faltamBomBom === 0
                       ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
-                      : <p className="text-lg font-bold text-emerald-700">{simulations.faltamBomBom} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                      : <p className="text-lg font-bold text-emerald-700">{fmtNeed(simulations.faltamBomBom)} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
                     }
                   </div>
                   <div className="w-px self-stretch bg-emerald-200" />
@@ -366,7 +358,7 @@ export const Tab5MetaCard = ({
                     <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥65%)</p>
                     {simulations.faltamBomOtimo === 0
                       ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
-                      : <p className="text-lg font-bold text-blue-700">{simulations.faltamBomOtimo} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                      : <p className="text-lg font-bold text-blue-700">{fmtNeed(simulations.faltamBomOtimo)} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
                     }
                   </div>
                 </div>
@@ -375,11 +367,11 @@ export const Tab5MetaCard = ({
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <p className="text-xs font-semibold text-blue-700">
-                    Se Aba 1 atingir Ótimo (&gt;5%) → {simulations.consultasAlvo1Otimo} Consultas
+                    Se Aba 1 atingir Ótimo (&gt;1,25%) → {simulations.consultasAlvo1Otimo} consultas no mês
                   </p>
                   {simulations.aba1JaAtingiuOtimo
                     ? <span className="text-xs font-bold text-emerald-600">(✓ Atingida na Aba 1)</span>
-                    : <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Otimo} na Aba 1)</span>
+                    : <span className="text-xs font-bold text-red-500">(faltam {simulations.faltamAba1Otimo} na Aba 1 neste mês)</span>
                   }
                 </div>
                 <div className="flex gap-4">
@@ -387,7 +379,7 @@ export const Tab5MetaCard = ({
                     <p className="text-xs text-muted-foreground">p/ Bom Aba 5 (≥55%)</p>
                     {simulations.faltamOtimoBom === 0
                       ? <p className="text-lg font-bold text-emerald-600">✓ Atingida</p>
-                      : <p className="text-lg font-bold text-emerald-700">{simulations.faltamOtimoBom} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                      : <p className="text-lg font-bold text-emerald-700">{fmtNeed(simulations.faltamOtimoBom)} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
                     }
                   </div>
                   <div className="w-px self-stretch bg-blue-200" />
@@ -395,7 +387,7 @@ export const Tab5MetaCard = ({
                     <p className="text-xs text-muted-foreground">p/ Ótimo Aba 5 (≥65%)</p>
                     {simulations.faltamOtimoOtimo === 0
                       ? <p className="text-lg font-bold text-blue-600">✓ Atingida</p>
-                      : <p className="text-lg font-bold text-blue-700">{simulations.faltamOtimoOtimo} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
+                      : <p className="text-lg font-bold text-blue-700">{fmtNeed(simulations.faltamOtimoOtimo)} <span className="text-xs font-normal">1ª Consultas ou Trat. Concluído(s)</span></p>
                     }
                   </div>
                 </div>
@@ -403,7 +395,7 @@ export const Tab5MetaCard = ({
             </div>
 
             <p className="text-xs text-muted-foreground mt-3 italic">
-              💡 Cada nova 1ª consulta ou tratamento pendente concluído equivale a +2 Proced. Odont. Preventivos esperado (+2 no numerador e +2 no denominador).
+              💡 Valores NESTE MÊS: cada nova 1ª consulta ou tratamento pendente concluído equivale a +2 Proced. Odont. Preventivos esperados (+2 no numerador e +2 no denominador do mês).
             </p>
           </CardContent>
         </Card>

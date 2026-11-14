@@ -52,7 +52,7 @@ export const MetaMesAtualCard = ({
             {r.faltam === null ? "—" : (mesAtual.num + r.faltam * deltaNum).toLocaleString("pt-BR")}{" "}
             <span className="text-base font-semibold">{unit}</span>
           </p>
-          <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pct(r.alvo)}%</p>
+          <p className="text-xs font-semibold text-foreground">Neste mês{mesAtual.mes ? ` (${rotuloMes(mesAtual.mes)})` : ""}: ≥ {pct(r.alvo)}%</p>
           <p className="text-xs text-muted-foreground">
             Média/semana: {r.faltam === null ? "—" : ((mesAtual.num + r.faltam * deltaNum) / 4.33).toFixed(1)}
           </p>
@@ -60,7 +60,7 @@ export const MetaMesAtualCard = ({
             <p className="text-xs font-semibold text-red-600 mt-1">Inalcançável neste mês</p>
           ) : r.faltam > 0 ? (
             <>
-              <p className="text-xs font-semibold text-red-600 mt-1">Faltam: {r.faltam.toLocaleString("pt-BR")} {unit}</p>
+              <p className="text-xs font-semibold text-red-600 mt-1">Faltam neste mês: {r.faltam.toLocaleString("pt-BR")} {unit}</p>
               <p className="text-xs text-red-600">Média/semana: {fmtSemanal(r.faltam)}</p>
             </>
           ) : (

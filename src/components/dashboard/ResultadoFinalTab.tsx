@@ -211,7 +211,7 @@ const MetaQuadrimestreCard = ({
           ? <p className="text-xs font-medium text-red-600">Inalcançável neste mês</p>
           : faltam > 0
             ? <>
-                <p className="text-xs font-medium text-red-600">Faltam: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
+                <p className="text-xs font-medium text-red-600">Faltam neste mês: {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
                 <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltam)}</p>
               </>
             : <p className={`text-xs font-medium ${okClass}`}>✓ Meta atingida!</p>}
@@ -285,7 +285,7 @@ const MetaQuadrimestreMenorMelhorCard = ({
         ) : r.faltam > 0 ? (
           <>
             <p className="text-xs font-medium text-red-600">Acima do máximo: sem novas exodontias</p>
-            <p className="text-xs font-medium text-red-600">Faltam: {r.faltam.toLocaleString("pt-BR")} proced. no denominador</p>
+            <p className="text-xs font-medium text-red-600">Faltam neste mês: {r.faltam.toLocaleString("pt-BR")} proced. no denominador</p>
             <p className="text-xs text-red-600">Média/semana: {semanasRestantes > 0 ? (r.faltam / semanasRestantes).toFixed(1) : "—"}</p>
           </>
         ) : r.faltamExo > 0 ? (
