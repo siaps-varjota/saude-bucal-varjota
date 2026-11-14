@@ -38,6 +38,34 @@ Conceitos: regular < suficiente < bom < ótimo. Use SEMPRE percentualPeriodo e c
 Identifique as prioridades de acompanhamento (indicadores mais distantes da meta, com maior peso, ou com tendência de queda entre os meses) e sugira de 2 a 4 ações práticas, concretas e viáveis para a equipe se aproximar da meta (busca ativa, agenda, ações em escolas, registro correto no e-SUS etc.).
 Responda em português do Brasil, objetivo, sem inventar números que não estejam nos dados. Ordene as prioridades da mais urgente para a menos urgente; no máximo 8.`;
 
+// ── Provedor alternativo: Google Gemini (chave própria, tem camada gratuita) ──
+// Defina o segredo GEMINI_API_KEY no Supabase para usar este provedor em vez do gateway Lovable.
+const semAdditional = (o: any): any =>
+  Array.isArray(o) ? o.map(semAdditional)
+  : o && typeof o === "object"
+    ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)]))
+    : o;
+
+async function chamarGemini(entrada: string, apiKey: string) {
+  const modelo = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: INSTRUCOES }] },
+      contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):\n${entrada}` }] }],
+      generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 },
+    }),
+  });
+  if (!r.ok) {
+    console.error("gemini", r.status, await r.text());
+    return { status: r.status === 429 ? 429 : 502 } as const;
+  }
+  const j = await r.json();
+  const texto = j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? "").join("") ?? "";
+  return { texto } as const;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
@@ -51,6 +79,18 @@ Deno.serve(async (req) => {
   if (!Array.isArray(dados) || dados.length === 0) return json({ error: "Selecione ao menos uma equipe com dados." }, 400);
   const entrada = JSON.stringify(dados);
   if (entrada.length > 60000) return json({ error: "Seleção grande demais; reduza meses ou equipes." }, 400);
+
+  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  if (geminiKey) {
+    try {
+      const g = await chamarGemini(entrada, geminiKey);
+      if ("texto" in g && g.texto) return json(JSON.parse(g.texto));
+      if ("status" in g && g.status === 429) return json({ error: "Muitas solicitações no momento. Aguarde um pouco e tente de novo." }, 429);
+      // outro erro: tenta o gateway Lovable abaixo
+    } catch (e) {
+      console.error("gemini falhou", e);
+    }
+  }
 
   try {
     const resp = await generateResponse({
