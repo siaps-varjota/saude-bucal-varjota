@@ -26,13 +26,18 @@ Recebe resultados mensais por equipe dos indicadores B1 (1\xAA consulta program\
 Conceitos: regular < suficiente < bom < \xF3timo. Use SEMPRE percentualPeriodo e conceitoPeriodo informados: s\xE3o a m\xE9dia dos percentuais dos meses selecionados (n\xE3o recalcule pela soma).
 Identifique as prioridades de acompanhamento (indicadores mais distantes da meta, com maior peso, ou com tend\xEAncia de queda entre os meses) e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas, concretas e vi\xE1veis para a equipe se aproximar da meta (busca ativa, agenda, a\xE7\xF5es em escolas, registro correto no e-SUS etc.).
 Responda em portugu\xEAs do Brasil, objetivo, sem inventar n\xFAmeros que n\xE3o estejam nos dados. Ordene as prioridades da mais urgente para a menos urgente; no m\xE1ximo 8.`;
+const INSTRUCOES_EMULTI = `Voc\xEA \xE9 um apoiador t\xE9cnico da eMulti (equipes multiprofissionais) na Aten\xE7\xE3o Prim\xE1ria do SUS (Novo Financiamento).
+A nota final do Componente III vale at\xE9 10 pontos: indicador M1 (m\xE9dia de atendimentos por pessoa, peso 6) e M2 (a\xE7\xF5es compartilhadas, peso 4). Conceitos: Regular < Suficiente < Bom < \xD3timo (pontos 0,25 / 0,5 / 0,75 / 1 por peso).
+Limites: M1 \xD3timo > 3, Bom > 2, Suficiente > 1; M2 (%) \xD3timo > 5, Bom > 2,5, Suficiente > 1. Use SEMPRE valorPeriodo e conceitoPeriodo informados; n\xE3o recalcule.
+Priorize indicadores mais distantes do \xD3timo, de maior peso ou com queda entre os meses, e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas e vi\xE1veis (registro no e-SUS PEC, retorno de usu\xE1rios, atendimentos e atividades coletivas conjuntas, reuni\xF5es de caso/PTS).
+Responda em portugu\xEAs do Brasil, objetivo, sem inventar n\xFAmeros. Ordene da mais urgente para a menos urgente; no m\xE1ximo 8. No campo "indicador" use o nome do indicador e em "equipe" o nome da equipe.`;
 const semAdditional = (o) => Array.isArray(o) ? o.map(semAdditional) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)])) : o;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-async function chamarGemini(entrada, apiKey) {
+async function chamarGemini(entrada, apiKey, instrucoes) {
   const lista = [process.env.GEMINI_MODELS, process.env.GEMINI_MODEL, "gemini-3.8-flash,gemini-flash-latest"].flatMap((v) => (v ?? "").split(",")).map((m) => m.trim().replace(/^models\//, "").replace(/^["']|["']$/g, "")).filter(Boolean);
   const modelos = [...new Set(lista)];
   const corpo = JSON.stringify({
-    systemInstruction: { parts: [{ text: INSTRUCOES }] },
+    systemInstruction: { parts: [{ text: instrucoes }] },
     contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):
 ${entrada}` }] }],
     generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 }
@@ -71,7 +76,17 @@ ${entrada}` }] }],
   return { status: ultimo };
 }
 const config = { maxDuration: 60 };
+const ORIGENS = (process.env.ALLOWED_ORIGINS ?? "").split(",").map((o) => o.trim()).filter(Boolean);
 async function handler(req, res) {
+  // CORS: permite que o painel eMulti (outro dom\u00EDnio) chame esta fun\u00E7\u00E3o. Restrinja com ALLOWED_ORIGINS (lista separada por v\u00EDrgula).
+  const origem = req.headers?.origin;
+  if (origem && (ORIGENS.length === 0 || ORIGENS.includes(origem))) {
+    res.setHeader("Access-Control-Allow-Origin", ORIGENS.length === 0 ? "*" : origem);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (req.method === "OPTIONS") return res.status(204).end();
   // GET /api/sugerir-acoes  -> lista os modelos que a sua chave pode usar (só nomes; ajuda a escolher GEMINI_MODELS)
   if (req.method === "GET") {
     const k = process.env.GEMINI_API_KEY;
@@ -94,7 +109,7 @@ async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "Falha ao processar a an\xE1lise. Chave GEMINI_API_KEY n\xE3o configurada." });
   try {
-    const g = await chamarGemini(entrada, apiKey);
+    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI : INSTRUCOES);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
     return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
