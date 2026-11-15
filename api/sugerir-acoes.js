@@ -21,6 +21,29 @@ const SCHEMA = {
     }
   }
 };
+const SCHEMA_CONSULTA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["resumo", "idadeMin", "idadeMax", "unidadeIdade", "indicadores", "somenteComPerda", "microareas", "orientacoes"],
+  properties: {
+    resumo: { type: "string" },
+    idadeMin: { type: "number" },
+    idadeMax: { type: "number" },
+    unidadeIdade: { type: "string", enum: ["meses", "anos", "nenhuma"] },
+    indicadores: { type: "array", items: { type: "string" } },
+    somenteComPerda: { type: "boolean" },
+    microareas: { type: "array", items: { type: "string" } },
+    orientacoes: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["indicador", "acoes"],
+        properties: { indicador: { type: "string" }, acoes: { type: "array", items: { type: "string" } } }
+      }
+    }
+  }
+};
 const INSTRUCOES = `Voc\xEA \xE9 um apoiador t\xE9cnico de sa\xFAde bucal na Aten\xE7\xE3o Prim\xE1ria (SUS, Previne/Novo Financiamento).
 Recebe resultados mensais por equipe dos indicadores B1 (1\xAA consulta program\xE1tica), B2 (tratamento conclu\xEDdo), B3 (taxa de exodontia \u2014 quanto MENOR melhor), B4 (escova\xE7\xE3o supervisionada), B5 (procedimentos preventivos) e B6 (ART/restaura\xE7\xF5es atraum\xE1ticas).
 Conceitos: regular < suficiente < bom < \xF3timo. Use SEMPRE percentualPeriodo e conceitoPeriodo informados: s\xE3o a m\xE9dia dos percentuais dos meses selecionados (n\xE3o recalcule pela soma).
@@ -40,16 +63,19 @@ const INSTRUCOES_ESF_ABA = `Voc\xEA \xE9 um apoiador t\xE9cnico das equipes de S
 Voc\xEA recebe UMA aba tem\xE1tica do painel (campo "aba"), a regra de pontua\xE7\xE3o dela ("regraPontuacao"), os quadrimestres e as equipes selecionados e a lista de indicadores (boas pr\xE1ticas) com quantos registros atendem ("atendem"), o total, quantos faltam e o percentual.
 Analise SOMENTE esta aba e esta sele\xE7\xE3o. Identifique as boas pr\xE1ticas com maior n\xFAmero de faltantes e menor percentual, considerando a regra de pontua\xE7\xE3o (indicadores de maior peso rendem mais ponto) e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas, concretas e espec\xEDficas para cada indicador (busca ativa com os ACS, agendamento, registro correto no e-SUS PEC, organiza\xE7\xE3o da agenda). Use SEMPRE os n\xFAmeros informados; n\xE3o recalcule nem invente dados.
 Responda em portugu\xEAs do Brasil, objetivo. Ordene da mais urgente para a menos urgente; no m\xE1ximo 6. No campo "indicador" use o t\xEDtulo do indicador exatamente como recebido e em "equipe" as equipes selecionadas (ou "Todas as equipes"). N\xEDvel: alta se o percentual for menor que 50%, m\xE9dia entre 50% e 75%, baixa acima de 75%.`;
+const INSTRUCOES_ESF_CONSULTA = `Voc\xEA ajuda a equipe de Sa\xFAde da Fam\xEDlia a consultar a lista de pacientes de UMA aba tem\xE1tica do painel. Voc\xEA N\xC3O recebe dados de pacientes: s\xF3 o pedido escrito ("comando"), o nome da aba, a regra de pontua\xE7\xE3o e a lista de indicadores dispon\xEDveis ("indicadoresDisponiveis"). A lista de pacientes \xE9 montada pelo pr\xF3prio painel a partir dos filtros que voc\xEA devolver.
+Interprete o pedido e devolva: "resumo" (1 a 2 frases dizendo como voc\xEA entendeu o pedido); "idadeMin" e "idadeMax" na unidade "unidadeIdade" ("meses" ou "anos"; use -1 nos dois e "nenhuma" se o pedido n\xE3o limitar a idade); "indicadores" (somente t\xEDtulos copiados EXATAMENTE de indicadoresDisponiveis que o pedido menciona; lista vazia = todos); "somenteComPerda" (true quando o pedido fala em perda, falta, atraso, pend\xEAncia, sem consulta/vacina etc.); "microareas" (como escritas no pedido, ex.: "03"; vazio se n\xE3o houver); "orientacoes": para cada indicador relevante (os escolhidos ou, se nenhum, os de maior impacto; no m\xE1ximo 8), de 2 a 3 a\xE7\xF5es pr\xE1ticas e espec\xEDficas para cuidar desses pacientes (busca ativa com ACS, agendamento, registro no e-SUS PEC), adequadas \xE0 faixa et\xE1ria pedida.
+Responda em portugu\xEAs do Brasil. N\xE3o invente n\xFAmeros nem dados de pacientes.`;
 const semAdditional = (o) => Array.isArray(o) ? o.map(semAdditional) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)])) : o;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-async function chamarGemini(entrada, apiKey, instrucoes) {
+async function chamarGemini(entrada, apiKey, instrucoes, schema = SCHEMA) {
   const lista = [process.env.GEMINI_MODELS, process.env.GEMINI_MODEL, "gemini-3.8-flash,gemini-flash-latest"].flatMap((v) => (v ?? "").split(",")).map((m) => m.trim().replace(/^models\//, "").replace(/^["']|["']$/g, "")).filter(Boolean);
   const modelos = [...new Set(lista)];
   const corpo = JSON.stringify({
     systemInstruction: { parts: [{ text: instrucoes }] },
     contents: [{ role: "user", parts: [{ text: `Resultados mensais selecionados (JSON):
 ${entrada}` }] }],
-    generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(SCHEMA), temperature: 0.3 }
+    generationConfig: { responseMimeType: "application/json", responseSchema: semAdditional(schema), temperature: 0.3 }
   });
   let ultimo = 502;
   const limite = Date.now() + 100000; // orçamento total de ~100 s; depois disso desiste e o painel usa as regras fixas
@@ -118,7 +144,7 @@ async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "Falha ao processar a an\xE1lise. Chave GEMINI_API_KEY n\xE3o configurada." });
   try {
-    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA : INSTRUCOES);
+    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA : req.body?.contexto === "esf-consulta" ? INSTRUCOES_ESF_CONSULTA : INSTRUCOES, req.body?.contexto === "esf-consulta" ? SCHEMA_CONSULTA : SCHEMA);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
     return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
