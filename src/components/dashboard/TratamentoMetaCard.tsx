@@ -187,6 +187,12 @@ export const TratamentoMetaCard = ({
     // meses fechados é dividido entre o mês em andamento e os que ainda não aconteceram.
     const rBom   = calcFaltamMesAtual(mesesLista, 4, META_THRESHOLDS["Tratamento Concluído"]!.thresholdBom,   1, 0, 1);
     const rOtimo = calcFaltamMesAtual(mesesLista, 4, META_THRESHOLDS["Tratamento Concluído"]!.thresholdOtimo, 1, 0, 1);
+    const idxAb = rBom?.idxAberto ?? rOtimo?.idxAberto;
+    const mesAb = idxAb != null ? mesesLista[idxAb] : undefined;
+    const falta100 = mesAb ? Math.max(0, Math.ceil(mesAb.den - mesAb.num)) : 0;
+    const mesesRestantes = Math.max(1, 4 - (idxAb ?? 0));
+    const inalcBom   = !!rBom   && rBom.faltam   === null;
+    const inalcOtimo = !!rOtimo && rOtimo.faltam === null;
     const faltamBom   = rBom?.faltam   ?? (totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.5)  + 1 - totalNum) : 0);
     const faltamOtimo = rOtimo?.faltam ?? (totalDen > 0 ? Math.max(0, Math.floor(totalDen * 0.75) + 1 - totalNum) : 0);
 
@@ -250,6 +256,7 @@ export const TratamentoMetaCard = ({
       faltamBom,
       faltamOtimo,
       rBom, rOtimo,
+      falta100, mesesRestantes, inalcBom, inalcOtimo,
       alreadyBom:   rBom   ? rBom.faltam   === 0 : currentPct > 50,
       alreadyOtimo: rOtimo ? rOtimo.faltam === 0 : currentPct > 75,
       fonte,
@@ -262,7 +269,7 @@ export const TratamentoMetaCard = ({
 
   const {
     consultasQuad, tratamentosQuad, pendentes, currentPct,
-    faltamBom, faltamOtimo, rBom, rOtimo, alreadyBom, alreadyOtimo, fonte, simulations,
+    faltamBom, faltamOtimo, rBom, rOtimo, falta100, mesesRestantes, inalcBom, inalcOtimo, alreadyBom, alreadyOtimo, fonte, simulations,
   } = metaData;
 
   const fmtNeed = (v: number | null) => (v === null ? "—" : v);
@@ -305,6 +312,14 @@ export const TratamentoMetaCard = ({
               </div>
               {alreadyBom ? (
                 <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
+              ) : inalcBom ? (
+                <>
+                  <p className="text-xs font-medium text-red-600">Inalcançável no quadrimestre</p>
+                  <p className="text-xs font-semibold text-foreground">Proposta: 100% {mesesRestantes > 1 ? `nos ${mesesRestantes} meses restantes` : "neste mês"}</p>
+                  <p className="text-2xl font-bold text-red-600">{falta100}</p>
+                  <p className="text-xs text-muted-foreground">tratamentos p/ 100% neste mês{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(falta100)}</p>
+                </>
               ) : (
                 <>
                   <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
@@ -322,6 +337,14 @@ export const TratamentoMetaCard = ({
               </div>
               {alreadyOtimo ? (
                 <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
+              ) : inalcOtimo ? (
+                <>
+                  <p className="text-xs font-medium text-red-600">Inalcançável no quadrimestre</p>
+                  <p className="text-xs font-semibold text-foreground">Proposta: 100% {mesesRestantes > 1 ? `nos ${mesesRestantes} meses restantes` : "neste mês"}</p>
+                  <p className="text-2xl font-bold text-red-600">{falta100}</p>
+                  <p className="text-xs text-muted-foreground">tratamentos p/ 100% neste mês{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</p>
+                  <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(falta100)}</p>
+                </>
               ) : (
                 <>
                   <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
