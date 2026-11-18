@@ -307,10 +307,9 @@ export const TratamentoMetaCard = ({
                 <><p className="text-2xl font-bold text-emerald-600">✓</p><p className="text-xs text-emerald-600 font-medium">Meta atingida!</p></>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-emerald-700">{rBom?.faltam === null ? "—" : faltamBom}</p>
+                  <p className="text-2xl font-bold text-emerald-700">{faltamBom}</p>
                   <p className="text-xs font-semibold text-foreground">tratamentos a concluir neste mês{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</p>
                   <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rBom)}</p>
-                  {rBom?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(faltamBom)}</p>
                 </>
               )}
@@ -325,10 +324,9 @@ export const TratamentoMetaCard = ({
                 <><p className="text-2xl font-bold text-blue-600">✓</p><p className="text-xs text-blue-600 font-medium">Meta atingida!</p></>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-blue-700">{rOtimo?.faltam === null ? "—" : faltamOtimo}</p>
+                  <p className="text-2xl font-bold text-blue-700">{faltamOtimo}</p>
                   <p className="text-xs font-semibold text-foreground">tratamentos a concluir neste mês{rBom?.mesAberto ? ` (${rBom.mesAberto})` : ""}</p>
                   <p className="text-xs text-muted-foreground">Mês atual precisa de ≥ {pctMes(rOtimo)}</p>
-                  {rOtimo?.faltam === null && <p className="text-xs font-semibold text-red-600">Inalcançável neste mês</p>}
                   <p className="text-xs text-red-600 mt-0.5">Média/semana: {fmtSemanal(faltamOtimo)}</p>
                 </>
               )}

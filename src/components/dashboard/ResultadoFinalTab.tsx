@@ -192,8 +192,9 @@ const MetaQuadrimestreCard = ({
     agg: number,
     okClass: string,
   ) => {
-    const faltam = r ? r.faltam : agg;
-    const metaMes = r && faltam != null ? numMes + faltam * dn : null;
+    // Mês inalcançável pela média mensal: projeta pelo somatório do período (igual B5 — nunca "inalcançável").
+    const faltam = r ? (r.faltam ?? agg) : agg;
+    const metaMes = r ? numMes + faltam * dn : null;
     const metaAgg = numerador + (agg > 0 ? agg * dn : 0);
     return (
       <>
@@ -207,9 +208,7 @@ const MetaQuadrimestreCard = ({
             <p className="text-xs text-muted-foreground">Média/semana: {metaMes != null ? (metaMes / 4.33).toFixed(1) : "—"}</p>
           </>
         ) : null}
-        {faltam === null
-          ? <p className="text-xs font-medium text-red-600">Inalcançável neste mês</p>
-          : faltam > 0
+        {faltam > 0
             ? <>
                 <p className="text-xs font-medium text-red-600"><span className="whitespace-nowrap">Faltam NESTE MÊS{r?.mesAberto ? ` (${r.mesAberto})` : ""}:</span> {faltam.toLocaleString("pt-BR")} {exibeUnit}</p>
                 <p className="text-xs text-red-600">Média/semana: {fmtSemanal(faltam)}</p>
