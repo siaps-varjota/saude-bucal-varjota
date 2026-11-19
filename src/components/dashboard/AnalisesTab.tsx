@@ -14,6 +14,7 @@ import { Tab4Patient } from "@/hooks/useTab4Data";
 import { Tab5Record } from "@/hooks/useTab5Data";
 import { Tab6Record } from "@/hooks/useTab6Data";
 import { OficialData } from "@/hooks/useOficialData";
+import { PendenciasReportButton } from "./PendenciasReportButton";
 import { PrioridadesIA } from "@/components/dashboard/PrioridadesIA";
 
 interface AnalisesTabProps {
@@ -144,6 +145,12 @@ export const AnalisesTab = ({
             placeholderAll="Todos os Indicadores"
             width="w-[260px]"
           />
+          <div className="ml-auto" title="Selecione uma equipe e no máximo um quadrimestre">
+            <PendenciasReportButton
+              equipe={equipes.length === 1 && quads.length <= 1 ? equipes[0] : "all"}
+              equipeResult={equipes.length === 1 && quads.length <= 1 ? resultados.find(r => r.equipe === equipes[0]) : undefined}
+            />
+          </div>
         </div>
       </div>
 
