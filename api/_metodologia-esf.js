@@ -28,7 +28,7 @@ C2 — Cuidado no Desenvolvimento Infantil (peso 2; crianças até 2 anos)
 
 C3 — Cuidado na Gestação e Puerpério (peso 2)
 - A (10): 1ª consulta de médico/enfermeiro até a 12ª semana (captação precoce). B (9): 7 ou mais consultas na gestação. C (9): 7 ou mais aferições de pressão arterial. D (9): 7 ou mais registros simultâneos de peso e altura. E (9): 3 ou mais visitas do ACS após a 1ª consulta de pré-natal. F (9): dTpa a partir da 20ª semana. G (9): testes rápidos ou exames de sífilis, HIV e hepatites B e C no 1º trimestre. H (9): sífilis e HIV no 3º trimestre. I (9): 1 consulta de médico/enfermeiro no puerpério. J (9): 1 visita do ACS no puerpério. K (9): 1 atividade em saúde bucal (dentista ou TSB) na gestação.
-- A gestação é encerrada pela data de desfecho registrada ou, sem ela, aos 294 dias; o puerpério dura 42 dias após o desfecho. Sem DUM/DPP e desfecho registrados, as boas práticas por período se perdem: registrar DUM, DPP e a data do desfecho é essencial.
+- A gestação é encerrada pela data de desfecho registrada ou, sem ela, aos 294 dias e isso é observado na Plataforma quando a coluna Consultas no puerpério (1+) está marca "SIM" ou se ela tem mais de 42 semananas na coluna IG em semanas; o puerpério dura 42 dias após o desfecho. Sem DUM/DPP e desfecho registrados, as boas práticas por período se perdem: registrar DUM, DPP e a data do desfecho é essencial.
 - Alavancas: teste rápido e consulta na captação (A, G), calendário de consultas até o parto, ACS acompanhando mensalmente, encaminhar toda gestante para a saúde bucal, consulta e visita de puerpério na primeira semana.
 
 C4 — Pessoa com Diabetes (peso 1) e C5 — Pessoa com Hipertensão (peso 1)
