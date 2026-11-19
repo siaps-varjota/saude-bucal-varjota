@@ -1,0 +1,50 @@
+// Notas metodológicas C1 a C7 (eSF/eAP), resumidas para a IA consultar.
+// Fonte: Notas Metodológicas C1 a C7 do Ministério da Saúde (SAPS/DEAPS) + regras do painel.
+// Arquivo com "_" no início: a Vercel não o publica como rota; é só importado por sugerir-acoes.js.
+// Para atualizar: edite o texto abaixo (não use crases nem ${ } dentro dele).
+export const METODOLOGIA_ESF = `
+METODOLOGIA DOS INDICADORES DA eSF/eAP (C1 a C7) — use como referência técnica; os números vêm SEMPRE dos dados enviados.
+
+Regras gerais
+- Avaliação quadrimestral, monitoramento mensal; dados do SIAPS (extração no 20º dia útil), SCNES e, no C2, RNDS (vacinas). Granularidade: equipe (INE). Nenhum indicador é acumulativo. Equipes: eSF (tipo 70) e eAP (tipo 76).
+- Peso na nota final do Componente III: C1 = 1, C2 = 2, C3 = 2, C4 = 1, C5 = 1, C6 = 1, C7 = 2 (soma 10). Cada conceito vale 0,25 (Regular), 0,5 (Suficiente), 0,75 (Bom) ou 1 (Ótimo) vezes o peso. Para ganhar mais nota, priorize indicadores de peso 2 (C2, C3, C7) e os mais distantes do Ótimo.
+- C2 a C7 funcionam por BOAS PRÁTICAS pontuadas: cada pessoa vinculada pode somar até 100 pontos; o resultado do indicador é a média dos pontos das pessoas (0 a 100). Ou seja, cada boa prática não cumprida por uma pessoa tira os pontos dela da média. Conceitos de C2 a C7: Regular até 25; Suficiente acima de 25 até 50; Bom acima de 50 até 75; Ótimo acima de 75 até 100. Para mudar de classe é preciso SUPERAR o limite.
+- Só contam pessoas com nome, data de nascimento e CPF ou CNS válido (CadSUS) e profissional com CNS identificado. Vale o registro de qualquer profissional habilitado em qualquer estabelecimento da APS do país, não só da equipe. A pessoa deve estar vinculada à equipe (regras da NT 30/2025 e Portaria SAPS/MS 161/2024; em empate de vínculo prevalece o critério da portaria).
+- Saem do acompanhamento: pessoa com "Saída do cidadão do cadastro" por mudança de território, mudança de equipe e óbito no CadSUS (há lapso na identificação de óbitos). No C3 também aborto; nos C4 e C5 quem tem todas as condições marcadas como "resolvidas" no PEC.
+- Consultas valem quando feitas por médico (CBO 2231, 2251, 2252, 2253) ou enfermeiro (2235), presenciais ou remotas. Visitas domiciliares valem quando feitas por ACS ou TACS (CBO 5151-05 e 3222-55), com CNS do profissional e o motivo de visita correto. Peso e altura contam quando registrados SIMULTANEAMENTE (no mesmo dia) pelos campos específicos do PEC ou pelos procedimentos SIGTAP 01.01.04.002-4, 01.01.04.008-3 e 01.01.04.007-5.
+- Exceção para eAP (tipo 76): a visita domiciliar do ACS pontua integralmente, sem ser condição, em C2 (D), C3 (E) e (J), C4 (D), C5 (D) e C6 (C).
+- Limitações citadas: registro qualificado em campo específico, envio tardio da produção. Resultado baixo muitas vezes é problema de registro ou de vínculo, não de cuidado; sugira conferir.
+
+C1 — Mais Acesso à APS (peso 1; NÃO é por pontos)
+- Percentual = atendimentos de demanda PROGRAMADA (consulta agendada programada, cuidado continuado, consulta agendada) / total de atendimentos (programada + espontânea: escuta inicial/orientação, consulta no dia, atendimento de urgência). Só atendimentos individuais de médico (2251-42, 2251-70, 2251-30, 2251-25, 2252-50) e enfermeiro (2235-65, 2235-05), com o tipo de demanda marcado no atendimento.
+- Conceitos (%): Ótimo acima de 50 até 70; Bom acima de 30 até 50; Suficiente acima de 10 até 30; Regular até 10 OU acima de 70. É uma faixa ideal: acima de 70% também é Regular (equipe pouco aberta à demanda espontânea); muito baixo indica equipe centrada na demanda espontânea.
+- Como melhorar: se estiver baixo, ofertar mais atendimentos agendados/programados (agenda para cuidado continuado, retornos, grupos prioritários) e marcar corretamente o tipo de demanda em cada atendimento; se estiver acima de 70, reservar vagas para demanda espontânea.
+
+C2 — Cuidado no Desenvolvimento Infantil (peso 2; crianças até 2 anos)
+- A (20): 1ª consulta presencial de médico ou enfermeiro até o 30º dia de vida, com problema/condição "Puericultura". B (20): pelo menos 9 consultas (presenciais ou remotas) de médico/enfermeiro até 2 anos, com "Puericultura". C (20): pelo menos 9 registros simultâneos de peso e altura até 2 anos. D (20): 2 visitas do ACS, a 1ª até 30 dias de vida e a 2ª até 6 meses (motivo "recém-nascido" ou "criança"). E (20): vacinas completas: pentavalente 3 doses e pólio injetável 3 doses (intervalo mínimo de 30 dias), SCR (ou SCRV) 2 doses (não vale dose antes de 12 meses) e pneumocócica 2 doses (intervalo mínimo de 30 dias).
+- Alavancas: busca ativa do recém-nascido na 1ª semana (A e D), agenda de puericultura com retornos marcados, registrar peso e altura juntos em toda consulta, revisar o cartão vacinal e registrar doses no e-SUS/RNDS.
+
+C3 — Cuidado na Gestação e Puerpério (peso 2)
+- A (10): 1ª consulta de médico/enfermeiro até a 12ª semana (captação precoce). B (9): 7 ou mais consultas na gestação. C (9): 7 ou mais aferições de pressão arterial. D (9): 7 ou mais registros simultâneos de peso e altura. E (9): 3 ou mais visitas do ACS após a 1ª consulta de pré-natal. F (9): dTpa a partir da 20ª semana. G (9): testes rápidos ou exames de sífilis, HIV e hepatites B e C no 1º trimestre. H (9): sífilis e HIV no 3º trimestre. I (9): 1 consulta de médico/enfermeiro no puerpério. J (9): 1 visita do ACS no puerpério. K (9): 1 atividade em saúde bucal (dentista ou TSB) na gestação.
+- A gestação é encerrada pela data de desfecho registrada ou, sem ela, aos 294 dias; o puerpério dura 42 dias após o desfecho. Sem DUM/DPP e desfecho registrados, as boas práticas por período se perdem: registrar DUM, DPP e a data do desfecho é essencial.
+- Alavancas: teste rápido e consulta na captação (A, G), calendário de consultas até o parto, ACS acompanhando mensalmente, encaminhar toda gestante para a saúde bucal, consulta e visita de puerpério na primeira semana.
+
+C4 — Pessoa com Diabetes (peso 1) e C5 — Pessoa com Hipertensão (peso 1)
+- Entram pessoas vinculadas com a condição (CID-10 ou CIAP-2 de diabetes ou hipertensão) registrada em qualquer momento desde 2013 e ainda não resolvida.
+- C4: A (20): 1 consulta de médico/enfermeiro nos últimos 6 meses. B (15): 1 aferição de pressão arterial nos últimos 6 meses. C (15): 1 registro de peso e altura nos últimos 12 meses. D (20): 2 visitas do ACS com intervalo mínimo de 30 dias nos últimos 12 meses. E (15): 1 hemoglobina glicada solicitada ou avaliada nos últimos 12 meses. F (15): 1 avaliação dos pés nos últimos 12 meses.
+- C5: A (25): 1 consulta nos últimos 6 meses. B (25): 1 aferição de pressão arterial nos últimos 6 meses. C (25): 1 registro de peso e altura nos últimos 12 meses. D (25): 2 visitas do ACS com intervalo mínimo de 30 dias nos últimos 12 meses.
+- As janelas são móveis (6 e 12 meses): quem cumpriu há muito tempo perde o ponto; o cuidado precisa ser recorrente. Alavancas: busca ativa de quem está há mais de 6 meses sem consulta, aferir a pressão em todo contato, solicitar hemoglobina glicada e examinar os pés na consulta (C4), visitas do ACS com 30 dias de intervalo.
+
+C6 — Pessoa Idosa (peso 1; 60 anos ou mais)
+- A (25): 1 consulta de médico/enfermeiro nos últimos 12 meses. B (25): 1 registro simultâneo de peso e altura nos últimos 12 meses. C (25): 2 visitas do ACS com intervalo mínimo de 30 dias nos últimos 12 meses. D (25): 1 dose de vacina contra influenza nos últimos 12 meses.
+- Alavancas: aproveitar a campanha de influenza para registrar a dose e o peso/altura, busca ativa dos idosos sem consulta no ano, roteiro de visitas do ACS.
+
+C7 — Cuidado da Mulher na Prevenção do Câncer (peso 2; mulheres e homens transgênero de 9 a 69 anos)
+- Cada boa prática tem seu próprio denominador por faixa etária; o indicador é A + B + C + D. A (20 pontos): exame de rastreamento do câncer do colo do útero em 25 a 64 anos, coletado/solicitado/avaliado nos últimos 36 meses (exame molecular de HPV, SIGTAP 02.02.10.025-1, vale 60 meses). B (30): 1 dose da vacina HPV em meninas de 9 a 14 anos. C (30): 1 atendimento sobre saúde sexual e reprodutiva em 14 a 69 anos nos últimos 12 meses. D (20): exame de rastreamento de câncer de mama (mamografia) em 50 a 69 anos, solicitado ou avaliado nos últimos 24 meses.
+- Vacina HPV (30) e saúde sexual e reprodutiva (30) valem mais que os exames (20): são as alavancas de maior retorno. Ações: vacinar meninas de 9 a 14 anos (escolas, PSE), registrar o atendimento de saúde sexual e reprodutiva (consulta de planejamento familiar, escuta qualificada), busca ativa para citopatológico e mamografia, e registrar corretamente os exames avaliados.
+
+Como usar nas respostas
+- Relacione cada ação à boa prática e aos seus pontos (quanto cada pessoa que passar a cumprir a boa prática soma). Prefira ações específicas (busca ativa com os ACS de quem está há mais de 6 meses sem consulta) a conselhos genéricos.
+- Combine peso do indicador com pontos da boa prática: uma boa prática de 30 pontos em indicador de peso 2 rende mais que uma de 15 pontos em indicador de peso 1.
+- Não afirme causas que os dados não mostram; apresente como hipótese a conferir (registro, vínculo, envio da produção). As notas oficiais do Ministério da Saúde prevalecem em caso de divergência.
+`;

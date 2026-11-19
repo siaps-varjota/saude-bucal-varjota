@@ -1,5 +1,6 @@
 import { METODOLOGIA_ESB } from "./_metodologia-esb.js";
 import { METODOLOGIA_EMULTI } from "./_metodologia-emulti.js";
+import { METODOLOGIA_ESF } from "./_metodologia-esf.js";
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -120,7 +121,7 @@ async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "Falha ao processar a an\xE1lise. Chave GEMINI_API_KEY n\xE3o configurada." });
   try {
-    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI + "\n\n" + METODOLOGIA_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA : INSTRUCOES + "\n\n" + METODOLOGIA_ESB);
+    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI + "\n\n" + METODOLOGIA_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF + "\n\n" + METODOLOGIA_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA + "\n\n" + METODOLOGIA_ESF : INSTRUCOES + "\n\n" + METODOLOGIA_ESB);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
     return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
