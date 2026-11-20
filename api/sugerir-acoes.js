@@ -43,6 +43,41 @@ const INSTRUCOES_ESF_ABA = `Voc\xEA \xE9 um apoiador t\xE9cnico das equipes de S
 Voc\xEA recebe UMA aba tem\xE1tica do painel (campo "aba"), a regra de pontua\xE7\xE3o dela ("regraPontuacao"), os quadrimestres e as equipes selecionados e a lista de indicadores (boas pr\xE1ticas) com quantos registros atendem ("atendem"), o total, quantos faltam e o percentual.
 Analise SOMENTE esta aba e esta sele\xE7\xE3o. Identifique as boas pr\xE1ticas com maior n\xFAmero de faltantes e menor percentual, considerando a regra de pontua\xE7\xE3o (indicadores de maior peso rendem mais ponto) e sugira de 2 a 4 a\xE7\xF5es pr\xE1ticas, concretas e espec\xEDficas para cada indicador (busca ativa com os ACS, agendamento, registro correto no e-SUS PEC, organiza\xE7\xE3o da agenda). Use SEMPRE os n\xFAmeros informados; n\xE3o recalcule nem invente dados.
 Responda em portugu\xEAs do Brasil, objetivo. Fa\xE7a UMA prioridade para CADA indicador recebido (todas as boas pr\xE1ticas da aba, no m\xE1ximo 12), ordenadas da mais urgente para a menos urgente; n\xE3o omita indicador que esteja bom: nele, diga que est\xE1 em dia e que a a\xE7\xE3o \xE9 manter o registro. No campo "indicador" use o t\xEDtulo do indicador exatamente como recebido e em "equipe" as equipes selecionadas (ou "Todas as equipes"). N\xEDvel: alta se o percentual for menor que 50%, m\xE9dia entre 50% e 75%, baixa acima de 75%.`;
+const SCHEMA_ESF_BP = {
+  type: "object",
+  additionalProperties: false,
+  required: ["resumo", "prioridades", "recomendacoes", "pontosPositivos"],
+  properties: {
+    resumo: { type: "string" },
+    prioridades: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["unidade", "equipe", "aba", "indicador", "nivel", "justificativa", "acoes"],
+        properties: {
+          unidade: { type: "string" },
+          equipe: { type: "string" },
+          aba: { type: "string" },
+          indicador: { type: "string" },
+          nivel: { type: "string", enum: ["alta", "media", "baixa"] },
+          justificativa: { type: "string" },
+          acoes: { type: "array", items: { type: "string" } }
+        }
+      }
+    },
+    recomendacoes: { type: "array", items: { type: "string" } },
+    pontosPositivos: { type: "array", items: { type: "string" } }
+  }
+};
+const INSTRUCOES_ESF_BP = `Você é um analista da Atenção Primária à Saúde do município de Varjota-CE.
+Você recebe dados AGREGADOS da aba "Análise de Boas Práticas" do painel: boas práticas por indicador, aba e equipe ou ACS/microárea. Analise somente esses dados. Não invente números, nomes, fatos ou causas. Use os números exatos recebidos.
+O campo recorte.nivelComparacao informa se as unidades são equipes ou ACS/microárea. Em "unidade" use o nome da unidade e em "equipe" a equipe dela (campo equipe de unidadesCriticas).
+Considere cobertura abaixo de 90% como ponto de atenção. Priorize juntos: menor coberturaPct, maior volume de naoRealizados e unidades que aparecem em unidadesPrioritariasPareto ou em unidadesPrioritariasEmVariosIndicadores (concentração de falhas recorrentes).
+Não faça diagnósticos clínicos. Produza recomendações operacionais realistas para gestores, enfermeiros e ACS: busca ativa, planejamento de agenda e rotas, supervisão, treinamento e conferência dos registros no e-SUS.
+Use resumoPorAba para comparar as abas sem recalcular médias. Nunca recalcule coberturas por conta própria. Se indicadoresOmitidos existir, informe que a análise considera os indicadores de menor cobertura.
+Reconheça boas coberturas (90% ou mais) e unidades de referência sem repetir o resumo. Escreva em português do Brasil, de forma objetiva.
+Limites: resumo até 100 palavras; no máximo 6 prioridades, da mais urgente para a menos urgente, cada uma com 2 a 3 ações de até 25 palavras e justificativa de até 45 palavras; no máximo 5 recomendações e 3 pontos positivos.`;
 const semAdditional = (o) => Array.isArray(o) ? o.map(semAdditional) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)])) : o;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 async function chamarGemini(entrada, apiKey, instrucoes, schema = SCHEMA) {
@@ -121,6 +156,12 @@ async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "Falha ao processar a an\xE1lise. Chave GEMINI_API_KEY n\xE3o configurada." });
   try {
+    if (req.body?.contexto === "esf-boas-praticas") {
+      const gb = await chamarGemini(entrada, apiKey, INSTRUCOES_ESF_BP, SCHEMA_ESF_BP);
+      if (gb.texto) return res.status(200).json(JSON.parse(gb.texto));
+      if (gb.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
+      return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
+    }
     const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI + "\n\n" + METODOLOGIA_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF + "\n\n" + METODOLOGIA_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA + "\n\n" + METODOLOGIA_ESF : INSTRUCOES + "\n\n" + METODOLOGIA_ESB);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
