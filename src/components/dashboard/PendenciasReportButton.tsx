@@ -201,10 +201,13 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
       doc.setFont("helvetica", "bold");
       doc.text("Relatório de Pendências por Equipe", 14, y);
       y += 7;
-      doc.setFontSize(11);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(2, 132, 199);
+      doc.text(`Unidade: ${equipe}`, 14, y);
+      doc.setTextColor(30);
       doc.setFont("helvetica", "normal");
-      doc.text(`Equipe: ${equipe}`, 14, y);
-      y += 5;
+      y += 6;
       doc.setFontSize(12);
       doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, y);
       y += 8;

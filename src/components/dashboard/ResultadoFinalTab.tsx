@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EquipeResult, Conceito, IndicadorResult } from "@/hooks/useResultadoFinal";
+import { rotuloUnidade, slugUnidade } from "@/lib/pdfUnidade";
 import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 
 import { META_THRESHOLDS, strictMeta, calcFaltam as calcFaltamShared, calcFaltamMediaMensal, calcFaltamMesAtual, calcFaltamMesAtualB3, projetaMediaMensal, chaveMes, indiceMesAberto } from "@/lib/metaThresholds";
@@ -1818,7 +1819,7 @@ export const ResultadoFinalTab = ({
 
       const filtrosAtivos: { label: string; valor: string }[] = [
         { label: "Quadrimestre", valor: labelQuad },
-        { label: "Equipe",       valor: labelEquipe },
+        { label: "Unidade",      valor: labelEquipe },
         { label: "Indicador",    valor: labelIndicador },
         ...(labelMeses ? [{ label: "Meses", valor: labelMeses }] : []),
       ];
@@ -1833,7 +1834,19 @@ export const ResultadoFinalTab = ({
       doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
       doc.text("Resultado Final", 14, y);
-      y += 8;
+      y += 7;
+
+      const rotuloUn = rotuloUnidade(equipe);
+      if (rotuloUn) {
+        doc.setFontSize(11);
+        doc.setTextColor(2, 132, 199);
+        const linhasUn = doc.splitTextToSize(rotuloUn, 297 - 28) as string[];
+        doc.text(linhasUn, 14, y);
+        y += linhasUn.length * 5 + 2;
+        doc.setTextColor(30);
+      } else {
+        y += 1;
+      }
 
       // ── Boxes de filtros ──────────────────────────────────────────────────────
       const filtroBoxH   = 7;
@@ -2019,7 +2032,7 @@ export const ResultadoFinalTab = ({
         y = (doc as any).lastAutoTable.finalY + 8;
       }
 
-      doc.save(`resultado-final-${new Date().toISOString().split("T")[0]}.pdf`);
+      doc.save(`resultado-final${slugUnidade(equipe)}-${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2, FileDown } from "lucide-react";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
+import { rotuloUnidade, slugUnidade } from "@/lib/pdfUnidade";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
 import { listarMeses, mesesDosQuadrimestres } from "@/lib/mesesFiltro";
@@ -165,12 +166,20 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
     doc.setFont("helvetica", "normal"); doc.setFontSize(10);
     doc.text(rotuloIndicador ? `${usouFallback ? "Regras fixas" : "Análise por IA"} · ${rotuloIndicador}` : (usouFallback ? "Análise por regras fixas" : "Análise por IA"), M, 22);
     doc.setFontSize(8.5);
-    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, M, 28.5);
+    const rotuloUn = rotuloUnidade(selEquipes);
+    if (rotuloUn) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+      doc.text(quebra(rotuloUn, maxW, 10, true)[0] + (quebra(rotuloUn, maxW, 10, true).length > 1 ? "…" : ""), M, 28.5);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+      doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, M, 32);
+    } else {
+      doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, M, 28.5);
+    }
     let y = 42;
 
     // Filtros aplicados (chips)
     const filtrosTxt: [string, string][] = [
-      ["Equipes", selEquipes.length ? selEquipes.join(", ") : "Todas"],
+      ["Unidade(s)", selEquipes.length ? selEquipes.join(", ") : "Todas"],
       ["Quadrimestres", selQuads.length ? selQuads.join(", ") : "Todos"],
       ["Meses", selMeses.length ? selMeses.join(", ") : "Todos"],
     ];
@@ -271,7 +280,7 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
         : "Sugestões geradas por IA. Revise com a equipe antes de aplicar.", M, H - 8);
       doc.text(`Página ${n} de ${total}`, W - M, H - 8, { align: "right" });
     }
-    doc.save(`analise-ia${indicador ? "-" + indicador.replace(/\s+/g, "-") : ""}.pdf`);
+    doc.save(`analise-ia${slugUnidade(selEquipes)}${indicador ? "-" + indicador.replace(/\s+/g, "-") : ""}.pdf`);
   };
 
   const botoes = (

@@ -1,6 +1,7 @@
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { rotuloUnidade, slugUnidade } from "@/lib/pdfUnidade";
 
 interface PDFSummaryCard {
   label: string;
@@ -17,6 +18,8 @@ interface PDFGeneratorProps {
   title: string;
   subtitle?: string;
   filterInfo?: string;
+  /** Unidade(s)/equipe(s) selecionada(s) no filtro; vazio = todas. */
+  unidades?: string[];
   summaryCards: PDFSummaryCard[];
   columns: PDFColumn[];
   data: Record<string, any>[];
@@ -40,6 +43,7 @@ function isStaleChunkError(error: unknown): boolean {
 export const PDFGenerator = ({
   title,
   filterInfo,
+  unidades,
   summaryCards,
   columns,
   data,
@@ -67,11 +71,23 @@ export const PDFGenerator = ({
       doc.text(title, 14, y);
       y += 6;
 
+      const rotuloUn = rotuloUnidade(unidades);
+      if (rotuloUn) {
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(2, 132, 199);
+        const linhasUn = doc.splitTextToSize(rotuloUn, pageW - 28) as string[];
+        doc.text(linhasUn, 14, y);
+        y += linhasUn.length * 5 + 1;
+        doc.setTextColor(30);
+      }
+
       if (filterInfo) {
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        doc.text(`Filtros aplicados: ${filterInfo}`, 14, y);
-        y += 6;
+        const linhasF = doc.splitTextToSize(`Filtros aplicados: ${filterInfo}`, pageW - 28) as string[];
+        doc.text(linhasF, 14, y);
+        y += linhasF.length * 4 + 2;
       }
 
       // Cards de resumo
@@ -160,7 +176,7 @@ export const PDFGenerator = ({
         styles: { overflow: "linebreak", cellPadding: 2 },
       });
 
-      doc.save(`${fileName}-${new Date().toISOString().split("T")[0]}.pdf`);
+      doc.save(`${fileName}${slugUnidade(unidades)}-${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);

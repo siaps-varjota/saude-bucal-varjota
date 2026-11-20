@@ -170,6 +170,7 @@ export const PatientFilters = ({
           <PDFGenerator
             title={pdfTitle}
             filterInfo={filterInfo}
+            unidades={filters.equipes}
             summaryCards={pdfSummaryCards}
             columns={pdfColumns}
             data={pdfData}
