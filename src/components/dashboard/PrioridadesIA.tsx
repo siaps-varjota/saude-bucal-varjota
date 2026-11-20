@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2, FileDown } from "lucide-react";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
+import { situacaoMes, rotuloMesAtual } from "@/lib/situacaoMes";
 import { rotuloUnidade, slugUnidade } from "@/lib/pdfUnidade";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
@@ -83,7 +84,7 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
             percentualPeriodo: Number(pct.toFixed(1)),
             numeradorPeriodo: mesesSel.reduce((s, m) => s + m.numerador, 0),
             denominadorPeriodo: mesesSel.reduce((s, m) => s + m.denominador, 0),
-            meses: mesesSel.map(m => ({ mes: m.mes, numerador: m.numerador, denominador: m.denominador, percentual: Number(m.porcentagem.toFixed(1)), fonte: m.fonte })),
+            meses: mesesSel.map(m => ({ mes: m.mes, numerador: m.numerador, denominador: m.denominador, percentual: Number(m.porcentagem.toFixed(1)), fonte: m.fonte, situacao: situacaoMes(m.mes, m.denominador) })),
           };
         }).filter(i => i.meses.some(m => m.denominador > 0)),
       }))
@@ -104,7 +105,7 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
       const resp = await fetch("/api/sugerir-acoes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dados }),
+        body: JSON.stringify({ dados, referencia: { hoje: new Date().toLocaleDateString("pt-BR"), mesAtual: rotuloMesAtual() } }),
       });
       data = await resp.json().catch(() => null);
       if (!resp.ok && !data?.error) error = new Error(`HTTP ${resp.status}`);
