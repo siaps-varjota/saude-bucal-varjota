@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2, FileDown } from "lucide-react";
-import jsPDF from "jspdf";
+import { gerarPdfPrioridades } from "@/lib/prioridadesPdf";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
@@ -129,28 +129,141 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
 
   const gerarPdf = () => {
     if (!res) return;
-    const rotuloIndicador = indicador ?? (selIndicadores.length ? selIndicadores.join(", ") : "");
     const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const W = 210, M = 14, maxW = W - 2 * M;
-    let y = 16;
-    const linhas = (t: string, size: number, bold = false, gap = 1.5) => {
-      doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size);
-      for (const l of doc.splitTextToSize(t, maxW) as string[]) {
-        if (y > 282) { doc.addPage(); y = 16; }
-        doc.text(l, M, y); y += size * 0.42 + gap;
-      }
+    const W = 210, H = 297, M = 14, maxW = W - 2 * M;
+    const COR = {
+      primaria: [2, 132, 199] as const, escura: [15, 23, 42] as const, texto: [51, 65, 85] as const,
+      suave: [100, 116, 139] as const, fundo: [241, 245, 249] as const, borda: [226, 232, 240] as const,
+      branco: [255, 255, 255] as const,
     };
-    linhas(`Prioridades e ações sugeridas (IA)${rotuloIndicador ? " — " + rotuloIndicador : ""}`, 15, true);
-    linhas(`Equipes: ${selEquipes.length ? selEquipes.join(", ") : "Todas"}  |  Quadrimestres: ${selQuads.length ? selQuads.join(", ") : "Todos"}  |  Meses: ${selMeses.length ? selMeses.join(", ") : "Todos"}${controlado ? `  |  Indicadores: ${selIndicadores.length ? selIndicadores.join(", ") : "Todos"}` : ""}`, 9);
-    linhas(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 9); y += 3;
-    linhas("Resumo", 12, true); linhas(res.resumo, 10); y += 3;
-    res.prioridades.forEach((p, i) => {
-      linhas(`${i + 1}. ${p.indicador} — ${p.equipe} (Prioridade ${NIVEL[p.nivel]?.label ?? p.nivel})`, 11, true);
-      linhas(p.motivo, 10);
-      p.acoes.forEach(a => linhas(`• ${a}`, 10));
-      y += 3;
+    const NIVEL_PDF: Record<Prioridade["nivel"], { cor: readonly [number, number, number]; bg: readonly [number, number, number] }> = {
+      alta: { cor: [220, 38, 38], bg: [254, 242, 242] },
+      media: { cor: [217, 119, 6], bg: [255, 251, 235] },
+      baixa: { cor: [100, 116, 139], bg: [248, 250, 252] },
+    };
+    const fill = (c: readonly [number, number, number]) => doc.setFillColor(c[0], c[1], c[2]);
+    const draw = (c: readonly [number, number, number]) => doc.setDrawColor(c[0], c[1], c[2]);
+    const ink = (c: readonly [number, number, number]) => doc.setTextColor(c[0], c[1], c[2]);
+    const quebra = (t: string, w: number, size: number, bold = false) => {
+      doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(size);
+      return doc.splitTextToSize(t, w) as string[];
+    };
+    const LH = (size: number) => size * 0.4 + 1.2;
+    const rotuloIndicador = indicador ?? (selIndicadores.length ? selIndicadores.join(", ") : "");
+
+    // Cabeçalho em faixa colorida
+    fill(COR.primaria); doc.rect(0, 0, W, 34, "F");
+    ink(COR.branco); doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+    doc.text("Prioridades e ações sugeridas", M, 15);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    doc.text(rotuloIndicador ? `${usouFallback ? "Regras fixas" : "Análise por IA"} · ${rotuloIndicador}` : (usouFallback ? "Análise por regras fixas" : "Análise por IA"), M, 22);
+    doc.setFontSize(8.5);
+    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, M, 28.5);
+    let y = 42;
+
+    // Filtros aplicados (chips)
+    const filtrosTxt: [string, string][] = [
+      ["Equipes", selEquipes.length ? selEquipes.join(", ") : "Todas"],
+      ["Quadrimestres", selQuads.length ? selQuads.join(", ") : "Todos"],
+      ["Meses", selMeses.length ? selMeses.join(", ") : "Todos"],
+    ];
+    if (controlado) filtrosTxt.push(["Indicadores", selIndicadores.length ? selIndicadores.join(", ") : "Todos"]);
+    ink(COR.suave); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+    doc.text("FILTROS APLICADOS", M, y); y += 4;
+    filtrosTxt.forEach(([k, v]) => {
+      const linhasV = quebra(v, maxW - 34, 9);
+      ink(COR.suave); doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(k, M, y);
+      ink(COR.texto); doc.setFont("helvetica", "normal"); doc.text(linhasV, M + 32, y);
+      y += linhasV.length * LH(9);
     });
-    linhas(usouFallback ? "Sugestões por regras fixas (IA indisponível). Revise com a equipe antes de aplicar." : "Sugestões geradas por IA — revise com a equipe antes de aplicar.", 8);
+    y += 3;
+
+    const novaPaginaSe = (h: number) => { if (y + h > H - 18) { doc.addPage(); y = 16; } };
+
+    // Resumo em caixa destacada
+    const resumoL = quebra(res.resumo, maxW - 12, 10);
+    const hResumo = 14 + resumoL.length * LH(10);
+    novaPaginaSe(hResumo);
+    fill(COR.fundo); draw(COR.borda); doc.roundedRect(M, y, maxW, hResumo, 2, 2, "FD");
+    fill(COR.primaria); doc.rect(M, y, 1.8, hResumo, "F");
+    ink(COR.primaria); doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text("RESUMO", M + 6, y + 6.5);
+    ink(COR.escura); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    doc.text(resumoL, M + 6, y + 12.5);
+    y += hResumo + 8;
+
+    // Contagem por nível
+    const cont = { alta: 0, media: 0, baixa: 0 };
+    res.prioridades.forEach(p => { if (p.nivel in cont) cont[p.nivel]++; });
+    ink(COR.escura); doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+    doc.text(`Prioridades (${res.prioridades.length})`, M, y);
+    let bx = W - M;
+    (["baixa", "media", "alta"] as const).forEach(n => {
+      const t = `${NIVEL[n].label}: ${cont[n]}`;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+      const tw = doc.getTextWidth(t) + 6;
+      bx -= tw;
+      fill(NIVEL_PDF[n].bg); draw(NIVEL_PDF[n].cor); doc.roundedRect(bx, y - 4.2, tw, 6, 3, 3, "FD");
+      ink(NIVEL_PDF[n].cor); doc.text(t, bx + 3, y - 0.1);
+      bx -= 2;
+    });
+    y += 6;
+
+    // Cartões de prioridade
+    res.prioridades.forEach((p, i) => {
+      const nv = NIVEL_PDF[p.nivel] ?? NIVEL_PDF.baixa;
+      const label = `Prioridade ${NIVEL[p.nivel]?.label ?? p.nivel}`;
+      const tituloL = quebra(`${p.indicador}`, maxW - 62, 11, true);
+      const motivoL = quebra(p.motivo, maxW - 12, 9.5);
+      const acoesL = p.acoes.map(a => quebra(a, maxW - 19, 9.5));
+      const hAcoes = acoesL.reduce((s, l) => s + l.length * LH(9.5) + 0.8, 0);
+      const h = 7 + tituloL.length * LH(11) + 7 + motivoL.length * LH(9.5) + 3 + 4.5 + hAcoes + 4;
+      novaPaginaSe(h + 4);
+
+      fill(COR.branco); draw(COR.borda); doc.roundedRect(M, y, maxW, h, 2, 2, "FD");
+      fill(nv.cor); doc.rect(M, y, 1.8, h, "F");
+
+      // número + título
+      fill(nv.cor); doc.circle(M + 9, y + 7.2, 3.6, "F");
+      ink(COR.branco); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+      doc.text(String(i + 1), M + 9, y + 8.4, { align: "center" });
+      ink(COR.escura); doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+      doc.text(tituloL, M + 15, y + 8);
+      // selo de nível
+      doc.setFontSize(8); const lw = doc.getTextWidth(label) + 7;
+      const lx = W - M - lw - 4;
+      fill(nv.bg); draw(nv.cor); doc.roundedRect(lx, y + 3.8, lw, 6, 3, 3, "FD");
+      ink(nv.cor); doc.text(label, lx + lw / 2, y + 7.9, { align: "center" });
+
+      let cy = y + 7 + tituloL.length * LH(11);
+      ink(COR.suave); doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+      doc.text(p.equipe, M + 15, cy);
+      cy += 5.5;
+      ink(COR.texto); doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
+      doc.text(motivoL, M + 6, cy);
+      cy += motivoL.length * LH(9.5) + 3;
+
+      ink(COR.primaria); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+      doc.text("O QUE FAZER", M + 6, cy); cy += 4.5;
+      acoesL.forEach(linhas => {
+        fill(COR.primaria); doc.circle(M + 7.5, cy - 1.1, 0.8, "F");
+        ink(COR.escura); doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
+        doc.text(linhas, M + 11, cy);
+        cy += linhas.length * LH(9.5) + 0.8;
+      });
+      y += h + 4;
+    });
+
+    // Rodapé em todas as páginas
+    const total = doc.getNumberOfPages();
+    for (let n = 1; n <= total; n++) {
+      doc.setPage(n);
+      draw(COR.borda); doc.line(M, H - 13, W - M, H - 13);
+      ink(COR.suave); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+      doc.text(usouFallback
+        ? "Sugestões por regras fixas (IA indisponível). Revise com a equipe antes de aplicar."
+        : "Sugestões geradas por IA. Revise com a equipe antes de aplicar.", M, H - 8);
+      doc.text(`Página ${n} de ${total}`, W - M, H - 8, { align: "right" });
+    }
     doc.save(`analise-ia${indicador ? "-" + indicador.replace(/\s+/g, "-") : ""}.pdf`);
   };
 
