@@ -3,7 +3,7 @@
  * Usadas quando a análise por IA não está disponível (ex.: créditos esgotados).
  * Mesmo formato de resposta da função `sugerir-acoes`.
  */
-export interface DadosMes { mes: string; numerador: number; denominador: number; percentual: number }
+export interface DadosMes { mes: string; numerador: number; denominador: number; percentual: number; situacao?: "fechado" | "em_andamento" | "futuro" | "sem_dados" }
 export interface DadosIndicador {
   indicador: string;
   peso: number;
@@ -70,7 +70,8 @@ export function gerarPrioridadesFallback(dados: DadosEquipe[]): AnaliseFallback 
         : null; // "Ótimo" e "Sem dado" não entram
       if (!base) continue;
 
-      const comDado = ind.meses.filter(m => m.denominador > 0);
+      // Tendência só entre meses fechados: o mês corrente é parcial e não indica piora.
+      const comDado = ind.meses.filter(m => m.denominador > 0 && m.situacao !== "em_andamento");
       let queda = false;
       if (comDado.length >= 2) {
         const delta = comDado[comDado.length - 1].percentual - comDado[0].percentual;
@@ -100,9 +101,14 @@ export function gerarPrioridadesFallback(dados: DadosEquipe[]): AnaliseFallback 
   const prioridades = lista.slice(0, 8);
 
   const alta = lista.filter(p => p.nivel === "alta").length;
+  const todosMeses = dados.flatMap(eq => eq.indicadores.flatMap(i => i.meses));
+  const parcial = todosMeses.some(m => m.situacao === "em_andamento" || m.situacao === "futuro" || m.situacao === "sem_dados");
+  const ressalva = parcial
+    ? " Ressalva: meses em andamento ou ainda sem produção enviada (denominador zero) não foram considerados como queda; os resultados são preliminares e podem mudar após o envio completo da produção."
+    : "";
   const resumo = prioridades.length === 0
     ? "Nenhum indicador em Regular, Suficiente ou Bom nos períodos escolhidos: os resultados estão Ótimos ou sem dados."
-    : `${lista.length} indicador(es) abaixo do conceito Ótimo, dos quais ${alta} com prioridade alta. Análise automática por regras fixas (IA indisponível): ordenada pelo conceito, pela tendência entre os meses e pelo peso do indicador.`;
+    : `${lista.length} indicador(es) abaixo do conceito Ótimo, dos quais ${alta} com prioridade alta. Análise automática por regras fixas (IA indisponível): ordenada pelo conceito, pela tendência entre os meses e pelo peso do indicador.${ressalva}`;
 
   return { resumo, prioridades };
 }
