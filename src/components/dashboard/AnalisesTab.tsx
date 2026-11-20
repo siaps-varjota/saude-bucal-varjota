@@ -16,6 +16,7 @@ import { Tab6Record } from "@/hooks/useTab6Data";
 import { OficialData } from "@/hooks/useOficialData";
 import { PendenciasReportButton } from "./PendenciasReportButton";
 import { PrioridadesIA } from "@/components/dashboard/PrioridadesIA";
+import { listarMeses, mesesDosQuadrimestres } from "@/lib/mesesFiltro";
 
 interface AnalisesTabProps {
   patients: Patient[];
@@ -43,6 +44,7 @@ export const AnalisesTab = ({
 }: AnalisesTabProps) => {
   const [equipes, setEquipes] = useState<string[]>([]);
   const [quads, setQuads] = useState<Quadrimestre[]>([]);
+  const [mesesSel, setMesesSel] = useState<string[]>([]);
   const [indicadoresSel, setIndicadoresSel] = useState<string[]>([]);
 
   // Resultados por quadrimestre selecionado (vazio = todos os períodos)
@@ -64,6 +66,12 @@ export const AnalisesTab = ({
   ),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData]);
+
+  // Meses disponíveis (restritos aos quadrimestres escolhidos, se houver)
+  const mesOptions = useMemo(() => {
+    const permitidos = mesesDosQuadrimestres(quads);
+    return listarMeses(resultadosTodos).filter(m => permitidos === null || permitidos.has(m));
+  }, [resultadosTodos, quads]);
 
   const equipeList = useMemo(
     () => (equipeOptions.length > 0 ? equipeOptions : [...new Set(resultados.map(r => r.equipe))].sort()),
@@ -116,8 +124,7 @@ export const AnalisesTab = ({
 
   return (
     <div className="space-y-6">
-      <PrioridadesIA resultados={resultadosTodos} />
-      {/* Filtros */}
+      {/* Filtros únicos da aba. "Meses" só afeta a análise por IA; o Pareto e as pendências usam os quadrimestres. */}
       <div className="w-full p-4 bg-card border-2 my-0 shadow-xl rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl">
         <div className="flex items-center gap-3 w-full flex-wrap">
           <div className="flex items-center gap-2 shrink-0">
@@ -139,6 +146,13 @@ export const AnalisesTab = ({
             width="w-[230px]"
           />
           <MultiSelect
+            value={mesesSel}
+            options={mesOptions.map(m => ({ value: m, label: m }))}
+            onChange={setMesesSel}
+            placeholderAll="Todos os meses"
+            width="w-[190px]"
+          />
+          <MultiSelect
             value={indicadoresSel}
             options={indicadorOptions.map(i => ({ value: i, label: i }))}
             onChange={setIndicadoresSel}
@@ -153,6 +167,11 @@ export const AnalisesTab = ({
           </div>
         </div>
       </div>
+
+      <PrioridadesIA
+        resultados={resultadosTodos}
+        filtros={{ equipes, quads: quads as string[], meses: mesesSel, indicadores: indicadoresSel }}
+      />
 
       {/* Gráfico de Pareto */}
       <Card className="shadow-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl">

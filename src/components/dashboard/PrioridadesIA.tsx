@@ -8,6 +8,14 @@ import jsPDF from "jspdf";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
+import { listarMeses, mesesDosQuadrimestres } from "@/lib/mesesFiltro";
+
+export interface FiltrosPrioridades {
+  equipes: string[];
+  quads: string[];
+  meses: string[];
+  indicadores: string[];
+}
 
 interface Prioridade {
   equipe: string;
@@ -23,34 +31,32 @@ const NIVEL: Record<Prioridade["nivel"], { label: string; cls: string }> = {
   baixa: { label: "Baixa", cls: "bg-muted text-muted-foreground border-border" },
 };
 
-const MESES_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const mesNumero = (m: string) => { const i = MESES_ABBR.indexOf(m); return i >= 0 ? i + 1 : Number(m); };
-
 const CONCEITO: Record<string, string> = { regular: "Regular", suficiente: "Suficiente", bom: "Bom", otimo: "Ótimo", none: "Sem dado" };
 
-export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeResult[]; indicador?: string }) => {
+const SEM_FILTRO: string[] = [];
+
+interface PrioridadesIAProps {
+  resultados: EquipeResult[];
+  indicador?: string;
+  /** Quando informado, os filtros vêm do componente pai e os seletores próprios são ocultados. */
+  filtros?: FiltrosPrioridades;
+}
+
+export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAProps) => {
   const equipes = useMemo(() => [...new Set(resultados.map(r => r.equipe))].sort(), [resultados]);
-  const meses = useMemo(() => {
-    const s = new Set<string>();
-    resultados.forEach(r => r.indicadores.forEach(i => i.mesesDetalhe.forEach(m => s.add(m.mes))));
-    const key = (m: string) => { const [mm, yy] = m.split("/"); return Number(yy) * 100 + mesNumero(mm); };
-    return [...s].sort((a, b) => key(a) - key(b));
-  }, [resultados]);
+  const meses = useMemo(() => listarMeses(resultados), [resultados]);
 
-  const [selEquipes, setSelEquipes] = useState<string[]>([]);
-  const [selMeses, setSelMeses] = useState<string[]>([]);
-  const [selQuads, setSelQuads] = useState<string[]>([]);
+  const [ownEquipes, setOwnEquipes] = useState<string[]>([]);
+  const [ownMeses, setOwnMeses] = useState<string[]>([]);
+  const [ownQuads, setOwnQuads] = useState<string[]>([]);
 
-  const mesesDosQuads = useMemo(() => {
-    if (selQuads.length === 0) return null;
-    const set = new Set<string>();
-    selQuads.forEach(q => {
-      const [qn, ano] = q.split("-");
-      const nums = qn === "Q1" ? [1, 2, 3, 4] : qn === "Q2" ? [5, 6, 7, 8] : [9, 10, 11, 12];
-      nums.forEach(n => { set.add(`${String(n).padStart(2, "0")}/${ano}`); set.add(`${MESES_ABBR[n - 1]}/${ano}`); });
-    });
-    return set;
-  }, [selQuads]);
+  const controlado = !!filtros;
+  const selEquipes = filtros?.equipes ?? ownEquipes;
+  const selMeses = filtros?.meses ?? ownMeses;
+  const selQuads = filtros?.quads ?? ownQuads;
+  const selIndicadores = filtros?.indicadores ?? SEM_FILTRO;
+
+  const mesesDosQuads = useMemo(() => mesesDosQuadrimestres(selQuads), [selQuads]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [res, setRes] = useState<{ resumo: string; prioridades: Prioridade[] } | null>(null);
@@ -63,7 +69,7 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
       .filter(r => eqs.includes(r.equipe) && !vistos.has(r.equipe) && vistos.add(r.equipe))
       .map(r => ({
         equipe: r.equipe,
-        indicadores: r.indicadores.filter(i => !indicador || i.indicador === indicador).map(i => {
+        indicadores: r.indicadores.filter(i => (!indicador || i.indicador === indicador) && (selIndicadores.length === 0 || selIndicadores.includes(i.indicador))).map(i => {
           const mesesSel = i.mesesDetalhe.filter(m =>
             (selMeses.length === 0 || selMeses.includes(m.mes)) &&
             (mesesDosQuads === null || mesesDosQuads.has(m.mes))
@@ -82,7 +88,7 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
         }).filter(i => i.meses.some(m => m.denominador > 0)),
       }))
       .filter(r => r.indicadores.length > 0);
-  }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes, indicador]);
+  }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes, indicador, selIndicadores]);
 
   const analisar = async () => {
     setErro(null); setRes(null); setUsouFallback(false);
@@ -123,6 +129,7 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
 
   const gerarPdf = () => {
     if (!res) return;
+    const rotuloIndicador = indicador ?? (selIndicadores.length ? selIndicadores.join(", ") : "");
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const W = 210, M = 14, maxW = W - 2 * M;
     let y = 16;
@@ -133,8 +140,8 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
         doc.text(l, M, y); y += size * 0.42 + gap;
       }
     };
-    linhas(`Prioridades e ações sugeridas (IA)${indicador ? " — " + indicador : ""}`, 15, true);
-    linhas(`Equipes: ${selEquipes.length ? selEquipes.join(", ") : "Todas"}  |  Quadrimestres: ${selQuads.length ? selQuads.join(", ") : "Todos"}  |  Meses: ${selMeses.length ? selMeses.join(", ") : "Todos"}`, 9);
+    linhas(`Prioridades e ações sugeridas (IA)${rotuloIndicador ? " — " + rotuloIndicador : ""}`, 15, true);
+    linhas(`Equipes: ${selEquipes.length ? selEquipes.join(", ") : "Todas"}  |  Quadrimestres: ${selQuads.length ? selQuads.join(", ") : "Todos"}  |  Meses: ${selMeses.length ? selMeses.join(", ") : "Todos"}${controlado ? `  |  Indicadores: ${selIndicadores.length ? selIndicadores.join(", ") : "Todos"}` : ""}`, 9);
     linhas(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 9); y += 3;
     linhas("Resumo", 12, true); linhas(res.resumo, 10); y += 3;
     res.prioridades.forEach((p, i) => {
@@ -147,29 +154,44 @@ export const PrioridadesIA = ({ resultados, indicador }: { resultados: EquipeRes
     doc.save(`analise-ia${indicador ? "-" + indicador.replace(/\s+/g, "-") : ""}.pdf`);
   };
 
+  const botoes = (
+    <div className="flex items-center gap-3">
+      <Button onClick={analisar} disabled={loading || dados.length === 0}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+        {loading ? "Analisando..." : "Gerar análise"}
+      </Button>
+      <Button variant="outline" onClick={gerarPdf} disabled={!res}>
+        <FileDown className="h-4 w-4" /> Gerar PDF
+      </Button>
+    </div>
+  );
+
   return (
     <Card className="border-border/50 shadow-md">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" /> Prioridades e ações sugeridas (IA){indicador ? ` — ${indicador}` : ""}
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Escolha as equipes, o quadrimestre e os meses; a IA aponta onde acompanhar primeiro e o que fazer para chegar mais perto das metas.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Prioridades e ações sugeridas (IA){indicador ? ` — ${indicador}` : ""}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              {controlado
+                ? "Usa os filtros acima; a IA aponta onde acompanhar primeiro e o que fazer para chegar mais perto das metas."
+                : "Escolha as equipes, o quadrimestre e os meses; a IA aponta onde acompanhar primeiro e o que fazer para chegar mais perto das metas."}
+            </p>
+          </div>
+          {controlado && botoes}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_10rem_auto_auto] items-end">
-          <MultiSelect options={equipes.map(e => ({ value: e, label: e }))} value={selEquipes} onChange={setSelEquipes} placeholderAll="Todas as equipes" width="w-full" />
-          <MultiSelect options={QUADRIMESTRE_OPTIONS_SEM_TODOS.map(q => ({ value: q.value, label: q.label }))} value={selQuads} onChange={setSelQuads} placeholderAll="Todos os quadrimestres" width="w-full" />
-          <MultiSelect options={meses.map(m => ({ value: m, label: m }))} value={selMeses} onChange={setSelMeses} placeholderAll="Todos os meses" width="w-full" />
-          <Button onClick={analisar} disabled={loading || dados.length === 0}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {loading ? "Analisando..." : "Gerar análise"}
-          </Button>
-          <Button variant="outline" onClick={gerarPdf} disabled={!res}>
-            <FileDown className="h-4 w-4" /> Gerar PDF
-          </Button>
-        </div>
+        {!controlado && (
+          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_10rem_auto_auto] items-end">
+            <MultiSelect options={equipes.map(e => ({ value: e, label: e }))} value={ownEquipes} onChange={setOwnEquipes} placeholderAll="Todas as equipes" width="w-full" />
+            <MultiSelect options={QUADRIMESTRE_OPTIONS_SEM_TODOS.map(q => ({ value: q.value, label: q.label }))} value={ownQuads} onChange={setOwnQuads} placeholderAll="Todos os quadrimestres" width="w-full" />
+            <MultiSelect options={meses.map(m => ({ value: m, label: m }))} value={ownMeses} onChange={setOwnMeses} placeholderAll="Todos os meses" width="w-full" />
+            {botoes}
+          </div>
+        )}
 
         {erro && <p className="text-sm text-destructive">{erro}</p>}
 
