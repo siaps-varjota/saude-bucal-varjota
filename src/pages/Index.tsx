@@ -370,8 +370,8 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     !isLoadingTab4 && !isLoadingTab5 && !isLoadingTab6 &&
     !isLoadingDenominadorB1 && !!denominadorB1Data && !!patients?.length;
 
-  // Prioridades (IA) só são usadas nas abas 1, 3 e 5: não calcula nas demais.
-  const precisaResultadosIA = ["consulta", "tab3", "tab5"].includes(activeTab);
+  // Prioridades (IA) aparecem nas abas B1 a B6: não calcula nas demais.
+  const precisaResultadosIA = ["consulta", "tratamento", "tab3", "tab4", "tab5", "tab6"].includes(activeTab);
   const resultadosIA = useMemo(
     () => !precisaResultadosIA || !denominadorB1Data ? [] : resultadoComTodosOsMeses(
       patients ?? [], tratamentoPatients ?? [], tab3Patients ?? [],
@@ -501,9 +501,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="1ª Consulta Odontológica" /></div>}
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
             </div>
-            {resultadosIA.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadosIA} indicador="1ª Consulta Odontológica" /></div>}
           </>)}
           </TabsContent>
 
@@ -588,6 +588,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Tratamento Concluído" /></div>}
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamento} />}
             </div>
           </>)}
@@ -651,9 +652,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Taxa de Exodontias" /></div>}
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
-            {resultadosIA.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadosIA} indicador="Taxa de Exodontias" /></div>}
           </>)}
           </TabsContent>
 
@@ -720,6 +721,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Escovação Supervisionada" /></div>}
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
           </>)}
@@ -795,9 +797,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Proced. Odont. Preventivos" /></div>}
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
-            {resultadosIA.length > 0 && <div className="mt-6"><PrioridadesIA resultados={resultadosIA} indicador="Proced. Odont. Preventivos" /></div>}
           </>)}
           </TabsContent>
 
@@ -859,6 +861,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Trat. Restaurador Atraumático" /></div>}
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
           </>)}
