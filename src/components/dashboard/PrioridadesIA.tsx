@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Sparkles, Loader2, FileDown } from "lucide-react";
-import { gerarPdfPrioridades } from "@/lib/prioridadesPdf";
 import { QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
@@ -127,8 +126,16 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
     setRes(data);
   };
 
-  const gerarPdf = () => {
+  const gerarPdf = async () => {
     if (!res) return;
+    let jsPDF: typeof import("jspdf").default;
+    try {
+      ({ default: jsPDF } = await import("jspdf"));
+    } catch (e) {
+      console.error("Falha ao carregar jsPDF", e);
+      setErro("Não foi possível carregar o gerador de PDF. Recarregue a página e tente novamente.");
+      return;
+    }
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const W = 210, H = 297, M = 14, maxW = W - 2 * M;
     const COR = {
