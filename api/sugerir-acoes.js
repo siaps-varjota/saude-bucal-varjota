@@ -79,6 +79,23 @@ Não faça diagnósticos clínicos. Produza recomendações operacionais realist
 Use resumoPorAba para comparar as abas sem recalcular médias. Nunca recalcule coberturas por conta própria. Se indicadoresOmitidos existir, informe que a análise considera os indicadores de menor cobertura.
 Reconheça boas coberturas (90% ou mais) e unidades de referência sem repetir o resumo. Escreva em português do Brasil, de forma objetiva.
 Limites: resumo até 100 palavras; no máximo 6 prioridades, da mais urgente para a menos urgente, cada uma com 2 a 3 ações de até 25 palavras e justificativa de até 45 palavras; no máximo 5 recomendações e 3 pontos positivos.`;
+function ressalvasTemporais(ref) {
+  const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Fortaleza", day: "2-digit", month: "long", year: "numeric" });
+  const hoje = fmt.format(new Date());
+  const mesAtual = typeof ref?.mesAtual === "string" ? ref.mesAtual.slice(0, 10) : "";
+  return `DATA DE HOJE: ${hoje}${mesAtual ? " (mês corrente: " + mesAtual + ")" : ""}.
+RESSALVAS OBRIGATÓRIAS (aplique sempre, no resumo e nas prioridades):
+1. Cada mês traz o campo "situacao": "fechado" (mês passado com dados), "em_andamento" (mês corrente: a produção ainda está sendo registrada e enviada, os números são PARCIAIS), "futuro" (ainda não começou) ou "sem_dados" (mês passado sem denominador registrado).
+2. Mês "em_andamento" ou "futuro" com denominador zero é ESPERADO, não é falha da equipe nem problema de registro. Diga isso de forma explícita no resumo (ex.: "os dados de Dez/2026 ainda não existem porque o mês está em andamento"). Nunca fale em "ausência de dados processados", "sub-registro" ou "auditoria" por causa de mês em andamento ou futuro.
+3. Mês "sem_dados" (já encerrado) pode indicar produção não enviada ou não registrada: trate como hipótese a conferir (envio ao SISAB/e-SUS), nunca como conclusão.
+4. NÃO calcule tendência, queda ou melhora usando mês "em_andamento", "futuro" ou "sem_dados". Compare apenas meses "fechado". Com menos de 2 meses fechados, diga que não há como avaliar tendência.
+5. Resultados são preliminares: o mês corrente é parcial, a extração do SIAPS ocorre no 20º dia útil e o envio tardio pode alterar os números. Quando "fonte" for "preliminar", avise que o valor pode mudar; quando for "oficial", pode tratá-lo como consolidado.
+6. A média do período usa poucos meses e denominadores pequenos oscilam muito: se o denominador for baixo, diga que a variação mensal é pouco confiável. Não classifique prioridade ALTA com base apenas em mês parcial.
+7. Ao interpretar movimento, respeite a polaridade: B3 menor é melhor, mas abaixo de 3% também é Regular; B5 é Regular abaixo de 40% e acima de 85%. Não chame de "queda acentuada" ou "melhora" sem dizer se o movimento aproxima ou afasta o indicador da faixa Ótima.
+8. Ações devem valer para o mês corrente e os próximos do quadrimestre; não proponha "recuperar" mês já encerrado, e não peça correção de dados de mês que ainda não terminou.
+9. Não afirme causas que os dados não mostram; use "pode indicar" e sugira conferir. Se todos os indicadores estiverem Ótimos nos meses fechados, não invente prioridades.
+10. Se o período tiver poucos meses fechados, termine o resumo com uma frase curta avisando que a análise é provisória.`;
+}
 const semAdditional = (o) => Array.isArray(o) ? o.map(semAdditional) : o && typeof o === "object" ? Object.fromEntries(Object.entries(o).filter(([k]) => k !== "additionalProperties").map(([k, v]) => [k, semAdditional(v)])) : o;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 async function chamarGemini(entrada, apiKey, instrucoes, schema = SCHEMA) {
@@ -163,7 +180,7 @@ async function handler(req, res) {
       if (gb.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
       return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
     }
-    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI + "\n\n" + METODOLOGIA_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF + "\n\n" + METODOLOGIA_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA + "\n\n" + METODOLOGIA_ESF : INSTRUCOES + "\n\n" + METODOLOGIA_ESB);
+    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI + "\n\n" + METODOLOGIA_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF + "\n\n" + METODOLOGIA_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA + "\n\n" + METODOLOGIA_ESF   : INSTRUCOES + "\n\n" + ressalvasTemporais(req.body?.referencia) + "\n\n" + METODOLOGIA_ESB);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
     return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
