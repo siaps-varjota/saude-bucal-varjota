@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { carregarComGuarda } from "@/lib/cargaCompleta";
 
 export interface Tab4Patient {
   id: number;
@@ -57,7 +58,7 @@ const parseCSV = (csv: string): Tab4Patient[] => {
     .filter((patient) => patient.id > 0);
 };
 
-const fetchTab4Data = async (): Promise<Tab4Patient[]> => {
+const fetchTab4DataBruto = async (): Promise<Tab4Patient[]> => {
   const response = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Falha ao carregar dados");
@@ -65,6 +66,8 @@ const fetchTab4Data = async (): Promise<Tab4Patient[]> => {
   const csv = await response.text();
   return parseCSV(csv);
 };
+
+const fetchTab4Data = (): Promise<Tab4Patient[]> => carregarComGuarda("b4-escovacao", fetchTab4DataBruto);
 
 export const useTab4Data = () => {
   return useQuery({

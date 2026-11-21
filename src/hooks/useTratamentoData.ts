@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { carregarComGuarda } from "@/lib/cargaCompleta";
 
 export interface TratamentoPatient {
   id: number;
@@ -57,7 +58,7 @@ const parseCSV = (csv: string): TratamentoPatient[] => {
     .filter((patient) => patient.id > 0);
 };
 
-const fetchTratamentoData = async (): Promise<TratamentoPatient[]> => {
+const fetchTratamentoDataBruto = async (): Promise<TratamentoPatient[]> => {
   const response = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Falha ao carregar dados");
@@ -65,6 +66,8 @@ const fetchTratamentoData = async (): Promise<TratamentoPatient[]> => {
   const csv = await response.text();
   return parseCSV(csv);
 };
+
+const fetchTratamentoData = (): Promise<TratamentoPatient[]> => carregarComGuarda("b2-tratamento", fetchTratamentoDataBruto);
 
 // ─── Helpers de numerador ────────────────────────────────────────────────────
 
