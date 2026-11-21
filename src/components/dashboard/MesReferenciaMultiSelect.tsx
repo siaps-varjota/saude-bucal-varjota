@@ -8,9 +8,10 @@ interface MesReferenciaMultiSelectProps {
   value: string[];
   options: string[];
   onChange: (value: string[]) => void;
+  className?: string;
 }
 
-export const MesReferenciaMultiSelect = ({ value, options, onChange }: MesReferenciaMultiSelectProps) => {
+export const MesReferenciaMultiSelect = ({ value, options, onChange, className = "w-[220px]" }: MesReferenciaMultiSelectProps) => {
   const allSelected = value.length === 0;
 
   const label = useMemo(() => {
@@ -32,7 +33,7 @@ export const MesReferenciaMultiSelect = ({ value, options, onChange }: MesRefere
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-[220px] h-9 justify-between font-normal">
+        <Button variant="outline" className={`${className} h-9 justify-between font-normal`}>
           <span className="truncate">{label}</span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
