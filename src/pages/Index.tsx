@@ -1,4 +1,5 @@
 import { useOficialData } from "@/hooks/useOficialData";
+import { useDataAtualizacao } from "@/hooks/useDataAtualizacao";
 import { OficialData } from "@/hooks/useOficialData";
 import { useState, useMemo, useEffect } from "react";
 import { isValid } from "date-fns";
@@ -221,6 +222,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
   const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
   const { data: oficialData, refetch: refetchOficial } = useOficialData();
+  const { data: dataAtualizacao, refetch: refetchDataAtualizacao } = useDataAtualizacao();
 
   const initialFilter: FilterState = { equipes: [], microareas: [], status: "all", quadrimestres: [], mesReferencia: [] };
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>(initialFilter);
@@ -323,6 +325,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     refetchTab5();
     refetchTab6();
     refetchOficial();
+    refetchDataAtualizacao();
   };
 
   const getTabState = () => {
@@ -407,16 +410,23 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                 <p className="mt-1 text-muted-foreground">Painel de Monitoramento da Saúde Bucal</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2">
               {userName && (
-                <span className="hidden sm:inline text-sm text-muted-foreground">
+                <span className="hidden sm:flex h-10 items-center text-sm text-muted-foreground">
                   Olá, <strong>{userName}</strong>
                 </span>
               )}
-              <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
-                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-                Atualizar dados
-              </Button>
+              <div className="flex flex-col items-center gap-1">
+                <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
+                  <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                  Atualizar dados
+                </Button>
+                {dataAtualizacao && (
+                  <span className="text-[11px] leading-none text-muted-foreground whitespace-nowrap">
+                    {/atualiz/i.test(dataAtualizacao) ? dataAtualizacao : `Atualizado em ${dataAtualizacao}`}
+                  </span>
+                )}
+              </div>
               <Button variant="ghost" size="icon" onClick={onLogout} title="Sair">
                 <LogOut className="h-4 w-4" />
               </Button>
