@@ -1,11 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-// Aba "DADOS" (pacientes B1). A data/hora da última atualização fica na célula O2.
+// Aba "B1 LISTA" (pacientes B1). A data/hora da última atualização fica na célula A1.
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRmWTBTuo3l7yKebZuk-qJxQfpG_qvoKSHK6_DxSmaV0cT_iKHZQkZLAakrvYeDPh1oe20_vlOJJ7ex/pub?gid=424984913&single=true&output=csv";
 
-const COL_O = 14; // A=0 ... O=14
-const REGEX_DATA = /\d{1,2}\/\d{1,2}\/\d{2,4}/;
 
 /** Lê só as primeiras linhas do CSV, respeitando aspas (inclusive quebra de linha dentro da célula). */
 const lerPrimeirosRegistros = (text: string, maxRegistros: number): string[][] => {
@@ -29,25 +27,10 @@ const lerPrimeirosRegistros = (text: string, maxRegistros: number): string[][] =
 };
 
 export const extrairDataAtualizacao = (text: string): string | null => {
-  const registros = lerPrimeirosRegistros(text, 8);
-  // 1) célula O2 (linha 2, coluna O)
-  const o2 = registros[1]?.[COL_O]?.trim();
-  if (o2 && REGEX_DATA.test(o2)) return o2;
-  // 2) plano B: rótulo "DATA DA ATUALIZAÇÃO" em qualquer lugar do topo; a data vem na célula abaixo
-  for (let r = 0; r < registros.length; r++) {
-    for (let c = 0; c < registros[r].length; c++) {
-      if (/ATUALIZA/i.test(registros[r][c])) {
-        const abaixo = registros[r + 1]?.[c]?.trim();
-        if (abaixo && REGEX_DATA.test(abaixo)) return abaixo;
-      }
-    }
-  }
-  // 3) plano C: qualquer data/hora na coluna O do topo
-  for (const reg of registros) {
-    const v = reg[COL_O]?.trim();
-    if (v && REGEX_DATA.test(v)) return v;
-  }
-  return null;
+  // Célula A1 = primeira coluna do primeiro registro do CSV
+  const registros = lerPrimeirosRegistros(text, 1);
+  const a1 = registros[0]?.[0]?.trim();
+  return a1 ? a1 : null;
 };
 
 /** Independente dos demais dados: se falhar, nada mais do painel é afetado. */
