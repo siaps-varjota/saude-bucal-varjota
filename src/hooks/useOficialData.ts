@@ -20,19 +20,27 @@ export interface OficialData {
   atualizadoEm?: string;
 }
 
-/** Lê uma linha de CSV respeitando aspas (campos com vírgula/;). */
-const splitCsvLine = (line: string, sep: string): string[] => {
-  const out: string[] = [];
+/** Lê o CSV inteiro em registros, respeitando aspas (inclusive quebra de linha dentro da célula). */
+const parseCsvRecords = (text: string, sep: string): string[][] => {
+  const registros: string[][] = [];
+  let linha: string[] = [];
   let cur = "", aspas = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (aspas && line[i + 1] === '"') { cur += '"'; i++; } else aspas = !aspas;
-    } else if (ch === sep && !aspas) { out.push(cur); cur = ""; }
-    else cur += ch;
+  const fechaCampo = () => { linha.push(cur.trim()); cur = ""; };
+  const fechaLinha = () => { fechaCampo(); registros.push(linha); linha = []; };
+  const t = text.replace(/^\uFEFF/, "");
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (aspas) {
+      if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') aspas = false;
+      else cur += ch;
+    } else if (ch === '"') aspas = true;
+    else if (ch === sep) fechaCampo();
+    else if (ch === "\n") fechaLinha();
+    else if (ch !== "\r") cur += ch;
   }
-  out.push(cur);
-  return out.map(c => c.trim().replace(/\r/g, ""));
+  if (cur !== "" || linha.length > 0) fechaLinha();
+  return registros;
 };
 
 /** Coluna O = índice 14; linha 2 = primeira linha após o cabeçalho. */
@@ -105,7 +113,11 @@ const parseCSV = (text: string): OficialData => {
 
   const rows: OficialRow[] = [];
   const index = new Map<string, OficialRow>();
-  const atualizadoEm = splitCsvLine(lines[1], sep)[COL_ATUALIZACAO] || undefined;
+  // Data da atualização: coluna "DATA DA ATUALIZAÇÃO" (ou coluna O), linha 2 da planilha.
+  const registros = parseCsvRecords(text, sep);
+  const cab = (registros[0] ?? []).map(h => h.toUpperCase().replace(/\s+/g, " ").trim());
+  const idxAtual = cab.findIndex(h => h.includes("ATUALIZA"));
+  const atualizadoEm = (registros[1]?.[idxAtual >= 0 ? idxAtual : COL_ATUALIZACAO] ?? "").trim() || undefined;
 
   for (let i = 1; i < lines.length; i++) {
     const cells = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ""));
