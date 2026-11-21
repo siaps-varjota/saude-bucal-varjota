@@ -2046,13 +2046,13 @@ export const ResultadoFinalTab = ({
     <PeriodoMesesContext.Provider value={periodoMeses}>
     <div className="space-y-8">
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-4 p-4 bg-card border-2 shadow-xl rounded-xl">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 p-4 bg-card border-2 shadow-xl rounded-xl">
+        <div className="flex items-center gap-2 shrink-0">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
         </div>
         <Select value={equipe} onValueChange={onEquipeChange}>
-          <SelectTrigger className="w-[280px] h-9">
+          <SelectTrigger className="w-full sm:w-[220px] lg:w-auto lg:flex-1 lg:min-w-0 h-9">
             <SelectValue placeholder="Selecione a equipe" />
           </SelectTrigger>
           <SelectContent>
@@ -2063,7 +2063,7 @@ export const ResultadoFinalTab = ({
           </SelectContent>
         </Select>
         <Select value={quadrimestre} onValueChange={(v) => onQuadrimestreChange(v as Quadrimestre)}>
-          <SelectTrigger className="w-[260px] h-9">
+          <SelectTrigger className="w-full sm:w-[220px] lg:w-auto lg:flex-1 lg:min-w-0 h-9">
             <SelectValue placeholder="Selecione o quadrimestre" />
           </SelectTrigger>
           <SelectContent>
@@ -2077,10 +2077,11 @@ export const ResultadoFinalTab = ({
             value={mesesFiltro}
             options={mesesOptions}
             onChange={onMesesFiltroChange}
+            className="w-full sm:w-[200px] lg:w-auto lg:flex-1 lg:min-w-0"
           />
         )}
         <Select value={indicadorFiltro} onValueChange={setIndicadorFiltro}>
-          <SelectTrigger className="w-[280px] h-9">
+          <SelectTrigger className="w-full sm:w-[220px] lg:w-auto lg:flex-1 lg:min-w-0 h-9">
             <SelectValue placeholder="Selecione o indicador" />
           </SelectTrigger>
           <SelectContent>
@@ -2089,7 +2090,7 @@ export const ResultadoFinalTab = ({
             ))}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ml-auto shrink-0">
           <Button variant="outline" size="sm" onClick={handleGeneratePDF} className="h-9 gap-2">
             <FileDown className="h-4 w-4" />
             Gerar PDF
