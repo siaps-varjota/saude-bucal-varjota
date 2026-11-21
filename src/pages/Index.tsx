@@ -413,10 +413,17 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   Olá, <strong>{userName}</strong>
                 </span>
               )}
-              <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
-                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-                Atualizar dados
-              </Button>
+              <div className="flex flex-col items-center">
+                <Button variant="outline" onClick={refetchAll} disabled={isFetching} className="gap-2">
+                  <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                  Atualizar dados
+                </Button>
+                {oficialData?.atualizadoEm && (
+                  <span className="mt-1 text-[11px] leading-tight text-muted-foreground" title="Data da última atualização da planilha de dados">
+                    Atualizado em {oficialData.atualizadoEm}
+                  </span>
+                )}
+              </div>
               <Button variant="ghost" size="icon" onClick={onLogout} title="Sair">
                 <LogOut className="h-4 w-4" />
               </Button>
