@@ -16,7 +16,27 @@ export interface OficialData {
   rows: OficialRow[];
   /** Lookup rápido: chave = "MM/YYYY||EQUIPE_NORMALIZADA" */
   index: Map<string, OficialRow>;
+  /** Data/hora da última atualização da planilha (célula O2, como exibida no Google Sheets). */
+  atualizadoEm?: string;
 }
+
+/** Lê uma linha de CSV respeitando aspas (campos com vírgula/;). */
+const splitCsvLine = (line: string, sep: string): string[] => {
+  const out: string[] = [];
+  let cur = "", aspas = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (aspas && line[i + 1] === '"') { cur += '"'; i++; } else aspas = !aspas;
+    } else if (ch === sep && !aspas) { out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(c => c.trim().replace(/\r/g, ""));
+};
+
+/** Coluna O = índice 14; linha 2 = primeira linha após o cabeçalho. */
+const COL_ATUALIZACAO = 14;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MONTH_MAP: Record<string, string> = {
@@ -85,6 +105,7 @@ const parseCSV = (text: string): OficialData => {
 
   const rows: OficialRow[] = [];
   const index = new Map<string, OficialRow>();
+  const atualizadoEm = splitCsvLine(lines[1], sep)[COL_ATUALIZACAO] || undefined;
 
   for (let i = 1; i < lines.length; i++) {
     const cells = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ""));
@@ -117,7 +138,7 @@ const parseCSV = (text: string): OficialData => {
     index.set(makeOficialKey(mes, equipeRaw), row);
   }
 
-  return { rows, index };
+  return { rows, index, atualizadoEm };
 };
 
 // ── URL do CSV ────────────────────────────────────────────────────────────────
