@@ -18,6 +18,7 @@ import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
 import { useResultadoFinal, resultadoComTodosOsMeses } from "@/hooks/useResultadoFinal";
 import { PrioridadesIA } from "@/components/dashboard/PrioridadesIA";
+import { useDataAtualizacao } from "@/hooks/useDataAtualizacao";
 import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/components/LoginPage";
@@ -221,6 +222,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
   const { data: tab6Patients,       isLoading: isLoadingTab6,       error: errorTab6,       refetch: refetchTab6,       isFetching: isFetchingTab6       } = useTab6Data();
   const { data: denominadorB1Data,  isLoading: isLoadingDenominadorB1 } = useDenominadorB1();
   const { data: oficialData, refetch: refetchOficial } = useOficialData();
+  const { data: dataAtualizacao, refetch: refetchAtualizacao } = useDataAtualizacao();
 
   const initialFilter: FilterState = { equipes: [], microareas: [], status: "all", quadrimestres: [], mesReferencia: [] };
   const [filtersConsulta,   setFiltersConsulta]   = useState<FilterState>(initialFilter);
@@ -323,6 +325,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     refetchTab5();
     refetchTab6();
     refetchOficial();
+    refetchAtualizacao();
   };
 
   const getTabState = () => {
@@ -418,9 +421,9 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                   <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                   Atualizar dados
                 </Button>
-                {oficialData?.atualizadoEm && (
+                {dataAtualizacao && (
                   <span className="mt-1 text-[11px] leading-tight text-muted-foreground" title="Data da última atualização da planilha de dados">
-                    Atualizado em {oficialData.atualizadoEm}
+                    Atualizado em {dataAtualizacao}
                   </span>
                 )}
               </div>
