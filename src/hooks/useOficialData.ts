@@ -16,35 +16,7 @@ export interface OficialData {
   rows: OficialRow[];
   /** Lookup rápido: chave = "MM/YYYY||EQUIPE_NORMALIZADA" */
   index: Map<string, OficialRow>;
-  /** Data/hora da última atualização da planilha (célula O2, como exibida no Google Sheets). */
-  atualizadoEm?: string;
 }
-
-/** Lê o CSV inteiro em registros, respeitando aspas (inclusive quebra de linha dentro da célula). */
-const parseCsvRecords = (text: string, sep: string): string[][] => {
-  const registros: string[][] = [];
-  let linha: string[] = [];
-  let cur = "", aspas = false;
-  const fechaCampo = () => { linha.push(cur.trim()); cur = ""; };
-  const fechaLinha = () => { fechaCampo(); registros.push(linha); linha = []; };
-  const t = text.replace(/^\uFEFF/, "");
-  for (let i = 0; i < t.length; i++) {
-    const ch = t[i];
-    if (aspas) {
-      if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++; }
-      else if (ch === '"') aspas = false;
-      else cur += ch;
-    } else if (ch === '"') aspas = true;
-    else if (ch === sep) fechaCampo();
-    else if (ch === "\n") fechaLinha();
-    else if (ch !== "\r") cur += ch;
-  }
-  if (cur !== "" || linha.length > 0) fechaLinha();
-  return registros;
-};
-
-/** Coluna O = índice 14; linha 2 = primeira linha após o cabeçalho. */
-const COL_ATUALIZACAO = 14;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MONTH_MAP: Record<string, string> = {
@@ -113,11 +85,6 @@ const parseCSV = (text: string): OficialData => {
 
   const rows: OficialRow[] = [];
   const index = new Map<string, OficialRow>();
-  // Data da atualização: coluna "DATA DA ATUALIZAÇÃO" (ou coluna O), linha 2 da planilha.
-  const registros = parseCsvRecords(text, sep);
-  const cab = (registros[0] ?? []).map(h => h.toUpperCase().replace(/\s+/g, " ").trim());
-  const idxAtual = cab.findIndex(h => h.includes("ATUALIZA"));
-  const atualizadoEm = (registros[1]?.[idxAtual >= 0 ? idxAtual : COL_ATUALIZACAO] ?? "").trim() || undefined;
 
   for (let i = 1; i < lines.length; i++) {
     const cells = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ""));
@@ -150,7 +117,7 @@ const parseCSV = (text: string): OficialData => {
     index.set(makeOficialKey(mes, equipeRaw), row);
   }
 
-  return { rows, index, atualizadoEm };
+  return { rows, index };
 };
 
 // ── URL do CSV ────────────────────────────────────────────────────────────────
