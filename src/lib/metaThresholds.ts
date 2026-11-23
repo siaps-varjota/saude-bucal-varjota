@@ -181,10 +181,13 @@ export function calcFaltamPar(
 }
 
 // ── Método "mês atual": média ≥ meta nos N meses do período ────────────────────
-// O conceito do período é a MÉDIA dos percentuais mensais. Para fechar o período
-// com média ≥ meta: N × meta − Σ(meses já FECHADOS) é dividido igualmente entre o
-// mês em andamento e os meses que ainda não aconteceram. O mês em andamento deve
-// atingir esse percentual; os meses futuros serão calculados quando existirem.
+// O conceito do período é a MÉDIA dos percentuais mensais.
+// 1) Regra principal: o mês em andamento carrega sozinho a diferença, de modo que a
+//    média dos meses decorridos (fechados + atual) fique ≥ meta:
+//    alvo = (meses decorridos × meta) − Σ(meses já FECHADOS).
+// 2) Só quando esse alvo passa de 100% (impossível num único mês) o que falta é
+//    dividido igualmente entre o mês em andamento e os meses futuros:
+//    alvo = (N × meta − Σ fechados) / (N − fechados).
 
 export interface MesCalcLabel {
   mes?: string;
@@ -234,6 +237,8 @@ export interface FaltamMesAtual {
   idxAberto: number;
   mesAberto?: string;
   fechados: number;
+  /** true quando o alvo precisou ser dividido com os meses seguintes (alvo do mês passaria de 100%) */
+  dividePróximos?: boolean;
 }
 
 export function calcFaltamMesAtual(
@@ -250,10 +255,23 @@ export function calcFaltamMesAtual(
   if (idx < 0) return null;
   const fechados = meses.filter((m, i) => i < idx && m.den > 0);
   const soma = fechados.reduce((s, m) => s + razao(m, capMensal), 0);
-  const abertos = Math.max(1, nMeses - fechados.length);
-  const alvo = (nMeses * threshold - soma) / abertos;
   const atual = meses[idx];
-  const base = { alvo, idxAberto: idx, mesAberto: atual.mes, fechados: fechados.length };
+
+  // Regra principal: o mês atual carrega sozinho a meta da média dos meses decorridos.
+  const decorridos = Math.min(nMeses, fechados.length + 1);
+  const alvoSozinho = decorridos * threshold - soma;
+  const tetoMes = capMensal ?? 1; // um mês não passa de 100%
+  let alvo: number;
+  let dividePróximos = false;
+  if (alvoSozinho <= tetoMes + 1e-12) {
+    alvo = alvoSozinho;
+  } else {
+    // Não cabe num único mês (> 100%): divide entre o mês atual e os próximos.
+    const abertos = Math.max(1, nMeses - fechados.length);
+    alvo = (nMeses * threshold - soma) / abertos;
+    dividePróximos = abertos > 1;
+  }
+  const base = { alvo, idxAberto: idx, mesAberto: atual.mes, fechados: fechados.length, dividePróximos };
 
   if (atual.den > 0 && razao(atual, capMensal) > alvo) return { faltam: 0, ...base };
   if (alvo <= 0) return { faltam: 0, ...base };
