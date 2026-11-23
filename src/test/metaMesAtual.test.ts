@@ -11,15 +11,42 @@ describe("método do mês atual", () => {
     { mes: "Dez/2026", num: 0, den: 0 },
   ];
 
-  it("B5 Ótimo: mês atual precisa de ~82,4%", () => {
+  it("B5 Bom: mês atual carrega sozinho a meta da média dos meses decorridos", () => {
+    // Exemplo real: Set 38,8% e Out 52,4% -> 3 × 55 − 91,2 = 73,8% (e não 64,4%)
+    const real = [
+      { mes: "Set/2026", num: 388, den: 1000 },
+      { mes: "Out/2026", num: 524, den: 1000 },
+      { mes: "Nov/2026", num: 195, den: 384 },
+      { mes: "Dez/2026", num: 0, den: 0 },
+    ];
+    const r = calcFaltamMesAtual(real, 4, 0.55 - 1e-9, 2, 2, undefined, hoje)!;
+    expect(r.fechados).toBe(2);
+    expect(r.dividePróximos).toBe(false);
+    expect(r.alvo * 100).toBeCloseTo(73.8, 1);
+    const x = r.faltam!;
+    expect((195 + 2 * x) / (384 + 2 * x)).toBeGreaterThanOrEqual(r.alvo);
+    expect((195 + 2 * (x - 1)) / (384 + 2 * (x - 1))).toBeLessThan(r.alvo);
+  });
+
+  it("B5 Ótimo: mês atual sozinho (≈ 99,8%, ainda ≤ 100%)", () => {
     const r = calcFaltamMesAtual(b5, 4, 0.65 - 1e-9, 2, 2, undefined, hoje)!;
     expect(r.fechados).toBe(2);
     expect(r.mesAberto).toBe("Nov/2026");
-    expect(r.alvo * 100).toBeCloseTo(82.4, 0);
-    // (133+2x)/(256+2x) >= alvo
-    const x = r.faltam!;
-    expect((133 + 2 * x) / (256 + 2 * x)).toBeGreaterThanOrEqual(r.alvo);
-    expect((133 + 2 * (x - 1)) / (256 + 2 * (x - 1))).toBeLessThan(r.alvo);
+    expect(r.dividePróximos).toBe(false);
+    expect(r.alvo * 100).toBeCloseTo(99.8, 0);
+  });
+
+  it("só divide com os próximos quando o mês atual precisaria passar de 100%", () => {
+    const fraco = [
+      { mes: "Set/2026", num: 30, den: 100 },
+      { mes: "Out/2026", num: 30, den: 100 },
+      { mes: "Nov/2026", num: 10, den: 100 },
+      { mes: "Dez/2026", num: 0, den: 0 },
+    ];
+    // Ótimo (65%): 3 × 65 − 60 = 135% > 100% -> divide: (4 × 65 − 60)/2 = 100%
+    const r = calcFaltamMesAtual(fraco, 4, 0.65 - 1e-9, 1, 0, undefined, hoje)!;
+    expect(r.dividePróximos).toBe(true);
+    expect(r.alvo * 100).toBeCloseTo(100, 0);
   });
 
   it("B1 já Ótimo: nada falta", () => {

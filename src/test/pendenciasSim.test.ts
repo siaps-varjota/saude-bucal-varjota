@@ -19,7 +19,8 @@ describe("PDF de pendências — método do mês atual", () => {
       ],
     }) as any);
     expect(row.proximo).toContain("Bom");
-    expect(row.faltamCurto).toBe("36 consultas");
+    // Bom (55%): alvo do mês = 3 × 55 − (48,3 + 46,9) = 69,8% -> +76 (2 num / 2 den cada)
+    expect(row.faltamCurto).toMatch(/^76\b/);
     expect(row.faltam).toContain("Nov/2026");
     expect(row.pendente).toBe(true);
   });
