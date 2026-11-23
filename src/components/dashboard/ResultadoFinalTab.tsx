@@ -254,7 +254,9 @@ const MetaQuadrimestreCard = ({
       </div>
       {!semMeses && (
         <p className="mt-1 text-[10px] leading-snug text-muted-foreground max-w-[400px]">
-          Média dos {periodoMeses} meses ≥ meta: o restante após os meses fechados é dividido entre o mês atual e os próximos.
+          {(bom?.dividePróximos || otimo?.dividePróximos)
+            ? `Média dos ${periodoMeses} meses ≥ meta: como o mês atual não alcança sozinho (> 100%), o restante é dividido entre o mês atual e os próximos.`
+            : "Média dos meses decorridos ≥ meta: o mês atual precisa cobrir sozinho a diferença; só se dividiria com os próximos se passasse de 100%."}
         </p>
       )}
     </div>

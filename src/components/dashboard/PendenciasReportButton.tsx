@@ -335,7 +335,7 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         doc.setFontSize(9);
         y += 4;
         const rodapeTexto = doc.splitTextToSize(
-          "Metas pelo método da média mensal: a média dos 4 meses do quadrimestre precisa atingir o limite. O que sobra após os meses já fechados é dividido entre o mês atual e os próximos; a coluna \"Faltam\" indica o necessário NO MÊS ATUAL (os próximos meses são calculados quando existirem). Incremento por unidade: B1/B2/B4: +1 no numerador; B5: +2 num/+2 den por consulta ou tratamento; B6: +1 ART num/+1 den. B3 (menor é melhor, faixa de 3% a 10% para Ótimo): acima do limite não se fazem novas exodontias e é preciso aumentar o denominador; abaixo de 3% faltam exodontias. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
+          "Metas pelo método da média mensal: a média dos meses decorridos do quadrimestre precisa atingir o limite, e o mês atual cobre sozinho o que falta após os meses já fechados; só se o mês atual precisasse passar de 100% o restante seria dividido com os próximos meses; a coluna \"Faltam\" indica o necessário NO MÊS ATUAL (os próximos meses são calculados quando existirem). Incremento por unidade: B1/B2/B4: +1 no numerador; B5: +2 num/+2 den por consulta ou tratamento; B6: +1 ART num/+1 den. B3 (menor é melhor, faixa de 3% a 10% para Ótimo): acima do limite não se fazem novas exodontias e é preciso aumentar o denominador; abaixo de 3% faltam exodontias. A coluna \"Impacto na Nota\" mostra quantos pontos aquele indicador ganha na Nota Final se atingir o próximo conceito (Bom/Ótimo).",
           pageW - 28,
         );
         doc.text(rodapeTexto, 14, y);
