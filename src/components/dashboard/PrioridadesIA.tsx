@@ -10,6 +10,11 @@ import { rotuloUnidade, slugUnidade } from "@/lib/pdfUnidade";
 import { gerarPrioridadesFallback } from "@/lib/prioridadesFallback";
 import { conceitoPorIndicador, type EquipeResult } from "@/hooks/useResultadoFinal";
 import { listarMeses, mesesDosQuadrimestres } from "@/lib/mesesFiltro";
+import { usePatientData } from "@/hooks/usePatientData";
+import { useTratamentoData } from "@/hooks/useTratamentoData";
+import { isConsultaPendente } from "@/hooks/useFilteredPatients";
+import { buildSimRow } from "@/components/dashboard/PendenciasReportButton";
+import { analisarEstrategia, pendenciasParaIA, type PendenciasIA } from "@/lib/estrategiaFimDeMes";
 
 export interface FiltrosPrioridades {
   equipes: string[];
@@ -36,14 +41,21 @@ const CONCEITO: Record<string, string> = { regular: "Regular", suficiente: "Sufi
 
 const SEM_FILTRO: string[] = [];
 
+const ORDEM_INDICADORES = ["1ª Consulta Odontológica", "Tratamento Concluído", "Taxa de Exodontias", "Escovação Supervisionada", "Proced. Odont. Preventivos", "Trat. Restaurador Atraumático"];
+const normalizeEquipe = (e: string) => e.replace(/ESF/gi, "ESB").trim();
+
 interface PrioridadesIAProps {
   resultados: EquipeResult[];
+  /** Resultado do quadrimestre em andamento (mesma base do relatório de pendências); habilita pendências e estratégia de fim de mês. */
+  resultadosQuadAtual?: EquipeResult[];
   indicador?: string;
   /** Quando informado, os filtros vêm do componente pai e os seletores próprios são ocultados. */
   filtros?: FiltrosPrioridades;
 }
 
-export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAProps) => {
+export const PrioridadesIA = ({ resultados, resultadosQuadAtual, indicador, filtros }: PrioridadesIAProps) => {
+  const { data: patients = [] } = usePatientData();
+  const { data: tratamentos = [] } = useTratamentoData();
   const equipes = useMemo(() => [...new Set(resultados.map(r => r.equipe))].sort(), [resultados]);
   const meses = useMemo(() => listarMeses(resultados), [resultados]);
 
@@ -91,6 +103,36 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
       .filter(r => r.indicadores.length > 0);
   }, [resultados, selEquipes, selMeses, mesesDosQuads, equipes, indicador, selIndicadores]);
 
+  // Dados do relatório de pendências (contagens B1/B2, simulação do próximo conceito e estratégia de fim de mês)
+  const pendenciasPorEquipe = useMemo(() => {
+    const mapa = new Map<string, { pend: PendenciasIA; est: ReturnType<typeof analisarEstrategia> }>();
+    if (!resultadosQuadAtual?.length) return mapa;
+    for (const d of dados) {
+      const er = resultadosQuadAtual.find(r => r.equipe === d.equipe);
+      if (!er?.indicadores?.length) continue;
+      const alvo = normalizeEquipe(d.equipe);
+      const semConsulta = patients.filter(p => normalizeEquipe(p.equipe) === alvo && isConsultaPendente(p.primeiraConsulta)).length;
+      const trat = tratamentos.filter(p => normalizeEquipe(p.equipe) === alvo && p.comTratamentoConcluido === "Pendente").length;
+      const linhas = [...er.indicadores]
+        .sort((a, b) => ORDEM_INDICADORES.indexOf(a.indicador) - ORDEM_INDICADORES.indexOf(b.indicador))
+        .map(buildSimRow);
+      mapa.set(d.equipe, {
+        pend: pendenciasParaIA(linhas, { notaFinalAtual: er.notaFinal, semPrimeiraConsulta: semConsulta, tratamentoPendente: trat }),
+        est: analisarEstrategia(linhas),
+      });
+    }
+    return mapa;
+  }, [dados, resultadosQuadAtual, patients, tratamentos]);
+
+  const dadosComPendencias = useMemo(
+    () => dados.map(d => (pendenciasPorEquipe.has(d.equipe) ? { ...d, pendencias: pendenciasPorEquipe.get(d.equipe)!.pend } : d)),
+    [dados, pendenciasPorEquipe],
+  );
+  const estrategias = useMemo(
+    () => dados.map(d => ({ equipe: d.equipe, est: pendenciasPorEquipe.get(d.equipe)?.est })).filter(e => e.est?.ativa),
+    [dados, pendenciasPorEquipe],
+  );
+
   const analisar = async () => {
     setErro(null); setRes(null); setUsouFallback(false);
     if (dados.length === 0) {
@@ -105,7 +147,7 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
       const resp = await fetch("/api/sugerir-acoes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dados, referencia: { hoje: new Date().toLocaleDateString("pt-BR"), mesAtual: rotuloMesAtual() } }),
+        body: JSON.stringify({ dados: dadosComPendencias, referencia: { hoje: new Date().toLocaleDateString("pt-BR"), mesAtual: rotuloMesAtual() } }),
       });
       data = await resp.json().catch(() => null);
       if (!resp.ok && !data?.error) error = new Error(`HTTP ${resp.status}`);
@@ -118,7 +160,7 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
       // IA indisponível (sem créditos, limite, falha do serviço): usa regras fixas.
       const iaIndisponivel = !msg || /créditos|muitas solicitações|não foi possível|falha ao processar/i.test(msg);
       if (iaIndisponivel) {
-        setRes(gerarPrioridadesFallback(dados));
+        setRes(gerarPrioridadesFallback(dadosComPendencias));
         setUsouFallback(true);
         return;
       }
@@ -207,6 +249,25 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
     ink(COR.escura); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
     doc.text(resumoL, M + 6, y + 12.5);
     y += hResumo + 8;
+
+    // Estratégia de fim de mês (a partir do dia 20 nos meses 1–3; mês inteiro no 4º)
+    estrategias.forEach(({ equipe, est }) => {
+      const titulo = `${est!.titulo}${estrategias.length > 1 ? ` — ${equipe}` : ""}`;
+      const blocos = est!.paragrafos.map(t => ({ t, linhas: quebra(t, maxW - 12, 9.5, t.startsWith("Recomendação:")), negrito: t.startsWith("Recomendação:") }));
+      const hBox = 13 + blocos.reduce((a, b) => a + b.linhas.length * LH(9.5) + 1.2, 0);
+      novaPaginaSe(hBox);
+      fill([255, 251, 235]); draw([251, 191, 36]); doc.roundedRect(M, y, maxW, hBox, 2, 2, "FD");
+      fill([217, 119, 6]); doc.rect(M, y, 1.8, hBox, "F");
+      ink([120, 53, 15]); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+      doc.text(quebra(titulo, maxW - 12, 10, true), M + 6, y + 6.5);
+      let cy2 = y + 12.5;
+      blocos.forEach(b => {
+        ink(COR.texto); doc.setFont("helvetica", b.negrito ? "bold" : "normal"); doc.setFontSize(9.5);
+        doc.text(b.linhas, M + 6, cy2);
+        cy2 += b.linhas.length * LH(9.5) + 1.2;
+      });
+      y += hBox + 6;
+    });
 
     // Contagem por nível
     const cont = { alta: 0, media: 0, baixa: 0 };
@@ -328,6 +389,16 @@ export const PrioridadesIA = ({ resultados, indicador, filtros }: PrioridadesIAP
         {res && (
           <div className="space-y-3">
             <p className="text-sm bg-muted/50 rounded-md p-3">{res.resumo}</p>
+            {estrategias.map(({ equipe, est }) => (
+              <div key={equipe} className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-1.5 dark:bg-amber-950/30 dark:border-amber-700/60">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  {est!.titulo}{estrategias.length > 1 ? ` — ${equipe}` : ""}
+                </p>
+                {est!.paragrafos.map((t, k) => (
+                  <p key={k} className={`text-xs ${t.startsWith("Recomendação:") ? "font-semibold" : ""}`}>{t}</p>
+                ))}
+              </div>
+            ))}
             {res.prioridades.map((p, i) => (
               <div key={i} className="rounded-lg border border-border p-3 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">

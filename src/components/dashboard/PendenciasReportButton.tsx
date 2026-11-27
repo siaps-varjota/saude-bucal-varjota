@@ -5,7 +5,8 @@ import { usePatientData } from "@/hooks/usePatientData";
 import { useTratamentoData } from "@/hooks/useTratamentoData";
 import { isConsultaPendente } from "@/hooks/useFilteredPatients";
 import type { EquipeResult, IndicadorResult } from "@/hooks/useResultadoFinal";
-import { META_THRESHOLDS, LABEL_SEM_SIMULACAO, PISO_B3, calcFaltam, calcFaltamMesAtual, calcFaltamMesAtualB3 } from "@/lib/metaThresholds";
+import { META_THRESHOLDS, LABEL_SEM_SIMULACAO, PISO_B3, calcFaltam, calcFaltamMesAtual, calcFaltamMesAtualB3, chaveMes } from "@/lib/metaThresholds";
+import { analisarEstrategia, type LinhaEstrategia } from "@/lib/estrategiaFimDeMes";
 
 interface Props {
   equipe: string; // "all" or specific equipe name
@@ -34,7 +35,10 @@ const rotuloMes = (label?: string) => {
 };
 const fmtPct = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")}%`;
 
-interface SimRow {
+const ehMesCorrente = (mes?: string, hoje: Date = new Date()) =>
+  chaveMes(mes) === hoje.getFullYear() * 12 + hoje.getMonth();
+
+export interface SimRow extends LinhaEstrategia {
   indicador: string;
   atual: string;
   conceitoAtual: string;
@@ -45,7 +49,6 @@ interface SimRow {
   faltamCurto: string;
   pendente: boolean;
   notaProj: string;
-  notaProjNum: number;
   impacto: string;
   obs: string;
 }
@@ -66,6 +69,7 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
       notaProjNum: notaAtualPonderada,
       impacto: "—",
       obs: "Indicador sem simulação por incremento.",
+      codigo: prefixo ?? "", nome: ind.indicador, mesCorrente: false, faltamNum: 0, unidadeEsforco: "", impactoNum: 0,
     };
   }
 
@@ -103,6 +107,10 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
     const notaProjBase = isOtimo || !temDado ? ind.nota : isBom || pct < PISO_B3 * 100 ? 1.0 : 0.75;
     const notaProjPonderada = (isOtimo || !temDado ? ind.nota : notaProjBase) * ind.peso;
     const impactoPontos = notaProjPonderada - notaAtualPonderada;
+    // Dados numéricos para a estratégia de fim de mês (cruzamento B3 x B5/B6).
+    const modoB3: "exodontia" | "denominador" | null = !r || r.faltam === null ? null : r.faltam > 0 ? "denominador" : r.faltamExo > 0 ? "exodontia" : null;
+    const faltamNumB3: number | null = !r ? 0 : r.faltam === null ? null : r.faltam > 0 ? r.faltam : r.faltamExo;
+    const mesAbertoB3 = r ? mesesLista[r.idxAberto] : undefined;
     return {
       indicador: `${cfg.code} — ${ind.indicador}`,
       atual: `${ind.numerador}/${ind.denominador} (${pct.toFixed(1)}%)`,
@@ -113,6 +121,12 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
       notaProjNum: notaProjPonderada,
       impacto: !pendente || impactoPontos <= 0 ? "—" : `+${impactoPontos.toFixed(2).replace(".", ",")} pts`,
       obs: "",
+      codigo: cfg.code, nome: ind.indicador,
+      mesCorrente: ehMesCorrente(r?.mesAberto),
+      faltamNum: faltamNumB3,
+      unidadeEsforco: modoB3 === "exodontia" ? "exodontia(s)" : "proced. (denominador)",
+      impactoNum: !pendente || impactoPontos <= 0 ? 0 : impactoPontos,
+      b3: r && modoB3 && mesAbertoB3 ? { modo: modoB3, mesNum: mesAbertoB3.num, mesDen: mesAbertoB3.den, alvoMin: r.alvoMin } : undefined,
     };
   }
 
@@ -125,12 +139,16 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
   const unit = UNIDADE_FALTAM[cfg.code] ?? cfg.unit;
 
   let faltam = "OK — atingido", faltamCurto = "OK — atingido", pendente = false;
+  let faltamNum: number | null = 0, mesCorrente = false;
   if (proximoThresh != null) {
     const r = calcFaltamMesAtual(mesesLista, N_MESES, proximoThresh, cfg.deltaNum, cfg.deltaDenom, capMensal);
     pendente = true;
+    mesCorrente = ehMesCorrente(r?.mesAberto);
     if (r && r.faltam === null) {
       faltam = faltamCurto = "Inalcançável no mês";
+      faltamNum = null;
     } else if (r) {
+      faltamNum = r.faltam;
       faltamCurto = `${r.faltam!.toLocaleString("pt-BR")} ${unit}`;
       faltam = r.faltam === 0
         ? "0"
@@ -138,6 +156,7 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
       if (r.faltam === 0) pendente = false;
     } else {
       const f = calcFaltam(ind.numerador, ind.denominador, proximoThresh, cfg.deltaNum, cfg.deltaDenom);
+      faltamNum = f;
       faltamCurto = faltam = `${f.toLocaleString("pt-BR")} ${unit}`;
     }
   }
@@ -154,6 +173,8 @@ export function buildSimRow(ind: IndicadorResult): SimRow {
     notaProjNum: notaProjPonderada,
     impacto: isOtimo || impactoPontos <= 0 ? "—" : `+${impactoPontos.toFixed(2).replace(".", ",")} pts`,
     obs: isOtimo ? "Já no Ótimo." : `Atinge ${proximoLabel?.split(" ")[0]} com +${faltamCurto}.`,
+    codigo: cfg.code, nome: ind.indicador, mesCorrente, faltamNum, unidadeEsforco: unit,
+    impactoNum: isOtimo || impactoPontos <= 0 ? 0 : impactoPontos,
   };
 }
 
@@ -340,6 +361,38 @@ export const PendenciasReportButton = ({ equipe, equipeResult }: Props) => {
         );
         doc.text(rodapeTexto, 14, y);
         y += rodapeTexto.length * 3 + 3;
+
+        // ── Estratégia de fim de mês (a partir do dia 20 nos meses 1–3; mês inteiro no 4º) ──
+        const estrategia = analisarEstrategia(simRows);
+        if (estrategia.ativa) {
+          const larguraTxt = pageW - 28 - 10;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          const blocos = estrategia.paragrafos.map((t) => doc.splitTextToSize(t, larguraTxt) as string[]);
+          const alturaBlocos = blocos.reduce((a, l) => a + l.length * 4.6 + 1.8, 0);
+          const alturaBox = 12 + alturaBlocos;
+          if (y + alturaBox > 200) { doc.addPage(); y = 15; }
+          y += 2;
+          doc.setDrawColor(251, 191, 36);
+          doc.setFillColor(255, 251, 235);
+          doc.roundedRect(14, y, pageW - 28, alturaBox, 2, 2, "FD");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.setTextColor(120, 53, 15);
+          doc.text(estrategia.titulo, 19, y + 7);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.setTextColor(60);
+          let yy = y + 13;
+          blocos.forEach((linhas, i) => {
+            const destaque = estrategia.paragrafos[i].startsWith("Recomendação:");
+            doc.setFont("helvetica", destaque ? "bold" : "normal");
+            doc.text(linhas, 19, yy);
+            yy += linhas.length * 4.6 + 1.8;
+          });
+          doc.setFont("helvetica", "normal");
+          y += alturaBox + 4;
+        }
       }
 
 

@@ -5,7 +5,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MultiSelect } from "@/components/dashboard/MultiSelect";
 import { Filter } from "lucide-react";
-import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre, QUADRIMESTRE_OPTIONS_SEM_TODOS, getQuadrimestreAtual } from "@/hooks/useQuadrimesterFilter";
 import { calcularResultadoFinal as computeResultadoFinal, resultadoComTodosOsMeses, EquipeResult } from "@/hooks/useResultadoFinal";
 import { Patient } from "@/hooks/usePatientData";
 import { TratamentoPatient } from "@/hooks/useTratamentoData";
@@ -64,6 +64,14 @@ export const AnalisesTab = ({
     patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients,
     "todos", "all", denominadorB1Data, oficialData, [],
   ),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData]);
+
+  // Quadrimestre em andamento: base das pendências e da estratégia de fim de mês na análise por IA
+  const resultadosQuadAtual = useMemo(() => computeResultadoFinal(
+    patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients,
+    getQuadrimestreAtual(), "all", denominadorB1Data, oficialData, [],
+  ).porEquipe,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData]);
 
@@ -170,6 +178,7 @@ export const AnalisesTab = ({
 
       <PrioridadesIA
         resultados={resultadosTodos}
+        resultadosQuadAtual={resultadosQuadAtual}
         filtros={{ equipes, quads: quads as string[], meses: mesesSel, indicadores: indicadoresSel }}
       />
 
