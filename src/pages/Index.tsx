@@ -17,14 +17,14 @@ import { useFilteredTab3 } from "@/hooks/useFilteredTab3";
 import { useFilteredTab4, isConsultaPendenteTab4 } from "@/hooks/useFilteredTab4";
 import { useFilteredTab5 } from "@/hooks/useFilteredTab5";
 import { useFilteredTab6 } from "@/hooks/useFilteredTab6";
-import { useResultadoFinal, resultadoComTodosOsMeses } from "@/hooks/useResultadoFinal";
+import { useResultadoFinal, resultadoComTodosOsMeses, calcularResultadoFinal } from "@/hooks/useResultadoFinal";
 import { PrioridadesIA } from "@/components/dashboard/PrioridadesIA";
 import { useDenominadorB1 } from "@/hooks/useDenominadorB1";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/components/LoginPage";
 import { ResultadoFinalTab } from "@/components/dashboard/ResultadoFinalTab";
 import { AnalisesTab } from "@/components/dashboard/AnalisesTab";
-import { Quadrimestre } from "@/hooks/useQuadrimesterFilter";
+import { Quadrimestre, getQuadrimestreAtual } from "@/hooks/useQuadrimesterFilter";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PatientTable } from "@/components/dashboard/PatientTable";
 import { Tab5Table } from "@/components/dashboard/Tab5Table";
@@ -384,6 +384,16 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
     [precisaResultadosIA, patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData],
   );
 
+  // Quadrimestre em andamento (pendências + estratégia de fim de mês na análise por IA)
+  const resultadosQuadAtualIA = useMemo(
+    () => !precisaResultadosIA || !denominadorB1Data ? [] : calcularResultadoFinal(
+      patients ?? [], tratamentoPatients ?? [], tab3Patients ?? [],
+      tab4Patients ?? [], tab5Patients ?? [], tab6Patients ?? [],
+      getQuadrimestreAtual(), "all", denominadorB1Data, oficialData, [],
+    ).porEquipe,
+    [precisaResultadosIA, patients, tratamentoPatients, tab3Patients, tab4Patients, tab5Patients, tab6Patients, denominadorB1Data, oficialData],
+  );
+
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -511,7 +521,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
-              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="1ª Consulta Odontológica" /></div>}
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} resultadosQuadAtual={resultadosQuadAtualIA} indicador="1ª Consulta Odontológica" /></div>}
               {isLoadingPatients ? <Skeleton className="h-96 rounded-xl" /> : <PatientTable patients={filteredPatients} />}
             </div>
           </>)}
@@ -598,7 +608,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
-              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Tratamento Concluído" /></div>}
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} resultadosQuadAtual={resultadosQuadAtualIA} indicador="Tratamento Concluído" /></div>}
               {isLoadingTratamento ? <Skeleton className="h-96 rounded-xl" /> : <TratamentoTable patients={filteredTratamento} />}
             </div>
           </>)}
@@ -662,7 +672,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
-              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Taxa de Exodontias" /></div>}
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} resultadosQuadAtual={resultadosQuadAtualIA} indicador="Taxa de Exodontias" /></div>}
               {isLoadingTab3 ? <Skeleton className="h-96 rounded-xl" /> : <Tab3Table records={filteredTab3} />}
             </div>
           </>)}
@@ -731,7 +741,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
-              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Escovação Supervisionada" /></div>}
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} resultadosQuadAtual={resultadosQuadAtualIA} indicador="Escovação Supervisionada" /></div>}
               {isLoadingTab4 ? <Skeleton className="h-96 rounded-xl" /> : <Tab4Table patients={filteredTab4} />}
             </div>
           </>)}
@@ -807,7 +817,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
-              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Proced. Odont. Preventivos" /></div>}
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} resultadosQuadAtual={resultadosQuadAtualIA} indicador="Proced. Odont. Preventivos" /></div>}
               {isLoadingTab5 ? <Skeleton className="h-96 rounded-xl" /> : <Tab5Table records={filteredTab5} />}
             </div>
           </>)}
@@ -871,7 +881,7 @@ const Dashboard = ({ userName, onLogout }: { userName: string; onLogout: () => v
                       oficialData={oficialData}
                     />}
               </div>
-              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} indicador="Trat. Restaurador Atraumático" /></div>}
+              {resultadosIA.length > 0 && <div className="mb-8"><PrioridadesIA resultados={resultadosIA} resultadosQuadAtual={resultadosQuadAtualIA} indicador="Trat. Restaurador Atraumático" /></div>}
               {isLoadingTab6 ? <Skeleton className="h-96 rounded-xl" /> : <Tab6Table records={filteredTab6} />}
             </div>
           </>)}
