@@ -79,6 +79,20 @@ Não faça diagnósticos clínicos. Produza recomendações operacionais realist
 Use resumoPorAba para comparar as abas sem recalcular médias. Nunca recalcule coberturas por conta própria. Se indicadoresOmitidos existir, informe que a análise considera os indicadores de menor cobertura.
 Reconheça boas coberturas (90% ou mais) e unidades de referência sem repetir o resumo. Escreva em português do Brasil, de forma objetiva.
 Limites: resumo até 100 palavras; no máximo 6 prioridades, da mais urgente para a menos urgente, cada uma com 2 a 3 ações de até 25 palavras e justificativa de até 45 palavras; no máximo 5 recomendações e 3 pontos positivos.`;
+const INSTRUCOES_PENDENCIAS = `DADOS DO RELATÓRIO DE PENDÊNCIAS (campo "pendencias" de cada equipe, quando existir):
+- contagens.semPrimeiraConsultaB1 = pessoas vinculadas ainda sem 1ª consulta (lista de busca ativa); contagens.tratamentoPendenteB2 = pessoas com tratamento iniciado e não concluído.
+- simulacao = para cada indicador, o valor atual, o conceito atual, o próximo conceito, quanto falta NO MÊS ATUAL (faltamNoMesAtual) e quantos pontos da nota final o indicador ganha ao atingi-lo (pontosGanhos). notaFinalAtual e notaFinalProjetada são a nota hoje e a nota se todos subirem de conceito.
+- Use esses números exatamente como vierem; não recalcule. Cruze com os demais dados: por exemplo, a lista de B1 pendentes sustenta a busca ativa que também alimenta B2 e B5 (cada 1ª consulta soma procedimentos preventivos).
+- Quando a análise for de um único indicador, use só a parte de pendencias que se relaciona com ele.
+
+ESTRATÉGIA DE FIM DE MÊS (pendencias.estrategiaFimDeMes). A nota é a MÉDIA MENSAL dos percentuais; por isso, a partir do dia 20 nos meses 1 a 3 do quadrimestre, e o mês inteiro no 4º mês, vale escolher onde concentrar o esforço. Quando estrategiaFimDeMes.ativa for true:
+1. Comece o "resumo" dizendo qual indicador priorizar agora e por quê (mais pontos com menos unidades a cumprir no mês), citando os números de "ranking" (faltamNum, unidade, pontosGanhos).
+2. As primeiras prioridades devem seguir a ordem de "ranking" (do mais fácil ao mais difícil), respeitando "foco" e "adiar". Indicador em "adiar" só entra depois, com a justificativa de "avisos".
+3. Explique o cruzamento B3 x B5/B6 quando houver em "avisos": B5 e B6 entram no denominador de B3; com B3 abaixo do piso de 3% (faltam exodontias), mais procedimentos preventivos diluem B3 e o afastam do piso, então priorizar B5 dificulta B3; com B3 acima do limite, B5 e B6 ajudam B3.
+4. Indicadores em "inalcancaveis" não atingem o próximo conceito só com o mês atual: não gaste esforço extra neles agora.
+5. Se fase for "mes_inteiro", lembre que é o último mês do quadrimestre e que a leitura deve ser refeita toda semana; se for "apos_dia_20", lembre de refazer a leitura a cada mês a partir do dia 20.
+6. Nunca sugira deixar de fazer exodontia com indicação clínica, nem fazer ou registrar procedimento que não aconteceu para mexer no percentual. As ações devem ser de agenda, busca ativa com os ACS e registro correto no e-SUS.
+Quando estrategiaFimDeMes.ativa for false, não fale em estratégia de fim de mês.`;
 function ressalvasTemporais(ref) {
   const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Fortaleza", day: "2-digit", month: "long", year: "numeric" });
   const hoje = fmt.format(new Date());
@@ -180,7 +194,7 @@ async function handler(req, res) {
       if (gb.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
       return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
     }
-    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI + "\n\n" + METODOLOGIA_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF + "\n\n" + METODOLOGIA_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA + "\n\n" + METODOLOGIA_ESF   : INSTRUCOES + "\n\n" + ressalvasTemporais(req.body?.referencia) + "\n\n" + METODOLOGIA_ESB);
+    const g = await chamarGemini(entrada, apiKey, req.body?.contexto === "emulti" ? INSTRUCOES_EMULTI + "\n\n" + METODOLOGIA_EMULTI : req.body?.contexto === "esf" ? INSTRUCOES_ESF + "\n\n" + METODOLOGIA_ESF : req.body?.contexto === "esf-aba" ? INSTRUCOES_ESF_ABA + "\n\n" + METODOLOGIA_ESF   : INSTRUCOES + "\n\n" + ressalvasTemporais(req.body?.referencia) + "\n\n" + INSTRUCOES_PENDENCIAS + "\n\n" + METODOLOGIA_ESB);
     if (g.texto) return res.status(200).json(JSON.parse(g.texto));
     if (g.status === 429) return res.status(429).json({ error: "Muitas solicita\xE7\xF5es no momento. Aguarde um pouco e tente de novo." });
     return res.status(502).json({ error: "N\xE3o foi poss\xEDvel gerar a an\xE1lise agora." });
