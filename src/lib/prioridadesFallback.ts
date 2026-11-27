@@ -1,3 +1,5 @@
+import { CODIGO_POR_INDICADOR, type PendenciasIA } from "@/lib/estrategiaFimDeMes";
+
 /**
  * Sugestões de prioridades SEM IA (regras fixas).
  * Usadas quando a análise por IA não está disponível (ex.: créditos esgotados).
@@ -13,7 +15,7 @@ export interface DadosIndicador {
   denominadorPeriodo: number;
   meses: DadosMes[];
 }
-export interface DadosEquipe { equipe: string; indicadores: DadosIndicador[] }
+export interface DadosEquipe { equipe: string; indicadores: DadosIndicador[]; /** dados do relatório de pendências (opcional) */ pendencias?: PendenciasIA }
 export type Nivel = "alta" | "media" | "baixa";
 export interface PrioridadeFallback { equipe: string; indicador: string; nivel: Nivel; motivo: string; acoes: string[] }
 export interface AnaliseFallback { resumo: string; prioridades: PrioridadeFallback[] }
@@ -95,9 +97,33 @@ export function gerarPrioridadesFallback(dados: DadosEquipe[]): AnaliseFallback 
     }
   }
 
-  lista.sort((a, b) =>
-    ORDEM[a.nivel] - ORDEM[b.nivel] ||
-    (pesoDe[`${b.equipe}|${b.indicador}`] ?? 0) - (pesoDe[`${a.equipe}|${a.indicador}`] ?? 0));
+  // Estratégia de fim de mês: o indicador "foco" (menos esforço por ponto) vem primeiro;
+  // o que compete com o foco (ex.: B5 quando B3 precisa de exodontias) leva um aviso.
+  const posFoco = new Map<string, number>();
+  const estrategiaPorEquipe = new Map(dados.map(eq => [eq.equipe, eq.pendencias?.estrategiaFimDeMes]));
+  for (const p of lista) {
+    const est = estrategiaPorEquipe.get(p.equipe);
+    if (!est?.ativa) continue;
+    const codigo = CODIGO_POR_INDICADOR[p.indicador];
+    const item = est.ranking?.find(i => i.codigo === codigo);
+    if (!item) continue;
+    if (item.papel === "foco") {
+      posFoco.set(`${p.equipe}|${p.indicador}`, est.ranking!.indexOf(item));
+      p.nivel = "alta";
+      p.motivo += ` Foco do fim de mês: faltam ${fmt(item.faltamNum)} ${item.unidade} para ganhar +${fmt(item.pontosGanhos)} pt(s) na nota.`;
+      p.acoes = [`Foco desta reta final: ${item.faltamNum} ${item.unidade} no mês atual (é o que rende mais pontos com menos esforço).`, ...p.acoes];
+    } else {
+      p.motivo += ` Neste mês compete com o foco (${est.foco?.join(", ")}): ${(est.avisos ?? []).find(a => a.startsWith(codigo)) ?? "priorizar este indicador dificulta o foco."}`;
+    }
+  }
+
+  lista.sort((a, b) => {
+    const fa = posFoco.get(`${a.equipe}|${a.indicador}`);
+    const fb = posFoco.get(`${b.equipe}|${b.indicador}`);
+    if (fa !== undefined || fb !== undefined) return (fa ?? 99) - (fb ?? 99);
+    return ORDEM[a.nivel] - ORDEM[b.nivel] ||
+      (pesoDe[`${b.equipe}|${b.indicador}`] ?? 0) - (pesoDe[`${a.equipe}|${a.indicador}`] ?? 0);
+  });
   const prioridades = lista.slice(0, 8);
 
   const alta = lista.filter(p => p.nivel === "alta").length;
@@ -106,9 +132,13 @@ export function gerarPrioridadesFallback(dados: DadosEquipe[]): AnaliseFallback 
   const ressalva = parcial
     ? " Ressalva: meses em andamento ou ainda sem produção enviada (denominador zero) não foram considerados como queda; os resultados são preliminares e podem mudar após o envio completo da produção."
     : "";
+  const ordens = dados.map(eq => eq.pendencias?.estrategiaFimDeMes).filter(e => e?.ativa && e.ordemSugerida);
+  const estrategiaTxt = ordens.length
+    ? ` Estratégia de fim de mês: ${dados.length > 1 ? "(ver cada equipe) " : ""}${ordens[0]!.ordemSugerida}`
+    : "";
   const resumo = prioridades.length === 0
     ? "Nenhum indicador em Regular, Suficiente ou Bom nos períodos escolhidos: os resultados estão Ótimos ou sem dados."
-    : `${lista.length} indicador(es) abaixo do conceito Ótimo, dos quais ${alta} com prioridade alta. Análise automática por regras fixas (IA indisponível): ordenada pelo conceito, pela tendência entre os meses e pelo peso do indicador.${ressalva}`;
+    : `${lista.length} indicador(es) abaixo do conceito Ótimo, dos quais ${alta} com prioridade alta. Análise automática por regras fixas (IA indisponível): ordenada pelo conceito, pela tendência entre os meses e pelo peso do indicador.${estrategiaTxt}${ressalva}`;
 
   return { resumo, prioridades };
 }
